@@ -1,18 +1,45 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
-import { StatusBar } from 'expo-status-bar'
-import BalanceCard from '../components/BalanceCard'
-import { Colors } from '../constants/colors'
-import { GlobalStyles } from '../constants/styles'
+import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import BalanceCard from "../components/BalanceCard";
+import { Colors } from "../constants/colors";
+import { GlobalStyles } from "../constants/styles";
+import TransactionList, { Transaction } from "../components/TransactionList";
 
 export default function DashboardScreen() {
   // Temporary hardcoded data — later will come from Zustand store
   const mockData = {
-    balance: 3840.00,
-    totalIncome: 2200.00,
-    totalExpense: 1360.00,
+    balance: 3840.0,
+    totalIncome: 2200.0,
+    totalExpense: 1360.0,
     incomePercentage: 12,
     expensePercentage: 5,
-  }
+  };
+  const mockTransactions: Transaction[] = [
+    {
+      id: "1",
+      name: "Lidl",
+      category: "food",
+      amount: 42.0,
+      type: "expense",
+      date: "2026-07-01",
+    },
+    {
+      id: "2",
+      name: "Salary",
+      category: "salary",
+      amount: 2200.0,
+      type: "income",
+      date: "2026-07-01",
+    },
+    {
+      id: "3",
+      name: "Coffee 79",
+      category: "restaurant",
+      amount: 8.0,
+      type: "expense",
+      date: "2026-07-01",
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -37,9 +64,18 @@ export default function DashboardScreen() {
           expensePercentage={mockData.expensePercentage}
         />
 
+        {/* Recent Transactions */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        </View>
+
+        <TransactionList
+          transactions={mockTransactions}
+          onTransactionPress={(transaction) => console.log(transaction)}
+        />
       </ScrollView>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -60,7 +96,17 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.textPrimary,
   },
-})
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.textPrimary,
+  },
+});
