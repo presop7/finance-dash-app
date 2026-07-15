@@ -4,6 +4,7 @@ import BalanceCard from "../components/BalanceCard";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
 import TransactionList, { Transaction } from "../components/TransactionList";
+import AIInsightBanner from "../components/AIInsightBanner";
 
 export default function DashboardScreen() {
   // Temporary hardcoded data — later will come from Zustand store
@@ -62,6 +63,12 @@ export default function DashboardScreen() {
           totalExpense={mockData.totalExpense}
           incomePercentage={mockData.incomePercentage}
           expensePercentage={mockData.expensePercentage}
+        />
+
+        {/* AI Insight Banner */}
+        <AIInsightBanner
+          message="You are spending 18% more on food this week. Your July budget looks stable overall."
+          onPress={() => console.log("Navigate to AI screen")}
         />
 
         {/* Recent Transactions */}
