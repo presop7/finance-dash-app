@@ -31,6 +31,11 @@ export const Colors = {
         primary: '#1D2B4F',
         secondary: '#F5F6FA',
 
+    // Gradient Colors
+        gradientPrimary: '#7383ac',
+        gradientIncome: '#344e46',
+        gradientExpense: '#5a1e0f',
+        
     // Income and Expense Colors
         income: '#1D9E75',
         expense: '#D85A30',
