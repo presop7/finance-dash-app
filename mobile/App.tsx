@@ -56,6 +56,9 @@ const NAV_ITEMS: {
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
   const [showTransaction, setShowTransaction] = useState(false);
+  const [showManageCategories, setShowManageCategories] = useState(false);
+  const [showManageFundCategories, setShowManageFundCategories] =
+    useState(false);
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -139,12 +142,21 @@ export default function App() {
         </View>
       </View>
 
-      {/* Transaction Modal */}
       <AddTransactionModal
         visible={showTransaction}
         onClose={() => setShowTransaction(false)}
-        onSave={(type, amount, category, note) => {
-          console.log("Transaction saved:", { type, amount, category, note });
+        onOpenManageCategories={() => setShowManageCategories(true)}
+        onOpenManageFundCategories={() => setShowManageFundCategories(true)}
+        onSave={(type, amount, category, fundCategory, title, note, date) => {
+          console.log("Transaction saved:", {
+            type,
+            amount,
+            category,
+            fundCategory,
+            title,
+            note,
+            date,
+          });
           setShowTransaction(false);
         }}
       />
