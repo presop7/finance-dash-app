@@ -76,7 +76,7 @@ export default function FABButton({
             onAddIncome();
           }}
         >
-          <Ionicons name="arrow-down" size={18} color="#fff" />
+          <Ionicons name="arrow-up" size={18} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.sideLabel}>Income</Text>
       </Animated.View>
@@ -101,7 +101,7 @@ export default function FABButton({
             onAddExpense();
           }}
         >
-          <Ionicons name="arrow-up" size={18} color="#fff" />
+          <Ionicons name="arrow-down" size={18} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.sideLabel}>Expense</Text>
       </Animated.View>
