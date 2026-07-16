@@ -13,14 +13,14 @@ type FundCategoryPickerProps = {
   fundCategories: FundCategory[];
   selected: string;
   onSelect: (id: string) => void;
-  onAdd: () => void;
+  onAdd?: () => void;
 };
 
 export default function FundCategoryPicker({
   fundCategories,
   selected,
   onSelect,
-  onAdd,
+  // onAdd,
 }: FundCategoryPickerProps) {
   return (
     <ScrollView
@@ -70,12 +70,12 @@ export default function FundCategoryPicker({
       })}
 
       {/* Add new fund category button */}
-      <TouchableOpacity style={styles.item} onPress={onAdd} activeOpacity={0.7}>
+      {/* <TouchableOpacity style={styles.item} onPress={onAdd} activeOpacity={0.7}>
         <View style={[styles.iconContainer, styles.addContainer]}>
           <Ionicons name="add" size={20} color={Colors.textMuted} />
         </View>
         <Text style={styles.addLabel}>New</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </ScrollView>
   );
 }

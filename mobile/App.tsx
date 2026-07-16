@@ -8,7 +8,7 @@ import AnalyticsScreen from "./screens/AnalyticsScreen";
 import AlertsScreen from "./screens/AlertsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 
-// Modals
+// Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
 
 // Components
@@ -17,6 +17,10 @@ import FABButton from "./components/FABButton";
 // Constants
 import { Colors } from "./constants/colors";
 import AnalysisScreen from "./screens/AnalyticsScreen";
+
+// Category Management Modals
+import ManageCategoriesModal from "./screens/modals/ManageCategoriesModal";
+import ManageFundCategoriesModal from "./screens/modals/ManageFundCategoriesModal";
 
 // TypeScript type for tab names
 type TabName = "dashboard" | "analytics" | "alerts" | "settings";
@@ -159,6 +163,15 @@ export default function App() {
           });
           setShowTransaction(false);
         }}
+      />
+      <ManageCategoriesModal
+        visible={showManageCategories}
+        onClose={() => setShowManageCategories(false)}
+      />
+
+      <ManageFundCategoriesModal
+        visible={showManageFundCategories}
+        onClose={() => setShowManageFundCategories(false)}
       />
     </View>
   );
