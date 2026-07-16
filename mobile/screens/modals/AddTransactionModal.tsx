@@ -10,39 +10,62 @@ import {
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../constants/colors";
-import { EXPENSE_CATEGORIES } from "../../constants/categories";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from "../../constants/categories";
 import CategoryPicker from "../../components/CategoryPicker";
 
-type AddExpenseModalProps = {
+type TransactionType = "expense" | "income";
+
+type AddTransactionModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave: (amount: number, category: string, note: string) => void;
+  onSave: (
+    type: TransactionType,
+    amount: number,
+    category: string,
+    note: string,
+  ) => void;
 };
 
-export default function AddExpenseModal({
+export default function AddTransactionModal({
   visible,
   onClose,
   onSave,
-}: AddExpenseModalProps) {
+}: AddTransactionModalProps) {
+  const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("food");
   const [note, setNote] = useState("");
 
-  const handleSave = () => {
-    // Validate amount
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+  const isExpense = type === "expense";
 
-    onSave(parsedAmount, selectedCategory, note);
-
-    // Reset form
+  // Reset form on close
+  const handleClose = () => {
+    setType("expense");
     setAmount("");
     setSelectedCategory("food");
     setNote("");
     onClose();
   };
 
-  // Numpad key press handler
+  // Switch between expense and income
+  const handleTypeSwitch = (newType: TransactionType) => {
+    setType(newType);
+    // Reset category when switching type
+    setSelectedCategory(newType === "expense" ? "food" : "salary");
+  };
+
+  // Save transaction
+  const handleSave = () => {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    onSave(type, parsedAmount, selectedCategory, note);
+    handleClose();
+  };
+
+  // Numpad handler
   const handleNumpadPress = (key: string) => {
     if (key === "delete") {
       setAmount((prev) => prev.slice(0, -1));
@@ -68,18 +91,21 @@ export default function AddExpenseModal({
     "delete",
   ];
 
+  const activeColor = isExpense ? Colors.expense : Colors.income;
+  const categories = isExpense ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       {/* Dark background overlay */}
       <TouchableOpacity
         style={styles.overlay}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={handleClose}
       />
 
       {/* Bottom Sheet */}
@@ -89,26 +115,70 @@ export default function AddExpenseModal({
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>New Expense</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <Text style={styles.title}>New Transaction</Text>
+          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         {/* Type Toggle */}
         <View style={styles.typeToggle}>
-          <View style={[styles.toggleOption, styles.activeExpense]}>
-            <Text style={styles.toggleActiveText}>Expense</Text>
-          </View>
-          <View style={styles.toggleOption}>
-            <Text style={styles.toggleInactiveText}>Income</Text>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.toggleOption,
+              isExpense && styles.toggleActive,
+              isExpense && { backgroundColor: Colors.expense },
+            ]}
+            onPress={() => handleTypeSwitch("expense")}
+          >
+            <Ionicons
+              name="arrow-up-circle-outline"
+              size={16}
+              color={isExpense ? "#fff" : Colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.toggleText,
+                isExpense ? styles.toggleActiveText : styles.toggleInactiveText,
+              ]}
+            >
+              Expense
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleOption,
+              !isExpense && styles.toggleActive,
+              !isExpense && { backgroundColor: Colors.income },
+            ]}
+            onPress={() => handleTypeSwitch("income")}
+          >
+            <Ionicons
+              name="arrow-down-circle-outline"
+              size={16}
+              color={!isExpense ? "#fff" : Colors.textMuted}
+            />
+            <Text
+              style={[
+                styles.toggleText,
+                !isExpense
+                  ? styles.toggleActiveText
+                  : styles.toggleInactiveText,
+              ]}
+            >
+              Income
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Amount Display */}
         <View style={styles.amountContainer}>
           <Text style={styles.amountLabel}>Amount</Text>
-          <Text style={styles.amountValue}>-{amount || "0.00"} BGN</Text>
+          <Text style={[styles.amountValue, { color: activeColor }]}>
+            {isExpense ? "-" : "+"}
+            {amount || "0.00"} BGN
+          </Text>
         </View>
 
         {/* Numpad */}
@@ -133,10 +203,12 @@ export default function AddExpenseModal({
           ))}
         </View>
 
-        {/* Category Picker */}
+        {/* Category Label */}
         <Text style={styles.sectionLabel}>Category</Text>
+
+        {/* Category Picker */}
         <CategoryPicker
-          categories={EXPENSE_CATEGORIES}
+          categories={categories}
           selected={selectedCategory}
           onSelect={setSelectedCategory}
         />
@@ -155,11 +227,17 @@ export default function AddExpenseModal({
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveBtn, !amount && styles.saveBtnDisabled]}
+          style={[
+            styles.saveBtn,
+            { backgroundColor: activeColor },
+            !amount && styles.saveBtnDisabled,
+          ]}
           onPress={handleSave}
           disabled={!amount}
         >
-          <Text style={styles.saveBtnText}>Save Expense</Text>
+          <Text style={styles.saveBtnText}>
+            Save {isExpense ? "Expense" : "Income"}
+          </Text>
         </TouchableOpacity>
       </View>
     </Modal>
@@ -217,20 +295,23 @@ const styles = StyleSheet.create({
   },
   toggleOption: {
     flex: 1,
-    paddingVertical: 8,
+    flexDirection: "row",
+    paddingVertical: 10,
     alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
   },
-  activeExpense: {
-    backgroundColor: Colors.expense,
+  toggleActive: {
+    borderRadius: 8,
   },
-  toggleActiveText: {
+  toggleText: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  toggleActiveText: {
     color: "#fff",
   },
   toggleInactiveText: {
-    fontSize: 13,
-    fontWeight: "500",
     color: Colors.textMuted,
   },
   amountContainer: {
@@ -245,7 +326,6 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 36,
     fontWeight: "500",
-    color: Colors.expense,
   },
   numpad: {
     flexDirection: "row",
@@ -259,7 +339,7 @@ const styles = StyleSheet.create({
   },
   numpadKey: {
     width: "33.2%",
-    paddingVertical: 20,
+    paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surface,
@@ -299,7 +379,6 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: Colors.expense,
     alignItems: "center",
   },
   saveBtnDisabled: {
