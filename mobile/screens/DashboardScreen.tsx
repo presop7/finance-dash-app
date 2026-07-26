@@ -1,46 +1,91 @@
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useFinanceStore } from "../store/useFinanceStore";
 import BalanceCard from "../components/BalanceCard";
+import TransactionList from "../components/TransactionList";
+import AIInsightBanner from "../components/AIInsightBanner";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
-import TransactionList, { Transaction } from "../components/TransactionList";
-import AIInsightBanner from "../components/AIInsightBanner";
 
 export default function DashboardScreen() {
-  // Temporary hardcoded data — later will come from Zustand store
-  const mockData = {
-    balance: 3840.0,
-    totalIncome: 2200.0,
-    totalExpense: 1360.0,
-    incomePercentage: 12,
-    expensePercentage: 5,
+  const { transactions } = useFinanceStore();
+
+  // Calculate balance data from real transactions
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = totalIncome - totalExpense;
+
+  // Calculate percentage change vs last month
+  const now = new Date();
+  const thisMonth = transactions.filter((t) => {
+    const d = new Date(t.date);
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    );
+  });
+
+  const lastMonth = transactions.filter((t) => {
+    const d = new Date(t.date);
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1);
+    return (
+      d.getMonth() === lastMonthDate.getMonth() &&
+      d.getFullYear() === lastMonthDate.getFullYear()
+    );
+  });
+
+  const thisMonthIncome = thisMonth
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lastMonthIncome = lastMonth
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const thisMonthExpense = thisMonth
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lastMonthExpense = lastMonth
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate percentage changes
+  const incomePercentage =
+    lastMonthIncome === 0
+      ? 0
+      : Math.round(
+          ((thisMonthIncome - lastMonthIncome) / lastMonthIncome) * 100,
+        );
+
+  const expensePercentage =
+    lastMonthExpense === 0
+      ? 0
+      : Math.round(
+          ((thisMonthExpense - lastMonthExpense) / lastMonthExpense) * 100,
+        );
+
+  // AI insight message based on real data
+  const getAIInsight = () => {
+    if (transactions.length === 0) {
+      return "Add your first transaction to get started!";
+    }
+    if (totalExpense > totalIncome) {
+      return `Your expenses exceed your income by ${(totalExpense - totalIncome).toFixed(2)} BGN. Consider reviewing your spending.`;
+    }
+    if (expensePercentage > 20) {
+      return `Your expenses are up ${expensePercentage}% compared to last month. Keep an eye on your spending!`;
+    }
+    return `You have saved ${(totalIncome - totalExpense).toFixed(2)} BGN so far. Great job keeping your finances in check!`;
   };
-  const mockTransactions: Transaction[] = [
-    {
-      id: "1",
-      name: "Lidl",
-      category: "food",
-      amount: 42.0,
-      type: "expense",
-      date: "2026-07-01",
-    },
-    {
-      id: "2",
-      name: "Salary",
-      category: "salary",
-      amount: 2200.0,
-      type: "income",
-      date: "2026-07-01",
-    },
-    {
-      id: "3",
-      name: "Coffee 79",
-      category: "restaurant",
-      amount: 8.0,
-      type: "expense",
-      date: "2026-07-01",
-    },
-  ];
+
+  // Show only last 5 transactions on dashboard
+  const recentTransactions = transactions.slice(0, 5);
 
   return (
     <View style={styles.container}>
@@ -58,28 +103,34 @@ export default function DashboardScreen() {
 
         {/* Balance Card */}
         <BalanceCard
-          balance={mockData.balance}
-          totalIncome={mockData.totalIncome}
-          totalExpense={mockData.totalExpense}
-          incomePercentage={mockData.incomePercentage}
-          expensePercentage={mockData.expensePercentage}
+          balance={balance}
+          totalIncome={totalIncome}
+          totalExpense={totalExpense}
+          incomePercentage={incomePercentage}
+          expensePercentage={expensePercentage}
         />
 
         {/* AI Insight Banner */}
         <AIInsightBanner
-          message="You are spending 18% more on food this week. Your July budget looks stable overall."
+          message={getAIInsight()}
           onPress={() => console.log("Navigate to AI screen")}
         />
 
         {/* Recent Transactions */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <Text style={styles.sectionCount}>{transactions.length} total</Text>
         </View>
 
         <TransactionList
-          transactions={mockTransactions}
-          onTransactionPress={(transaction) => console.log(transaction)}
+          transactions={recentTransactions}
+          onTransactionPress={(transaction) =>
+            console.log("Transaction pressed:", transaction)
+          }
         />
+
+        {/* Bottom padding for nav bar */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </View>
   );
@@ -107,6 +158,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 8,
@@ -115,5 +169,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: Colors.textPrimary,
+  },
+  sectionCount: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  bottomPadding: {
+    height: 20,
   },
 });

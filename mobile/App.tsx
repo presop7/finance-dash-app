@@ -2,6 +2,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 
+// Import zustand store
+import { useFinanceStore } from "./store/useFinanceStore";
+
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
 import AnalyticsScreen from "./screens/AnalyticsScreen";
@@ -63,6 +66,7 @@ export default function App() {
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showManageFundCategories, setShowManageFundCategories] =
     useState(false);
+  const { addTransaction } = useFinanceStore();
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -152,12 +156,12 @@ export default function App() {
         onOpenManageCategories={() => setShowManageCategories(true)}
         onOpenManageFundCategories={() => setShowManageFundCategories(true)}
         onSave={(type, amount, category, fundCategory, title, note, date) => {
-          console.log("Transaction saved:", {
+          addTransaction({
+            title,
             type,
             amount,
             category,
             fundCategory,
-            title,
             note,
             date,
           });

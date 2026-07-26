@@ -2,15 +2,17 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
+import { useFinanceStore } from "../store/useFinanceStore";
 
-// TypeScript types
 export type Transaction = {
   id: string;
-  name: string;
+  title: string;
+  name?: string;
   category: string;
+  fundCategory: string;
   amount: number;
   type: "income" | "expense";
-  date: string;
+  date: Date;
   note?: string;
 };
 
@@ -19,61 +21,39 @@ type TransactionListProps = {
   onTransactionPress?: (transaction: Transaction) => void;
 };
 
-// Category icon and color mapper
-const getCategoryStyle = (category: string) => {
-  const map: Record<
-    string,
-    { icon: keyof typeof Ionicons.glyphMap; bg: string; color: string }
-  > = {
-    food: {
-      icon: "cart-outline",
-      bg: Colors.categories.food.bg,
-      color: Colors.categories.food.icon,
-    },
-    restaurant: {
-      icon: "cafe-outline",
-      bg: Colors.categories.restaurant.bg,
-      color: Colors.categories.restaurant.icon,
-    },
-    transport: {
-      icon: "car-outline",
-      bg: Colors.categories.transport.bg,
-      color: Colors.categories.transport.icon,
-    },
-    entertainment: {
-      icon: "game-controller-outline",
-      bg: Colors.categories.entertainment.bg,
-      color: Colors.categories.entertainment.icon,
-    },
-    salary: {
-      icon: "business-outline",
-      bg: Colors.categories.salary.bg,
-      color: Colors.categories.salary.icon,
-    },
-    freelance: {
-      icon: "briefcase-outline",
-      bg: Colors.categories.freelance.bg,
-      color: Colors.categories.freelance.icon,
-    },
-    investment: {
-      icon: "trending-up-outline",
-      bg: Colors.categories.investment.bg,
-      color: Colors.categories.investment.icon,
-    },
-    other: {
-      icon: "ellipsis-horizontal-outline",
-      bg: Colors.categories.other.bg,
-      color: Colors.categories.other.icon,
-    },
-  };
-
-  return map[category] ?? map.other;
-};
-
 export default function TransactionList({
   transactions,
   onTransactionPress,
 }: TransactionListProps) {
+  const { expenseCategories, incomeCategories } = useFinanceStore();
+
+  // Look up category details from store
+  const getCategoryDetails = (
+    categoryId: string,
+    type: "income" | "expense",
+  ) => {
+    const categories =
+      type === "expense" ? expenseCategories : incomeCategories;
+    const found = categories.find((c) => c.id === categoryId);
+
+    if (found) {
+      return {
+        icon: found.icon as keyof typeof Ionicons.glyphMap,
+        color: found.color ?? Colors.primary,
+        bg: found.color ? found.color + "22" : Colors.surfaceSecondary,
+        label: found.label,
+      };
+    }
+
+    // Fallback
+    return {
+      icon: "ellipsis-horizontal-outline" as keyof typeof Ionicons.glyphMap,
+      color: Colors.textMuted,
+      bg: Colors.surfaceSecondary,
+      label: categoryId,
+    };
+  };
+
   if (transactions.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -89,7 +69,17 @@ export default function TransactionList({
   return (
     <View style={styles.container}>
       {transactions.map((transaction) => {
-        const categoryStyle = getCategoryStyle(transaction.category);
+        const categoryDetails = getCategoryDetails(
+          transaction.category,
+          transaction.type,
+        );
+
+        // Format date
+        const date = new Date(transaction.date);
+        const formattedDate = date.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        });
 
         return (
           <TouchableOpacity
@@ -102,22 +92,24 @@ export default function TransactionList({
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: categoryStyle.bg },
+                { backgroundColor: categoryDetails.bg },
               ]}
             >
               <Ionicons
-                name={categoryStyle.icon}
+                name={categoryDetails.icon}
                 size={18}
-                color={categoryStyle.color}
+                color={categoryDetails.color}
               />
             </View>
 
-            {/* Name and Category */}
+            {/* Title and Category */}
             <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={1}>
-                {transaction.name}
+              <Text style={styles.transactionTitle} numberOfLines={1}>
+                {transaction.title || categoryDetails.label}
               </Text>
-              <Text style={styles.category}>{transaction.category}</Text>
+              <Text style={styles.category}>
+                {categoryDetails.label} · {formattedDate}
+              </Text>
             </View>
 
             {/* Amount */}
@@ -164,7 +156,7 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
-  name: {
+  transactionTitle: {
     fontSize: 13,
     fontWeight: "500",
     color: Colors.textPrimary,
@@ -173,7 +165,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 2,
-    textTransform: "capitalize",
   },
   amount: {
     fontSize: 13,
