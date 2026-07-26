@@ -31,10 +31,10 @@ const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "gift-outline",
   "restaurant-outline",
   "phone-portrait-outline",
-  "shirt-outline",
   "musical-notes-outline",
   "bus-outline",
   "bicycle-outline",
+  "ellipsis-horizontal-outline",
 ];
 
 // Available colors to pick from

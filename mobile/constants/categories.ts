@@ -1,35 +1,37 @@
 export type Category = {
   id: string;
   label: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   color?: string;
 };
+
+import { Ionicons } from "@expo/vector-icons";
 
 export const EXPENSE_CATEGORIES: Category[] = [
   {
     id: "food",
     label: "Хранителни",
-    icon: "shopping-cart",
+    icon: "cart-outline",
   },
   {
     id: "restaurant",
     label: "Ресторанти",
-    icon: "coffee",
+    icon: "cafe-outline",
   },
   {
     id: "transport",
     label: "Транспорт",
-    icon: "car",
+    icon: "car-outline",
   },
   {
     id: "entertainment",
     label: "Забавления",
-    icon: "device-gamepad",
+    icon: "game-controller-outline",
   },
   {
     id: "other",
     label: "Друго",
-    icon: "dots",
+    icon: "ellipsis-horizontal-outline",
   },
 ];
 
@@ -37,21 +39,21 @@ export const INCOME_CATEGORIES: Category[] = [
   {
     id: "salary",
     label: "Заплата",
-    icon: "building-bank",
+    icon: "business-outline",
   },
   {
     id: "freelance",
     label: "Фрийланс",
-    icon: "briefcase",
+    icon: "briefcase-outline",
   },
   {
     id: "investment",
     label: "Инвестиции",
-    icon: "chart-line",
+    icon: "trending-up-outline",
   },
   {
     id: "other",
     label: "Друго",
-    icon: "dots",
+    icon: "ellipsis-horizontal-outline",
   },
 ];

@@ -15,21 +15,6 @@ type CategoryPickerProps = {
   onSelect: (id: string) => void;
 };
 
-// Maps category icon string to Ionicons name
-const getIcon = (icon: string): keyof typeof Ionicons.glyphMap => {
-  const map: Record<string, keyof typeof Ionicons.glyphMap> = {
-    "shopping-cart": "cart-outline",
-    coffee: "cafe-outline",
-    car: "car-outline",
-    "device-gamepad": "game-controller-outline",
-    "building-bank": "business-outline",
-    briefcase: "briefcase-outline",
-    "chart-line": "trending-up-outline",
-    dots: "ellipsis-horizontal-outline",
-  };
-  return map[icon] ?? "ellipsis-horizontal-outline";
-};
-
 export default function CategoryPicker({
   categories,
   selected,
@@ -46,6 +31,11 @@ export default function CategoryPicker({
         const colorKey = category.id as keyof typeof Colors.categories;
         const colors = Colors.categories[colorKey] ?? Colors.categories.other;
 
+        // Use category.color if it exists (custom categories)
+        // otherwise fall back to Colors.categories map (default categories)
+        const iconColor = category.color ?? colors.icon;
+        const bgColor = category.color ? category.color + "22" : colors.bg;
+
         return (
           <TouchableOpacity
             key={category.id}
@@ -53,26 +43,26 @@ export default function CategoryPicker({
             onPress={() => onSelect(category.id)}
             activeOpacity={0.7}
           >
-            {/* Icon */}
             <View
               style={[
                 styles.iconContainer,
-                { backgroundColor: colors.bg },
-                isSelected && styles.selectedIcon,
+                { backgroundColor: bgColor },
+                isSelected && {
+                  borderWidth: 2,
+                  borderColor: iconColor,
+                },
               ]}
             >
               <Ionicons
-                name={getIcon(category.icon)}
+                name={category.icon as keyof typeof Ionicons.glyphMap}
                 size={20}
-                color={colors.icon}
+                color={iconColor}
               />
             </View>
-
-            {/* Label */}
             <Text
               style={[
                 styles.label,
-                isSelected && { color: colors.icon, fontWeight: "600" },
+                isSelected && { color: iconColor, fontWeight: "600" },
               ]}
             >
               {category.label}
@@ -100,10 +90,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-  },
-  selectedIcon: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
   },
   label: {
     fontSize: 10,
