@@ -3,6 +3,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
+  ScrollView,
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -64,90 +66,97 @@ export default function TransactionDetailModal({
       transparent
       onRequestClose={onClose}
     >
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
+      <View style={styles.root}>
+        <Pressable style={styles.overlay} onPress={onClose} />
 
-      <View
-        style={[
-          styles.sheet,
-          { paddingBottom: Math.max(insets.bottom, 16) + 16 },
-        ]}
-      >
-        <View style={styles.handle} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Transaction Details</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+          <View style={styles.header}>
+            <Text style={styles.title}>Transaction Details</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <Ionicons name="close" size={20} color={Colors.textMuted} />
+            </TouchableOpacity>
+          </View>
 
-        {/* Icon + Amount */}
-        <View style={styles.amountBlock}>
+          <ScrollView
+            style={styles.scrollArea}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Icon + Amount */}
+            <View style={styles.amountBlock}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: (category?.color ?? Colors.primary) + "22" },
+                ]}
+              >
+                <Ionicons
+                  name={
+                    (category?.icon ?? "ellipsis-horizontal-outline") as keyof typeof Ionicons.glyphMap
+                  }
+                  size={26}
+                  color={category?.color ?? Colors.primary}
+                />
+              </View>
+              <Text style={[styles.amount, { color: amountColor }]}>
+                {isExpense ? "-" : "+"}
+                {transaction.amount.toFixed(2)} BGN
+              </Text>
+              <Text style={styles.transactionTitle}>
+                {transaction.title || category?.label || "Transaction"}
+              </Text>
+            </View>
+
+            {/* Details */}
+            <View style={styles.detailsList}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Category</Text>
+                <Text style={styles.detailValue}>
+                  {category?.label ?? "Unknown"}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Fund</Text>
+                <Text style={styles.detailValue}>{fund?.name ?? "Unknown"}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Date</Text>
+                <Text style={styles.detailValue}>{formattedDate}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Time</Text>
+                <Text style={styles.detailValue}>{formattedTime}</Text>
+              </View>
+            </View>
+
+            {/* Note */}
+            {transaction.note ? (
+              <View style={styles.noteBlock}>
+                <Text style={styles.noteLabel}>Note</Text>
+                <Text style={styles.noteText}>{transaction.note}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          {/* Actions — pinned outside the ScrollView so they're always reachable */}
           <View
             style={[
-              styles.iconContainer,
-              { backgroundColor: (category?.color ?? Colors.primary) + "22" },
+              styles.actions,
+              { paddingBottom: Math.max(insets.bottom, 16) },
             ]}
           >
-            <Ionicons
-              name={
-                (category?.icon ?? "ellipsis-horizontal-outline") as keyof typeof Ionicons.glyphMap
-              }
-              size={26}
-              color={category?.color ?? Colors.primary}
-            />
+            <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={16} color={Colors.expense} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.editBtn}
+              onPress={() => onEdit(transaction)}
+            >
+              <Ionicons name="pencil" size={16} color="#fff" />
+              <Text style={styles.editBtnText}>Edit Transaction</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={[styles.amount, { color: amountColor }]}>
-            {isExpense ? "-" : "+"}
-            {transaction.amount.toFixed(2)} BGN
-          </Text>
-          <Text style={styles.transactionTitle}>
-            {transaction.title || category?.label || "Transaction"}
-          </Text>
-        </View>
-
-        {/* Details */}
-        <View style={styles.detailsList}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Category</Text>
-            <Text style={styles.detailValue}>
-              {category?.label ?? "Unknown"}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Fund</Text>
-            <Text style={styles.detailValue}>{fund?.name ?? "Unknown"}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date</Text>
-            <Text style={styles.detailValue}>{formattedDate}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Time</Text>
-            <Text style={styles.detailValue}>{formattedTime}</Text>
-          </View>
-        </View>
-
-        {/* Note */}
-        {transaction.note ? (
-          <View style={styles.noteBlock}>
-            <Text style={styles.noteLabel}>Note</Text>
-            <Text style={styles.noteText}>{transaction.note}</Text>
-          </View>
-        ) : null}
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={16} color={Colors.expense} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => onEdit(transaction)}
-          >
-            <Ionicons name="pencil" size={16} color="#fff" />
-            <Text style={styles.editBtnText}>Edit Transaction</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -155,15 +164,26 @@ export default function TransactionDetailModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: "75%",
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 32,
     paddingHorizontal: 16,
   },
   handle: {
@@ -193,6 +213,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSecondary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  scrollArea: {
+    flexShrink: 1,
   },
   amountBlock: {
     alignItems: "center",
@@ -263,7 +286,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 8,
+    paddingTop: 12,
   },
   deleteBtn: {
     width: 48,

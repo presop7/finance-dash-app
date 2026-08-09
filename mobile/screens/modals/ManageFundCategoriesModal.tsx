@@ -3,6 +3,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Modal,
   ScrollView,
   TextInput,
@@ -106,19 +107,16 @@ export default function ManageFundCategoriesModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      {/* Overlay */}
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      />
+      <View style={styles.root}>
+        {/* Overlay */}
+        <Pressable style={styles.overlay} onPress={onClose} />
 
-      <View
-        style={[
-          styles.sheet,
-          { paddingBottom: Math.max(insets.bottom, 16) + 16 },
-        ]}
-      >
+        <View
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+          ]}
+        >
         {/* Handle */}
         <View style={styles.handle} />
 
@@ -130,7 +128,7 @@ export default function ManageFundCategoriesModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
           {/* Existing Fund Categories */}
           <View style={styles.fundsGrid}>
             {fundCategories.map((fund) => (
@@ -297,22 +295,37 @@ export default function ManageFundCategoriesModal({
             </TouchableOpacity>
           )}
         </ScrollView>
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
+  scrollArea: {
+    flexShrink: 1,
+  },
   sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
-    maxHeight: "85%",
+    maxHeight: "75%",
   },
   handle: {
     width: 36,

@@ -176,24 +176,26 @@ export default function AddTransactionModal({
       transparent={true}
       onRequestClose={handleClose}
     >
-      {/* Background overlay — closes numpad or modal */}
-      <Pressable
-        style={styles.overlay}
-        onPress={() => {
-          if (showNumpad) {
-            setShowNumpad(false);
-          } else {
-            handleClose();
-          }
-        }}
-      />
+      <View style={styles.root}>
+        {/* Background overlay — closes numpad or modal */}
+        <Pressable
+          style={styles.overlay}
+          onPress={() => {
+            if (showNumpad) {
+              setShowNumpad(false);
+            } else {
+              handleClose();
+            }
+          }}
+        />
 
-      {/* Android already resizes the window for the keyboard
-          (windowSoftInputMode="adjustResize"); "height" behavior here would
-          double-compensate and leave a permanent gap above the nav bar. */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+        {/* Android already resizes the window for the keyboard
+            (windowSoftInputMode="adjustResize"); "height" behavior here would
+            double-compensate and leave a permanent gap above the nav bar. */}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoider}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
         <View
           style={[
             styles.sheet,
@@ -214,6 +216,7 @@ export default function AddTransactionModal({
           </View>
 
           <ScrollView
+            style={styles.scrollArea}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -415,20 +418,29 @@ export default function AddTransactionModal({
               onInteract={() => setShowNumpad(false)}
             />
 
-            {/* Note Input */}
-            <View style={[styles.fieldContainer, { marginBottom: 8 }]}>
+            {/* Note Input — compact by default, grows with content up to a cap */}
+            <View
+              style={[
+                styles.fieldContainer,
+                styles.noteFieldContainer,
+                { marginBottom: 8 },
+              ]}
+            >
               <Ionicons
                 name="create-outline"
                 size={18}
                 color={Colors.textMuted}
+                style={styles.noteIcon}
               />
               <TextInput
-                style={styles.fieldInput}
+                style={[styles.fieldInput, styles.noteInput]}
                 placeholder="Add a note (optional)"
                 placeholderTextColor={Colors.textMuted}
                 value={note}
                 onChangeText={setNote}
                 onFocus={() => setShowNumpad(false)}
+                multiline
+                textAlignVertical="top"
               />
             </View>
           </ScrollView>
@@ -456,22 +468,41 @@ export default function AddTransactionModal({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  keyboardAvoider: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
-    maxHeight: "90%",
+    maxHeight: "75%",
+  },
+  scrollArea: {
+    flexShrink: 1,
   },
   handle: {
     width: 36,
@@ -540,6 +571,16 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.border,
     gap: 8,
+  },
+  noteFieldContainer: {
+    alignItems: "flex-start",
+  },
+  noteIcon: {
+    marginTop: 2,
+  },
+  noteInput: {
+    minHeight: 20,
+    maxHeight: 120,
   },
   fieldInput: {
     flex: 1,
