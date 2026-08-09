@@ -11,13 +11,16 @@ import DashboardCardList, {
 } from "../components/DashboardCardList";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
+import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 
 type DashboardScreenProps = {
   onTransactionPress: (transaction: Transaction) => void;
+  onNavigateToAnalytics: (filter: AnalyticsInitialFilter) => void;
 };
 
 export default function DashboardScreen({
   onTransactionPress,
+  onNavigateToAnalytics,
 }: DashboardScreenProps) {
   const {
     transactions,
@@ -57,7 +60,11 @@ export default function DashboardScreen({
       id: "funds",
       title: "Your Funds",
       content: (
-        <FundsCard transactions={transactions} fundCategories={fundCategories} />
+        <FundsCard
+          transactions={transactions}
+          fundCategories={fundCategories}
+          onNavigateToAnalytics={onNavigateToAnalytics}
+        />
       ),
     },
     {
@@ -88,7 +95,7 @@ export default function DashboardScreen({
         </View>
 
         {/* Balance Card — always pinned at the top, not collapsible/draggable */}
-        <BalanceCard transactions={transactions} />
+        <BalanceCard transactions={transactions} onNavigateToAnalytics={onNavigateToAnalytics} />
 
         {/* Everything else: collapsible + reorderable (hold a title to enter reorder mode) */}
         <DashboardCardList

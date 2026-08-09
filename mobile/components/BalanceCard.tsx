@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
-import { Transaction } from "../store/useFinanceStore";
+import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import {
   TIMEFRAME_LABELS,
   TIMEFRAME_PRESETS,
@@ -12,14 +12,20 @@ import {
   isWithinRange,
   percentageChange,
 } from "../utils/dateRanges";
+import { formatCurrency } from "../utils/currency";
+import HoldPressable from "./HoldPressable";
+import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 
 type BalanceCardProps = {
   transactions: Transaction[];
+  onNavigateToAnalytics?: (filter: AnalyticsInitialFilter) => void;
 };
 
-export default function BalanceCard({ transactions }: BalanceCardProps) {
+export default function BalanceCard({ transactions, onNavigateToAnalytics }: BalanceCardProps) {
+  const settings = useFinanceStore((s) => s.settings);
   const [preset, setPreset] = useState<TimeframePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   // Total Balance always reflects all-time activity, regardless of the
   // timeframe selected for the Income/Expense/Savings row below it.
@@ -70,6 +76,8 @@ export default function BalanceCard({ transactions }: BalanceCardProps) {
     };
   }, [transactions, preset]);
 
+  const masked = settings.hideBalance && !revealed;
+
   return (
     <LinearGradient
       colors={[Colors.primary, "#7383ac"]}
@@ -77,9 +85,16 @@ export default function BalanceCard({ transactions }: BalanceCardProps) {
       end={{ x: 1, y: 1 }}
       style={styles.card}
     >
+      <Pressable
+        disabled={!settings.hideBalance}
+        onPressIn={() => setRevealed(true)}
+        onPressOut={() => setRevealed(false)}
+      >
       {/* Main Balance */}
       <Text style={styles.balanceLabel}>Total Balance</Text>
-      <Text style={styles.balanceAmount}>{balance.toFixed(2)} BGN</Text>
+      <Text style={styles.balanceAmount}>
+        {masked ? "•••••" : formatCurrency(balance, settings.currency)}
+      </Text>
 
       {/* Divider */}
       <View style={styles.divider} />
@@ -130,29 +145,41 @@ export default function BalanceCard({ transactions }: BalanceCardProps) {
 
       {/* Income / Expense / Savings Row */}
       <View style={styles.row}>
-        <View style={styles.col}>
+        <HoldPressable
+          style={styles.col}
+          fillColor="rgba(255,255,255,0.18)"
+          disabled={!onNavigateToAnalytics}
+          onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "income" })}
+        >
           <Text style={styles.colLabel}>Income</Text>
-          <Text style={styles.colAmount}>+{stats.income.toFixed(2)}</Text>
+          <Text style={styles.colAmount}>
+            {masked ? "•••" : `+${stats.income.toFixed(2)}`}
+          </Text>
           {stats.hasPrevPeriod && (
             <Text style={styles.colTrend}>
               {stats.incomePct >= 0 ? "▲" : "▼"} {Math.abs(stats.incomePct)}%
             </Text>
           )}
-        </View>
+        </HoldPressable>
 
         <View style={styles.separator} />
 
-        <View style={styles.col}>
+        <HoldPressable
+          style={styles.col}
+          fillColor="rgba(255,255,255,0.18)"
+          disabled={!onNavigateToAnalytics}
+          onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "expense" })}
+        >
           <Text style={styles.colLabel}>Expenses</Text>
           <Text style={[styles.colAmount, styles.expenseAmount]}>
-            -{stats.expense.toFixed(2)}
+            {masked ? "•••" : `-${stats.expense.toFixed(2)}`}
           </Text>
           {stats.hasPrevPeriod && (
             <Text style={[styles.colTrend, styles.expenseTrend]}>
               {stats.expensePct >= 0 ? "▲" : "▼"} {Math.abs(stats.expensePct)}%
             </Text>
           )}
-        </View>
+        </HoldPressable>
 
         <View style={styles.separator} />
 
@@ -164,8 +191,7 @@ export default function BalanceCard({ transactions }: BalanceCardProps) {
               stats.savings < 0 && styles.expenseAmount,
             ]}
           >
-            {stats.savings >= 0 ? "+" : ""}
-            {stats.savings.toFixed(2)}
+            {masked ? "•••" : `${stats.savings >= 0 ? "+" : ""}${stats.savings.toFixed(2)}`}
           </Text>
           {stats.hasPrevPeriod && (
             <Text
@@ -179,6 +205,7 @@ export default function BalanceCard({ transactions }: BalanceCardProps) {
           )}
         </View>
       </View>
+      </Pressable>
     </LinearGradient>
   );
 }

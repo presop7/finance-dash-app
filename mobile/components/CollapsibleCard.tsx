@@ -1,16 +1,8 @@
-import { ReactNode, useRef } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  TouchableOpacity,
-  Animated,
-  StyleSheet,
-} from "react-native";
+import { ReactNode } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
-
-const HOLD_TO_REORDER_MS = 300;
+import HoldPressable from "./HoldPressable";
 
 type CollapsibleCardProps = {
   title: string;
@@ -39,46 +31,15 @@ export default function CollapsibleCard({
   canMoveDown,
   children,
 }: CollapsibleCardProps) {
-  const holdAnim = useRef(new Animated.Value(0)).current;
-
-  const startHoldAnim = () => {
-    holdAnim.setValue(0);
-    Animated.timing(holdAnim, {
-      toValue: 1,
-      duration: HOLD_TO_REORDER_MS,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const cancelHoldAnim = () => {
-    Animated.timing(holdAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const fillWidth = holdAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
-
   return (
     <View style={[styles.wrapper, reorderMode && styles.wrapperShrunk]}>
       <View style={styles.header}>
         {/* Grip — hold for a beat to enter reorder mode */}
-        <Pressable
+        <HoldPressable
           style={styles.grip}
           disabled={reorderMode}
-          delayLongPress={HOLD_TO_REORDER_MS}
-          onPressIn={startHoldAnim}
-          onPressOut={cancelHoldAnim}
-          onLongPress={() => {
-            cancelHoldAnim();
-            onHoldComplete?.();
-          }}
+          onHoldComplete={() => onHoldComplete?.()}
         >
-          <Animated.View style={[styles.holdFill, { width: fillWidth }]} />
           <Ionicons
             name="reorder-three-outline"
             size={18}
@@ -88,7 +49,7 @@ export default function CollapsibleCard({
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
-        </Pressable>
+        </HoldPressable>
 
         {reorderMode ? (
           <View style={styles.reorderControls}>
@@ -160,14 +121,6 @@ const styles = StyleSheet.create({
     marginLeft: -6,
     borderRadius: 8,
     overflow: "hidden",
-  },
-  holdFill: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: Colors.primary + "22",
-    borderRadius: 8,
   },
   title: {
     fontSize: 15,

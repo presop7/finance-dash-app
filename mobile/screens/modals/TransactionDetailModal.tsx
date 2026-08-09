@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
+import { formatCurrency } from "../../utils/currency";
+import { formatDate, formatTime } from "../../utils/formatDateTime";
 
 type TransactionDetailModalProps = {
   transaction: Transaction | null;
@@ -24,7 +26,7 @@ export default function TransactionDetailModal({
   onClose,
   onEdit,
 }: TransactionDetailModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories, deleteTransaction } =
+  const { expenseCategories, incomeCategories, fundCategories, deleteTransaction, settings } =
     useFinanceStore();
   const insets = useSafeAreaInsets();
 
@@ -38,16 +40,8 @@ export default function TransactionDetailModal({
   const amountColor = isExpense ? Colors.expense : Colors.income;
 
   const date = new Date(transaction.date);
-  const formattedDate = date.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const formattedTime = date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formattedDate = formatDate(date, settings.dateFormat);
+  const formattedTime = formatTime(date, settings.timeFormat);
 
   const handleDelete = async () => {
     const ok = await confirmAsync(
@@ -101,7 +95,7 @@ export default function TransactionDetailModal({
               </View>
               <Text style={[styles.amount, { color: amountColor }]}>
                 {isExpense ? "-" : "+"}
-                {transaction.amount.toFixed(2)} BGN
+                {formatCurrency(transaction.amount, settings.currency)}
               </Text>
               <Text style={styles.transactionTitle}>
                 {transaction.title || category?.label || "Transaction"}

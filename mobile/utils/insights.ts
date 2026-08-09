@@ -1,6 +1,7 @@
 import { Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { daysAgo, percentageChange } from "./dateRanges";
+import { formatCurrency } from "./currency";
 
 function inLast(transactions: Transaction[], days: number, now: Date) {
   const since = daysAgo(days, now);
@@ -11,6 +12,7 @@ export function getInsights(
   transactions: Transaction[],
   expenseCategories: Category[],
   now: Date = new Date(),
+  currency: string = "BGN",
 ): string[] {
   if (transactions.length === 0) {
     return ["Add your first transaction to get started!"];
@@ -24,11 +26,11 @@ export function getInsights(
   );
   if (totalSavings >= 0) {
     insights.push(
-      `You've saved ${totalSavings.toFixed(2)} BGN in total. Great job keeping your finances in check!`,
+      `You've saved ${formatCurrency(totalSavings, currency)} in total. Great job keeping your finances in check!`,
     );
   } else {
     insights.push(
-      `You're ${Math.abs(totalSavings).toFixed(2)} BGN in the red overall — time to review your spending.`,
+      `You're ${formatCurrency(Math.abs(totalSavings), currency)} in the red overall — time to review your spending.`,
     );
   }
 
@@ -38,7 +40,7 @@ export function getInsights(
     .reduce((sum, t) => sum + t.amount, 0);
   if (income30 > 0) {
     insights.push(
-      `You've earned ${income30.toFixed(2)} BGN in the last 30 days.`,
+      `You've earned ${formatCurrency(income30, currency)} in the last 30 days.`,
     );
   }
 
@@ -55,14 +57,14 @@ export function getInsights(
       expenseCategories.find((c) => c.id === topCategoryId)?.label ??
       topCategoryId;
     insights.push(
-      `Your biggest spending category in the last 30 days is ${label} at ${topCategoryAmount.toFixed(2)} BGN.`,
+      `Your biggest spending category in the last 30 days is ${label} at ${formatCurrency(topCategoryAmount, currency)}.`,
     );
 
     const biggestExpense = [...expenses30].sort(
       (a, b) => b.amount - a.amount,
     )[0];
     insights.push(
-      `Your biggest single expense in the last 30 days was "${biggestExpense.title || label}" at ${biggestExpense.amount.toFixed(2)} BGN.`,
+      `Your biggest single expense in the last 30 days was "${biggestExpense.title || label}" at ${formatCurrency(biggestExpense.amount, currency)}.`,
     );
   }
 

@@ -3,13 +3,17 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
-import { Transaction } from "../store/useFinanceStore";
+import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { FundCategory } from "../constants/fundCategories";
 import { daysAgo, percentageChange } from "../utils/dateRanges";
+import { formatCurrency } from "../utils/currency";
+import HoldPressable from "./HoldPressable";
+import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 
 type FundsCardProps = {
   transactions: Transaction[];
   fundCategories: FundCategory[];
+  onNavigateToAnalytics?: (filter: AnalyticsInitialFilter) => void;
 };
 
 const CARD_WIDTH = 148;
@@ -18,7 +22,9 @@ const CARD_GAP = 12;
 export default function FundsCard({
   transactions,
   fundCategories,
+  onNavigateToAnalytics,
 }: FundsCardProps) {
+  const currency = useFinanceStore((s) => s.settings.currency);
   const funds = useMemo(() => {
     const thirtyDaysAgo = daysAgo(30);
 
@@ -62,7 +68,13 @@ export default function FundsCard({
         {funds.map(({ fund, balance, trendPct, hasHistory }) => {
           const isUp = trendPct >= 0;
           return (
-            <View key={fund.id} style={[styles.card, GlobalStyles.shadow]}>
+            <HoldPressable
+              key={fund.id}
+              style={[styles.card, GlobalStyles.shadow]}
+              fillColor={fund.color + "18"}
+              disabled={!onNavigateToAnalytics}
+              onHoldComplete={() => onNavigateToAnalytics?.({ fundIds: [fund.id] })}
+            >
               <View
                 style={[
                   styles.iconContainer,
@@ -80,7 +92,7 @@ export default function FundsCard({
                 {fund.name}
               </Text>
 
-              <Text style={styles.balance}>{balance.toFixed(2)} BGN</Text>
+              <Text style={styles.balance}>{formatCurrency(balance, currency)}</Text>
 
               {hasHistory && (
                 <View style={styles.trendRow}>
@@ -99,7 +111,7 @@ export default function FundsCard({
                   </Text>
                 </View>
               )}
-            </View>
+            </HoldPressable>
           );
         })}
       </ScrollView>

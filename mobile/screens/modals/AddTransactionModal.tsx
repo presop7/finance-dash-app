@@ -48,7 +48,7 @@ export default function AddTransactionModal({
   onOpenManageFundCategories,
   editTransaction,
 }: AddTransactionModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction } =
+  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings } =
     useFinanceStore();
 
   const isEditing = Boolean(editTransaction);
@@ -321,7 +321,7 @@ export default function AddTransactionModal({
                 }}
                 onFocus={() => setShowNumpad(false)}
               />
-              {amount ? <Text style={styles.amountSuffix}>BGN</Text> : null}
+              {amount ? <Text style={styles.amountSuffix}>{settings.currency}</Text> : null}
               {amount ? (
                 <TouchableOpacity onPress={() => setAmount("")}>
                   <Ionicons

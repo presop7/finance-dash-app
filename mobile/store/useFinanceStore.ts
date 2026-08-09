@@ -30,6 +30,45 @@ export const DEFAULT_DASHBOARD_CARD_ORDER = [
   "transactions",
 ];
 
+export type DateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD" | "D MMM YYYY";
+export type TimeFormat = "12h" | "24h";
+
+export type Settings = {
+  currency: string;
+  hideBalance: boolean;
+  timeFormat: TimeFormat;
+  dateFormat: DateFormat;
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  currency: "BGN",
+  hideBalance: false,
+  timeFormat: "24h",
+  dateFormat: "DD/MM/YYYY",
+};
+
+export type AlertRuleType =
+  | "lowBalance"
+  | "balanceAbove"
+  | "monthlyExpenseOver"
+  | "monthlyIncomeOver"
+  | "categoryAmount";
+
+export type AlertRule = {
+  id: string;
+  type: AlertRuleType;
+  amount: number;
+  categoryId?: string;
+  categoryType?: "expense" | "income";
+  enabled: boolean;
+  lastTriggeredKey?: string;
+};
+
+export const DEFAULT_ALERT_RULES: AlertRule[] = [
+  { id: "default_low_balance", type: "lowBalance", amount: 500, enabled: true },
+  { id: "default_monthly_expense", type: "monthlyExpenseOver", amount: 500, enabled: true },
+];
+
 type FinanceStore = {
   transactions: Transaction[];
   expenseCategories: Category[];
@@ -37,6 +76,13 @@ type FinanceStore = {
   fundCategories: FundCategory[];
   dashboardCardOrder: string[];
   dashboardCollapsedCards: Record<string, boolean>;
+  settings: Settings;
+  alertRules: AlertRule[];
+  updateSettings: (changes: Partial<Settings>) => void;
+  addAlertRule: (rule: Omit<AlertRule, "id">) => void;
+  updateAlertRule: (id: string, changes: Partial<AlertRule>) => void;
+  deleteAlertRule: (id: string) => void;
+  toggleAlertRule: (id: string) => void;
   addTransaction: (transaction: Omit<Transaction, "id">) => void;
   updateTransaction: (
     id: string,
@@ -92,6 +138,38 @@ export const useFinanceStore = create<FinanceStore>()(
       fundCategories: DEFAULT_FUND_CATEGORIES,
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
+      settings: DEFAULT_SETTINGS,
+      alertRules: DEFAULT_ALERT_RULES,
+
+      updateSettings: (changes) =>
+        set((state) => ({ settings: { ...state.settings, ...changes } })),
+
+      addAlertRule: (rule) =>
+        set((state) => ({
+          alertRules: [
+            ...state.alertRules,
+            { ...rule, id: Date.now().toString() },
+          ],
+        })),
+
+      updateAlertRule: (id, changes) =>
+        set((state) => ({
+          alertRules: state.alertRules.map((r) =>
+            r.id === id ? { ...r, ...changes } : r,
+          ),
+        })),
+
+      deleteAlertRule: (id) =>
+        set((state) => ({
+          alertRules: state.alertRules.filter((r) => r.id !== id),
+        })),
+
+      toggleAlertRule: (id) =>
+        set((state) => ({
+          alertRules: state.alertRules.map((r) =>
+            r.id === id ? { ...r, enabled: !r.enabled } : r,
+          ),
+        })),
 
       addTransaction: (transaction) =>
         set((state) => ({

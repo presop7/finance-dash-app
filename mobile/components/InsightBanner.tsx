@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
-import { Transaction } from "../store/useFinanceStore";
+import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { getInsights } from "../utils/insights";
 
@@ -15,9 +15,11 @@ export default function InsightBanner({
   transactions,
   expenseCategories,
 }: InsightBannerProps) {
+  const currency = useFinanceStore((s) => s.settings.currency);
+
   // Picked once per mount (app open) so it doesn't shuffle on every re-render.
   const [message] = useState(() => {
-    const insights = getInsights(transactions, expenseCategories);
+    const insights = getInsights(transactions, expenseCategories, new Date(), currency);
     return insights[Math.floor(Math.random() * insights.length)];
   });
 

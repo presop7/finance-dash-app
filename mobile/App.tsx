@@ -11,7 +11,7 @@ import { useFinanceStore, Transaction } from "./store/useFinanceStore";
 
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
-import AnalyticsScreen from "./screens/AnalyticsScreen";
+import AnalyticsScreen, { AnalyticsInitialFilter } from "./screens/AnalyticsScreen";
 import AlertsScreen from "./screens/AlertsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 
@@ -23,12 +23,13 @@ import FABButton from "./components/FABButton";
 
 // Constants
 import { Colors } from "./constants/colors";
-import AnalysisScreen from "./screens/AnalyticsScreen";
 
-// Category Management Modals
-import ManageCategoriesModal from "./screens/modals/ManageCategoriesModal";
-import ManageFundCategoriesModal from "./screens/modals/ManageFundCategoriesModal";
+// Category Management Modal
+import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesModal";
 import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
+
+// Alerts monitoring
+import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
 
 // TypeScript type for tab names
 type TabName = "dashboard" | "analytics" | "alerts" | "settings";
@@ -77,15 +78,22 @@ function AppContent() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
   const [showTransaction, setShowTransaction] = useState(false);
-  const [showManageCategories, setShowManageCategories] = useState(false);
-  const [showManageFundCategories, setShowManageFundCategories] =
-    useState(false);
+  const [categoriesModal, setCategoriesModal] = useState<CategoryTabType | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(
     null,
   );
+  const [analyticsFilter, setAnalyticsFilter] =
+    useState<AnalyticsInitialFilter | null>(null);
   const { addTransaction } = useFinanceStore();
+
+  useAlertsMonitor();
+
+  const navigateToAnalytics = (filter: AnalyticsInitialFilter) => {
+    setAnalyticsFilter(filter);
+    setActiveTab("analytics");
+  };
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -95,14 +103,22 @@ function AppContent() {
             onTransactionPress={(transaction) =>
               setSelectedTransaction(transaction)
             }
+            onNavigateToAnalytics={navigateToAnalytics}
           />
         );
       case "analytics":
-        return <AnalysisScreen />;
+        return (
+          <AnalyticsScreen
+            initialFilter={analyticsFilter}
+            onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
+          />
+        );
       case "alerts":
         return <AlertsScreen />;
       case "settings":
-        return <SettingsScreen />;
+        return (
+          <SettingsScreen onOpenCategories={(type) => setCategoriesModal(type)} />
+        );
     }
   };
 
@@ -192,8 +208,8 @@ function AppContent() {
           setShowTransaction(false);
           setEditTransaction(null);
         }}
-        onOpenManageCategories={() => setShowManageCategories(true)}
-        onOpenManageFundCategories={() => setShowManageFundCategories(true)}
+        onOpenManageCategories={() => setCategoriesModal("expense")}
+        onOpenManageFundCategories={() => setCategoriesModal("fund")}
         onSave={(type, amount, category, fundCategory, title, note, date) => {
           addTransaction({
             title,
@@ -207,14 +223,10 @@ function AppContent() {
           setShowTransaction(false);
         }}
       />
-      <ManageCategoriesModal
-        visible={showManageCategories}
-        onClose={() => setShowManageCategories(false)}
-      />
-
-      <ManageFundCategoriesModal
-        visible={showManageFundCategories}
-        onClose={() => setShowManageFundCategories(false)}
+      <CategoriesModal
+        visible={categoriesModal !== null}
+        initialType={categoriesModal ?? "expense"}
+        onClose={() => setCategoriesModal(null)}
       />
 
       <TransactionDetailModal
