@@ -35,6 +35,7 @@ export default function TransactionList({
     const categories =
       type === "expense" ? expenseCategories : incomeCategories;
     const found = categories.find((c) => c.id === categoryId);
+    // const date = new Date(transaction.date);
 
     if (found) {
       return {

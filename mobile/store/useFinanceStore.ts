@@ -1,10 +1,14 @@
 import { create } from "zustand";
-import { Category } from "../constants/categories";
+import { persist } from "zustand/middleware";
+import {
+  Category,
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from "../constants/categories";
 import {
   FundCategory,
   DEFAULT_FUND_CATEGORIES,
 } from "../constants/fundCategories";
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from "../constants/categories";
 
 type Transaction = {
   id: string;
@@ -18,62 +22,74 @@ type Transaction = {
 };
 
 type FinanceStore = {
-  // Data
   transactions: Transaction[];
   expenseCategories: Category[];
   incomeCategories: Category[];
   fundCategories: FundCategory[];
-
-  // Transaction actions
   addTransaction: (transaction: Omit<Transaction, "id">) => void;
   deleteTransaction: (id: string) => void;
-
-  // Category actions
+  clearAllTransactions: () => void;
   addExpenseCategory: (category: Category) => void;
   addIncomeCategory: (category: Category) => void;
-
-  // Fund category actions
   addFundCategory: (fundCategory: FundCategory) => void;
 };
 
-export const useFinanceStore = create<FinanceStore>((set) => ({
-  // Initial data
-  transactions: [],
-  expenseCategories: EXPENSE_CATEGORIES,
-  incomeCategories: INCOME_CATEGORIES,
-  fundCategories: DEFAULT_FUND_CATEGORIES,
+export const useFinanceStore = create<FinanceStore>()(
+  persist(
+    (set) => ({
+      transactions: [],
+      expenseCategories: EXPENSE_CATEGORIES,
+      incomeCategories: INCOME_CATEGORIES,
+      fundCategories: DEFAULT_FUND_CATEGORIES,
 
-  // Transaction actions
-  addTransaction: (transaction) =>
-    set((state) => ({
-      transactions: [
-        {
-          ...transaction,
-          id: Date.now().toString(),
+      addTransaction: (transaction) =>
+        set((state) => ({
+          transactions: [
+            {
+              ...transaction,
+              id: Date.now().toString(),
+            },
+            ...state.transactions,
+          ],
+        })),
+
+      deleteTransaction: (id) =>
+        set((state) => ({
+          transactions: state.transactions.filter((t) => t.id !== id),
+        })),
+
+      clearAllTransactions: () => set({ transactions: [] }),
+
+      addExpenseCategory: (category) =>
+        set((state) => ({
+          expenseCategories: [...state.expenseCategories, category],
+        })),
+
+      addIncomeCategory: (category) =>
+        set((state) => ({
+          incomeCategories: [...state.incomeCategories, category],
+        })),
+
+      addFundCategory: (fundCategory) =>
+        set((state) => ({
+          fundCategories: [...state.fundCategories, fundCategory],
+        })),
+    }),
+    {
+      name: "finance-store",
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          return JSON.parse(str);
         },
-        ...state.transactions,
-      ],
-    })),
-
-  deleteTransaction: (id) =>
-    set((state) => ({
-      transactions: state.transactions.filter((t) => t.id !== id),
-    })),
-
-  // Category actions
-  addExpenseCategory: (category) =>
-    set((state) => ({
-      expenseCategories: [...state.expenseCategories, category],
-    })),
-
-  addIncomeCategory: (category) =>
-    set((state) => ({
-      incomeCategories: [...state.incomeCategories, category],
-    })),
-
-  // Fund category actions
-  addFundCategory: (fundCategory) =>
-    set((state) => ({
-      fundCategories: [...state.fundCategories, fundCategory],
-    })),
-}));
+        setItem: (name, value) => {
+          localStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          localStorage.removeItem(name);
+        },
+      },
+    },
+  ),
+);
