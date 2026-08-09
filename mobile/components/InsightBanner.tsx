@@ -1,50 +1,51 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
+import { Transaction } from "../store/useFinanceStore";
+import { Category } from "../constants/categories";
+import { getInsights } from "../utils/insights";
 
-type AIInsightBannerProps = {
-  message: string;
-  onPress?: () => void;
+type InsightBannerProps = {
+  transactions: Transaction[];
+  expenseCategories: Category[];
 };
 
-export default function AIInsightBanner({
-  message,
-  onPress,
-}: AIInsightBannerProps) {
+export default function InsightBanner({
+  transactions,
+  expenseCategories,
+}: InsightBannerProps) {
+  // Picked once per mount (app open) so it doesn't shuffle on every re-render.
+  const [message] = useState(() => {
+    const insights = getInsights(transactions, expenseCategories);
+    return insights[Math.floor(Math.random() * insights.length)];
+  });
+
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
+    <View style={styles.banner}>
       {/* Icon */}
       <View style={styles.iconContainer}>
-        <Ionicons name="sparkles" size={16} color={Colors.primary} />
+        <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
       </View>
 
       {/* Message */}
       <View style={styles.textContainer}>
-        <Text style={styles.label}>AI Insight</Text>
         <Text style={styles.message} numberOfLines={2}>
           {message}
         </Text>
       </View>
-
-      {/* Arrow */}
-      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  banner: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#EEF2FF",
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,
-    marginTop: 12,
     gap: 10,
   },
   iconContainer: {
@@ -58,14 +59,6 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: Colors.primary,
-    marginBottom: 2,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   },
   message: {
     fontSize: 12,

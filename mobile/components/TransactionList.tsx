@@ -2,19 +2,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
-import { useFinanceStore } from "../store/useFinanceStore";
+import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 
-export type Transaction = {
-  id: string;
-  title: string;
-  name?: string;
-  category: string;
-  fundCategory: string;
-  amount: number;
-  type: "income" | "expense";
-  date: Date;
-  note?: string;
-};
+export type { Transaction };
 
 type TransactionListProps = {
   transactions: Transaction[];
@@ -111,6 +101,16 @@ export default function TransactionList({
               <Text style={styles.category}>
                 {categoryDetails.label} · {formattedDate}
               </Text>
+              {transaction.note ? (
+                <View style={styles.noteHint}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={10}
+                    color={Colors.textMuted}
+                  />
+                  <Text style={styles.noteHintText}>Open to read note</Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Amount */}
@@ -166,6 +166,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  noteHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 2,
+  },
+  noteHintText: {
+    fontSize: 10,
+    fontStyle: "italic",
+    color: Colors.textMuted,
   },
   amount: {
     fontSize: 13,

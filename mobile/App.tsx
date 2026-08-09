@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 
 // Import zustand store
-import { useFinanceStore } from "./store/useFinanceStore";
+import { useFinanceStore, Transaction } from "./store/useFinanceStore";
 
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
@@ -24,6 +24,7 @@ import AnalysisScreen from "./screens/AnalyticsScreen";
 // Category Management Modals
 import ManageCategoriesModal from "./screens/modals/ManageCategoriesModal";
 import ManageFundCategoriesModal from "./screens/modals/ManageFundCategoriesModal";
+import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
 
 // TypeScript type for tab names
 type TabName = "dashboard" | "analytics" | "alerts" | "settings";
@@ -66,12 +67,23 @@ export default function App() {
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showManageFundCategories, setShowManageFundCategories] =
     useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(
+    null,
+  );
   const { addTransaction } = useFinanceStore();
 
   const renderScreen = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardScreen />;
+        return (
+          <DashboardScreen
+            onTransactionPress={(transaction) =>
+              setSelectedTransaction(transaction)
+            }
+          />
+        );
       case "analytics":
         return <AnalysisScreen />;
       case "alerts":
@@ -118,7 +130,12 @@ export default function App() {
 
         {/* Center — FAB Button */}
         <View style={styles.navCenter}>
-          <FABButton onPress={() => setShowTransaction(true)} />
+          <FABButton
+            onPress={() => {
+              setEditTransaction(null);
+              setShowTransaction(true);
+            }}
+          />
         </View>
 
         {/* Right side — Alerts and Settings */}
@@ -152,7 +169,11 @@ export default function App() {
 
       <AddTransactionModal
         visible={showTransaction}
-        onClose={() => setShowTransaction(false)}
+        editTransaction={editTransaction}
+        onClose={() => {
+          setShowTransaction(false);
+          setEditTransaction(null);
+        }}
         onOpenManageCategories={() => setShowManageCategories(true)}
         onOpenManageFundCategories={() => setShowManageFundCategories(true)}
         onSave={(type, amount, category, fundCategory, title, note, date) => {
@@ -176,6 +197,16 @@ export default function App() {
       <ManageFundCategoriesModal
         visible={showManageFundCategories}
         onClose={() => setShowManageFundCategories(false)}
+      />
+
+      <TransactionDetailModal
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onEdit={(transaction) => {
+          setSelectedTransaction(null);
+          setEditTransaction(transaction);
+          setShowTransaction(true);
+        }}
       />
     </View>
   );

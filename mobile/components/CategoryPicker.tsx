@@ -30,9 +30,6 @@ export default function CategoryPicker({
         const isSelected = category.id === selected;
         const colorKey = category.id as keyof typeof Colors.categories;
         const colors = Colors.categories[colorKey] ?? Colors.categories.other;
-
-        // Use category.color if it exists (custom categories)
-        // otherwise fall back to Colors.categories map (default categories)
         const iconColor = category.color ?? colors.icon;
         const bgColor = category.color ? category.color + "22" : colors.bg;
 

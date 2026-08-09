@@ -1,91 +1,82 @@
+import { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useFinanceStore } from "../store/useFinanceStore";
+import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import BalanceCard from "../components/BalanceCard";
 import TransactionList from "../components/TransactionList";
-import AIInsightBanner from "../components/AIInsightBanner";
+import InsightBanner from "../components/InsightBanner";
+import TopExpensesCard from "../components/TopExpensesCard";
+import FundsCard from "../components/FundsCard";
+import DashboardCardList, {
+  DashboardCardDef,
+} from "../components/DashboardCardList";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
 
-export default function DashboardScreen() {
-  const { transactions } = useFinanceStore();
+type DashboardScreenProps = {
+  onTransactionPress: (transaction: Transaction) => void;
+};
 
-  // Calculate balance data from real transactions
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+export default function DashboardScreen({
+  onTransactionPress,
+}: DashboardScreenProps) {
+  const {
+    transactions,
+    expenseCategories,
+    fundCategories,
+    dashboardCardOrder,
+    dashboardCollapsedCards,
+    setDashboardCardOrder,
+    toggleDashboardCard,
+  } = useFinanceStore();
 
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Locked while a card is being drag-reordered, so the drag doesn't fight
+  // the page scroll.
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  const balance = totalIncome - totalExpense;
-
-  // Calculate percentage change vs last month
-  const now = new Date();
-  const thisMonth = transactions.filter((t) => {
-    const d = new Date(t.date);
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    );
-  });
-
-  const lastMonth = transactions.filter((t) => {
-    const d = new Date(t.date);
-    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1);
-    return (
-      d.getMonth() === lastMonthDate.getMonth() &&
-      d.getFullYear() === lastMonthDate.getFullYear()
-    );
-  });
-
-  const thisMonthIncome = thisMonth
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const lastMonthIncome = lastMonth
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const thisMonthExpense = thisMonth
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const lastMonthExpense = lastMonth
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  // Calculate percentage changes
-  const incomePercentage =
-    lastMonthIncome === 0
-      ? 0
-      : Math.round(
-          ((thisMonthIncome - lastMonthIncome) / lastMonthIncome) * 100,
-        );
-
-  const expensePercentage =
-    lastMonthExpense === 0
-      ? 0
-      : Math.round(
-          ((thisMonthExpense - lastMonthExpense) / lastMonthExpense) * 100,
-        );
-
-  // AI insight message based on real data
-  const getAIInsight = () => {
-    if (transactions.length === 0) {
-      return "Add your first transaction to get started!";
-    }
-    if (totalExpense > totalIncome) {
-      return `Your expenses exceed your income by ${(totalExpense - totalIncome).toFixed(2)} BGN. Consider reviewing your spending.`;
-    }
-    if (expensePercentage > 20) {
-      return `Your expenses are up ${expensePercentage}% compared to last month. Keep an eye on your spending!`;
-    }
-    return `You have saved ${(totalIncome - totalExpense).toFixed(2)} BGN so far. Great job keeping your finances in check!`;
-  };
-
-  // Show only last 5 transactions on dashboard
+  // Show only the last 5 added transactions on the dashboard.
   const recentTransactions = transactions.slice(0, 5);
+
+  const cards: DashboardCardDef[] = [
+    {
+      id: "insights",
+      title: "Insights",
+      content: (
+        <InsightBanner
+          transactions={transactions}
+          expenseCategories={expenseCategories}
+        />
+      ),
+    },
+    {
+      id: "topExpenses",
+      title: "Top Expenses",
+      content: (
+        <TopExpensesCard
+          transactions={transactions}
+          onTransactionPress={onTransactionPress}
+        />
+      ),
+    },
+    {
+      id: "funds",
+      title: "Your Funds",
+      content: (
+        <FundsCard transactions={transactions} fundCategories={fundCategories} />
+      ),
+    },
+    {
+      id: "transactions",
+      title: "Recent Transactions",
+      subtitle: `${transactions.length} total`,
+      content: (
+        <TransactionList
+          transactions={recentTransactions}
+          onTransactionPress={onTransactionPress}
+        />
+      ),
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -94,6 +85,7 @@ export default function DashboardScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
       >
         {/* Header */}
         <View style={[styles.header, GlobalStyles.screenPadding]}>
@@ -101,32 +93,17 @@ export default function DashboardScreen() {
           <Text style={styles.name}>Alexander 👋</Text>
         </View>
 
-        {/* Balance Card */}
-        <BalanceCard
-          balance={balance}
-          totalIncome={totalIncome}
-          totalExpense={totalExpense}
-          incomePercentage={incomePercentage}
-          expensePercentage={expensePercentage}
-        />
+        {/* Balance Card — always pinned at the top, not collapsible/draggable */}
+        <BalanceCard transactions={transactions} />
 
-        {/* AI Insight Banner */}
-        <AIInsightBanner
-          message={getAIInsight()}
-          onPress={() => console.log("Navigate to AI screen")}
-        />
-
-        {/* Recent Transactions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <Text style={styles.sectionCount}>{transactions.length} total</Text>
-        </View>
-
-        <TransactionList
-          transactions={recentTransactions}
-          onTransactionPress={(transaction) =>
-            console.log("Transaction pressed:", transaction)
-          }
+        {/* Everything else: collapsible + drag-reorderable */}
+        <DashboardCardList
+          cards={cards}
+          order={dashboardCardOrder}
+          collapsed={dashboardCollapsedCards}
+          onReorder={setDashboardCardOrder}
+          onToggleCollapse={toggleDashboardCard}
+          onDragActiveChange={(active) => setScrollEnabled(!active)}
         />
 
         {/* Bottom padding for nav bar */}
@@ -156,23 +133,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "600",
     color: Colors.textPrimary,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Colors.textPrimary,
-  },
-  sectionCount: {
-    fontSize: 12,
-    color: Colors.textMuted,
   },
   bottomPadding: {
     height: 20,

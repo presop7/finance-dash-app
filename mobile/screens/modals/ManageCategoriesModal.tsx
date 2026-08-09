@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { Category } from "../../constants/categories";
+import { confirmAsync } from "../../utils/confirm";
 
 // Available icons to pick from
 const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
@@ -66,11 +67,16 @@ export default function ManageCategoriesModal({
     expenseCategories,
     incomeCategories,
     addExpenseCategory,
+    updateExpenseCategory,
+    deleteExpenseCategory,
     addIncomeCategory,
+    updateIncomeCategory,
+    deleteIncomeCategory,
   } = useFinanceStore();
 
   const [activeType, setActiveType] = useState<CategoryType>("expense");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [selectedIcon, setSelectedIcon] =
     useState<keyof typeof Ionicons.glyphMap>("cart-outline");
@@ -84,24 +90,47 @@ export default function ManageCategoriesModal({
     setSelectedIcon("cart-outline");
     setSelectedColor(AVAILABLE_COLORS[0]);
     setShowForm(false);
+    setEditingId(null);
+  };
+
+  const handleChipPress = (category: Category) => {
+    setEditingId(category.id);
+    setNewName(category.label);
+    setSelectedIcon(category.icon);
+    setSelectedColor(category.color ?? AVAILABLE_COLORS[0]);
+    setShowForm(true);
   };
 
   const handleSave = () => {
     if (!newName.trim()) return;
 
-    const newCategory: Category = {
-      id: newName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now(),
+    const category: Category = {
+      id: editingId ?? newName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now(),
       label: newName.trim(),
       icon: selectedIcon,
       color: selectedColor,
     };
 
     if (activeType === "expense") {
-      addExpenseCategory(newCategory);
+      if (editingId) updateExpenseCategory(editingId, category);
+      else addExpenseCategory(category);
     } else {
-      addIncomeCategory(newCategory);
+      if (editingId) updateIncomeCategory(editingId, category);
+      else addIncomeCategory(category);
     }
 
+    resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!editingId) return;
+    const ok = await confirmAsync(
+      "Delete Category",
+      `Delete "${newName}"? Existing transactions using it will keep showing it as an unknown category.`,
+    );
+    if (!ok) return;
+    if (activeType === "expense") deleteExpenseCategory(editingId);
+    else deleteIncomeCategory(editingId);
     resetForm();
   };
 
@@ -186,14 +215,24 @@ export default function ManageCategoriesModal({
           {/* Existing Categories */}
           <View style={styles.categoriesGrid}>
             {categories.map((cat) => (
-              <View key={cat.id} style={styles.categoryChip}>
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.categoryChip}
+                onPress={() => handleChipPress(cat)}
+                activeOpacity={0.7}
+              >
                 <Ionicons
                   name={cat.icon as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={cat.color ?? Colors.primary}
                 />
                 <Text style={styles.categoryChipText}>{cat.label}</Text>
-              </View>
+                <Ionicons
+                  name="pencil"
+                  size={11}
+                  color={Colors.textMuted}
+                />
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -201,7 +240,9 @@ export default function ManageCategoriesModal({
           {showForm ? (
             <View style={styles.form}>
               {/* Name Input */}
-              <Text style={styles.formLabel}>Category Name</Text>
+              <Text style={styles.formLabel}>
+                {editingId ? "Edit Category" : "Category Name"}
+              </Text>
               <View style={styles.fieldContainer}>
                 <Ionicons
                   name="text-outline"
@@ -291,6 +332,18 @@ export default function ManageCategoriesModal({
 
               {/* Form Actions */}
               <View style={styles.formActions}>
+                {editingId && (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={handleDelete}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={16}
+                      color={Colors.expense}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
@@ -302,7 +355,9 @@ export default function ManageCategoriesModal({
                   onPress={handleSave}
                   disabled={!newName.trim()}
                 >
-                  <Text style={styles.saveBtnText}>Save Category</Text>
+                  <Text style={styles.saveBtnText}>
+                    {editingId ? "Save Changes" : "Save Category"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -471,10 +526,7 @@ const styles = StyleSheet.create({
   colorSelected: {
     borderWidth: 3,
     borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.3)",
     elevation: 4,
   },
   preview: {
@@ -511,6 +563,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSecondary,
     borderWidth: 0.5,
     borderColor: Colors.border,
+  },
+  deleteBtn: {
+    width: 44,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.expense + "15",
+    borderWidth: 0.5,
+    borderColor: Colors.expense + "40",
   },
   cancelBtnText: {
     fontSize: 14,

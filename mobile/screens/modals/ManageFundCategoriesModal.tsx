@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { FundCategory } from "../../constants/fundCategories";
+import { confirmAsync } from "../../utils/confirm";
 
 const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cash-outline",
@@ -44,9 +45,11 @@ export default function ManageFundCategoriesModal({
   visible,
   onClose,
 }: ManageFundCategoriesModalProps) {
-  const { fundCategories, addFundCategory } = useFinanceStore();
+  const { fundCategories, addFundCategory, updateFundCategory, deleteFundCategory } =
+    useFinanceStore();
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [selectedIcon, setSelectedIcon] =
     useState<keyof typeof Ionicons.glyphMap>("cash-outline");
@@ -57,19 +60,40 @@ export default function ManageFundCategoriesModal({
     setSelectedIcon("cash-outline");
     setSelectedColor(AVAILABLE_COLORS[0]);
     setShowForm(false);
+    setEditingId(null);
+  };
+
+  const handleChipPress = (fund: FundCategory) => {
+    setEditingId(fund.id);
+    setNewName(fund.name);
+    setSelectedIcon(fund.icon as keyof typeof Ionicons.glyphMap);
+    setSelectedColor(fund.color);
+    setShowForm(true);
   };
 
   const handleSave = () => {
     if (!newName.trim()) return;
 
-    const newFundCategory: FundCategory = {
-      id: newName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now(),
+    const fundCategory: FundCategory = {
+      id: editingId ?? newName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now(),
       name: newName.trim(),
       icon: selectedIcon,
       color: selectedColor,
     };
 
-    addFundCategory(newFundCategory);
+    if (editingId) updateFundCategory(editingId, fundCategory);
+    else addFundCategory(fundCategory);
+    resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!editingId) return;
+    const ok = await confirmAsync(
+      "Delete Fund",
+      `Delete "${newName}"? Existing transactions using it will keep showing it as an unknown fund.`,
+    );
+    if (!ok) return;
+    deleteFundCategory(editingId);
     resetForm();
   };
 
@@ -103,7 +127,12 @@ export default function ManageFundCategoriesModal({
           {/* Existing Fund Categories */}
           <View style={styles.fundsGrid}>
             {fundCategories.map((fund) => (
-              <View key={fund.id} style={styles.fundChip}>
+              <TouchableOpacity
+                key={fund.id}
+                style={styles.fundChip}
+                onPress={() => handleChipPress(fund)}
+                activeOpacity={0.7}
+              >
                 <View
                   style={[
                     styles.fundChipIcon,
@@ -117,7 +146,8 @@ export default function ManageFundCategoriesModal({
                   />
                 </View>
                 <Text style={styles.fundChipText}>{fund.name}</Text>
-              </View>
+                <Ionicons name="pencil" size={11} color={Colors.textMuted} />
+              </TouchableOpacity>
             ))}
           </View>
 
@@ -125,7 +155,9 @@ export default function ManageFundCategoriesModal({
           {showForm ? (
             <View style={styles.form}>
               {/* Name */}
-              <Text style={styles.formLabel}>Fund Name</Text>
+              <Text style={styles.formLabel}>
+                {editingId ? "Edit Fund" : "Fund Name"}
+              </Text>
               <View style={styles.fieldContainer}>
                 <Ionicons
                   name="text-outline"
@@ -215,6 +247,18 @@ export default function ManageFundCategoriesModal({
 
               {/* Actions */}
               <View style={styles.formActions}>
+                {editingId && (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={handleDelete}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={16}
+                      color={Colors.expense}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
@@ -226,7 +270,9 @@ export default function ManageFundCategoriesModal({
                   onPress={handleSave}
                   disabled={!newName.trim()}
                 >
-                  <Text style={styles.saveBtnText}>Save Fund</Text>
+                  <Text style={styles.saveBtnText}>
+                    {editingId ? "Save Changes" : "Save Fund"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -373,10 +419,7 @@ const styles = StyleSheet.create({
   colorSelected: {
     borderWidth: 3,
     borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.3)",
     elevation: 4,
   },
   preview: {
@@ -413,6 +456,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSecondary,
     borderWidth: 0.5,
     borderColor: Colors.border,
+  },
+  deleteBtn: {
+    width: 44,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.expense + "15",
+    borderWidth: 0.5,
+    borderColor: Colors.expense + "40",
   },
   cancelBtnText: {
     fontSize: 14,

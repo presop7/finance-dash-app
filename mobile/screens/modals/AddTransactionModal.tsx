@@ -8,16 +8,16 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
+  Pressable,
 } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Colors } from "../../constants/colors";
 import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
-import { useFinanceStore } from "../../store/useFinanceStore";
+import DateTimeFields from "../../components/DateTimeFields";
+import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
+import { confirmAsync } from "../../utils/confirm";
 
 type TransactionType = "expense" | "income";
 
@@ -35,6 +35,8 @@ type AddTransactionModalProps = {
   ) => void;
   onOpenManageCategories: () => void;
   onOpenManageFundCategories: () => void;
+  // When set, the modal edits this transaction instead of creating a new one.
+  editTransaction?: Transaction | null;
 };
 
 export default function AddTransactionModal({
@@ -43,9 +45,12 @@ export default function AddTransactionModal({
   onSave,
   onOpenManageCategories,
   onOpenManageFundCategories,
+  editTransaction,
 }: AddTransactionModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories } =
+  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction } =
     useFinanceStore();
+
+  const isEditing = Boolean(editTransaction);
 
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
@@ -55,29 +60,23 @@ export default function AddTransactionModal({
   const [selectedFundCategory, setSelectedFundCategory] = useState("cash");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const isExpense = type === "expense";
   const activeColor = isExpense ? Colors.expense : Colors.income;
   const categories = isExpense ? expenseCategories : incomeCategories;
 
-  // Format date for display
-  const formatDate = (d: Date) => {
-    return d.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
-
-  // Format time for display
-  const formatTime = (d: Date) => {
-    return d.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  // Prefill the form when opened in edit mode.
+  useEffect(() => {
+    if (visible && editTransaction) {
+      setType(editTransaction.type);
+      setTitle(editTransaction.title);
+      setAmount(editTransaction.amount.toString());
+      setSelectedCategory(editTransaction.category);
+      setSelectedFundCategory(editTransaction.fundCategory);
+      setNote(editTransaction.note);
+      setDate(new Date(editTransaction.date));
+    }
+  }, [visible, editTransaction]);
 
   // Reset form
   const handleClose = () => {
@@ -89,8 +88,6 @@ export default function AddTransactionModal({
     setSelectedFundCategory("cash");
     setNote("");
     setDate(new Date());
-    setShowDatePicker(false);
-    setShowTimePicker(false);
     onClose();
   };
 
@@ -104,15 +101,39 @@ export default function AddTransactionModal({
   const handleSave = () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
-    onSave(
-      type,
-      parsedAmount,
-      selectedCategory,
-      selectedFundCategory,
-      title,
-      note,
-      date,
+
+    if (isEditing && editTransaction) {
+      updateTransaction(editTransaction.id, {
+        type,
+        amount: parsedAmount,
+        category: selectedCategory,
+        fundCategory: selectedFundCategory,
+        title,
+        note,
+        date,
+      });
+    } else {
+      onSave(
+        type,
+        parsedAmount,
+        selectedCategory,
+        selectedFundCategory,
+        title,
+        note,
+        date,
+      );
+    }
+    handleClose();
+  };
+
+  const handleDelete = async () => {
+    if (!editTransaction) return;
+    const ok = await confirmAsync(
+      "Delete Transaction",
+      `Delete "${editTransaction.title || "this transaction"}"? This can't be undone.`,
     );
+    if (!ok) return;
+    deleteTransaction(editTransaction.id);
     handleClose();
   };
 
@@ -154,7 +175,8 @@ export default function AddTransactionModal({
       onRequestClose={handleClose}
     >
       {/* Background overlay — closes numpad or modal */}
-      <TouchableWithoutFeedback
+      <Pressable
+        style={styles.overlay}
         onPress={() => {
           if (showNumpad) {
             setShowNumpad(false);
@@ -162,9 +184,7 @@ export default function AddTransactionModal({
             handleClose();
           }
         }}
-      >
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -175,7 +195,9 @@ export default function AddTransactionModal({
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>New Transaction</Text>
+            <Text style={styles.title}>
+              {isEditing ? "Edit Transaction" : "New Transaction"}
+            </Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
               <Ionicons name="close" size={20} color={Colors.textMuted} />
             </TouchableOpacity>
@@ -253,30 +275,40 @@ export default function AddTransactionModal({
               />
             </View>
 
-            {/* Amount Field */}
-            <TouchableOpacity
+            {/* Amount Field — typeable directly, with an optional tap-numpad for touch */}
+            <View
               style={[
                 styles.fieldContainer,
                 showNumpad && { borderColor: activeColor },
               ]}
-              onPress={() => setShowNumpad(true)}
-              activeOpacity={0.8}
             >
               <Ionicons
                 name="cash-outline"
                 size={18}
-                color={showNumpad ? activeColor : Colors.textMuted}
+                color={amount ? activeColor : Colors.textMuted}
               />
-              <Text
+              {amount ? (
+                <Text style={[styles.amountSign, { color: activeColor }]}>
+                  {isExpense ? "-" : "+"}
+                </Text>
+              ) : null}
+              <TextInput
                 style={[
                   styles.amountFieldText,
                   { color: amount ? activeColor : Colors.textMuted },
                 ]}
-              >
-                {amount
-                  ? `${isExpense ? "-" : "+"}${amount} BGN`
-                  : "Tap to enter amount"}
-              </Text>
+                placeholder="Tap to enter amount"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="decimal-pad"
+                value={amount}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9.]/g, "");
+                  if (cleaned.split(".").length > 2) return;
+                  setAmount(cleaned);
+                }}
+                onFocus={() => setShowNumpad(false)}
+              />
+              {amount ? <Text style={styles.amountSuffix}>BGN</Text> : null}
               {amount ? (
                 <TouchableOpacity onPress={() => setAmount("")}>
                   <Ionicons
@@ -286,7 +318,14 @@ export default function AddTransactionModal({
                   />
                 </TouchableOpacity>
               ) : null}
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowNumpad((v) => !v)}>
+                <Ionicons
+                  name="keypad-outline"
+                  size={18}
+                  color={showNumpad ? activeColor : Colors.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
 
             {/* Numpad — only shown when amount field is tapped */}
             {showNumpad && (
@@ -357,69 +396,14 @@ export default function AddTransactionModal({
               onAdd={onOpenManageFundCategories}
             />
 
-            {/* Date and Time Row */}
-            <View style={styles.dateTimeRow}>
-              {/* Date */}
-              <TouchableOpacity
-                style={[styles.fieldContainer, styles.dateField]}
-                onPress={() => {
-                  setShowNumpad(false);
-                  setShowTimePicker(false);
-                  setShowDatePicker(true);
-                }}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={18}
-                  color={Colors.textMuted}
-                />
-                <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
-              </TouchableOpacity>
-
-              {/* Time */}
-              <TouchableOpacity
-                style={[styles.fieldContainer, styles.timeField]}
-                onPress={() => {
-                  setShowNumpad(false);
-                  setShowDatePicker(false);
-                  setShowTimePicker(true);
-                }}
-              >
-                <Ionicons
-                  name="time-outline"
-                  size={18}
-                  color={Colors.textMuted}
-                />
-                <Text style={styles.dateTimeText}>{formatTime(date)}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Date Picker */}
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                maximumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) setDate(selectedDate);
-                }}
-              />
-            )}
-
-            {/* Time Picker */}
-            {showTimePicker && (
-              <DateTimePicker
-                value={date}
-                mode="time"
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowTimePicker(false);
-                  if (selectedTime) setDate(selectedTime);
-                }}
-              />
-            )}
+            {/* Date and Time — native tap-to-open pickers on iOS/Android,
+                typeable fields + custom calendar/time popovers on web
+                (see components/DateTimeFields.web.tsx) */}
+            <DateTimeFields
+              date={date}
+              onChange={setDate}
+              onInteract={() => setShowNumpad(false)}
+            />
 
             {/* Note Input */}
             <View style={[styles.fieldContainer, { marginBottom: 8 }]}>
@@ -439,20 +423,28 @@ export default function AddTransactionModal({
             </View>
           </ScrollView>
 
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveBtn,
-              { backgroundColor: activeColor },
-              !amount && styles.saveBtnDisabled,
-            ]}
-            onPress={handleSave}
-            disabled={!amount}
-          >
-            <Text style={styles.saveBtnText}>
-              Save {isExpense ? "Expense" : "Income"}
-            </Text>
-          </TouchableOpacity>
+          {/* Save (+ Delete when editing) */}
+          <View style={styles.footerRow}>
+            {isEditing && (
+              <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+                <Ionicons name="trash-outline" size={18} color={Colors.expense} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.saveBtn,
+                styles.saveBtnFlex,
+                { backgroundColor: activeColor },
+                !amount && styles.saveBtnDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={!amount}
+            >
+              <Text style={styles.saveBtnText}>
+                {isEditing ? "Save Changes" : `Save ${isExpense ? "Expense" : "Income"}`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -549,6 +541,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
+  amountSign: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  amountSuffix: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
   numpad: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -613,31 +613,28 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "500",
   },
-  dateTimeRow: {
+  footerRow: {
     flexDirection: "row",
+    gap: 10,
     marginHorizontal: 16,
-    gap: 8,
-    marginBottom: 10,
+    marginTop: 4,
   },
-  dateField: {
-    flex: 2,
-    marginHorizontal: 0,
-    marginBottom: 0,
-  },
-  timeField: {
-    flex: 1,
-    marginHorizontal: 0,
-    marginBottom: 0,
-  },
-  dateTimeText: {
-    fontSize: 13,
-    color: Colors.textPrimary,
+  deleteBtn: {
+    width: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.expense + "15",
+    borderWidth: 0.5,
+    borderColor: Colors.expense + "40",
   },
   saveBtn: {
-    margin: 16,
     padding: 14,
     borderRadius: 12,
     alignItems: "center",
+  },
+  saveBtnFlex: {
+    flex: 1,
   },
   saveBtnDisabled: {
     opacity: 0.5,
