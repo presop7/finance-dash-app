@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { Category } from "../../constants/categories";
@@ -73,6 +74,7 @@ export default function ManageCategoriesModal({
     updateIncomeCategory,
     deleteIncomeCategory,
   } = useFinanceStore();
+  const insets = useSafeAreaInsets();
 
   const [activeType, setActiveType] = useState<CategoryType>("expense");
   const [showForm, setShowForm] = useState(false);
@@ -148,7 +150,12 @@ export default function ManageCategoriesModal({
         onPress={onClose}
       />
 
-      <View style={styles.sheet}>
+      <View
+        style={[
+          styles.sheet,
+          { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+        ]}
+      >
         {/* Handle */}
         <View style={styles.handle} />
 

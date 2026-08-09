@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
@@ -29,10 +28,6 @@ export default function DashboardScreen({
     setDashboardCardOrder,
     toggleDashboardCard,
   } = useFinanceStore();
-
-  // Locked while a card is being drag-reordered, so the drag doesn't fight
-  // the page scroll.
-  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // Show only the last 5 added transactions on the dashboard.
   const recentTransactions = transactions.slice(0, 5);
@@ -85,7 +80,6 @@ export default function DashboardScreen({
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={scrollEnabled}
       >
         {/* Header */}
         <View style={[styles.header, GlobalStyles.screenPadding]}>
@@ -96,14 +90,13 @@ export default function DashboardScreen({
         {/* Balance Card — always pinned at the top, not collapsible/draggable */}
         <BalanceCard transactions={transactions} />
 
-        {/* Everything else: collapsible + drag-reorderable */}
+        {/* Everything else: collapsible + reorderable (hold a title to enter reorder mode) */}
         <DashboardCardList
           cards={cards}
           order={dashboardCardOrder}
           collapsed={dashboardCollapsedCards}
           onReorder={setDashboardCardOrder}
           onToggleCollapse={toggleDashboardCard}
-          onDragActiveChange={(active) => setScrollEnabled(!active)}
         />
 
         {/* Bottom padding for nav bar */}

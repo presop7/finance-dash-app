@@ -95,9 +95,7 @@ export default function TopExpensesCard({
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            No expenses in this range yet.
-          </Text>
+          <Text style={styles.emptyText}>No expenses in this range yet.</Text>
         </View>
       )}
     </View>

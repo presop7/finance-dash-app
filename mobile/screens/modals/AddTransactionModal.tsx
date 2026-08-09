@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
@@ -51,6 +52,7 @@ export default function AddTransactionModal({
     useFinanceStore();
 
   const isEditing = Boolean(editTransaction);
+  const insets = useSafeAreaInsets();
 
   const [type, setType] = useState<TransactionType>("expense");
   const [title, setTitle] = useState("");
@@ -186,10 +188,18 @@ export default function AddTransactionModal({
         }}
       />
 
+      {/* Android already resizes the window for the keyboard
+          (windowSoftInputMode="adjustResize"); "height" behavior here would
+          double-compensate and leave a permanent gap above the nav bar. */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.sheet}>
+        <View
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+          ]}
+        >
           {/* Handle */}
           <View style={styles.handle} />
 

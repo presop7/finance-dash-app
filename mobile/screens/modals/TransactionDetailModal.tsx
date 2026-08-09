@@ -6,6 +6,7 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
@@ -23,6 +24,7 @@ export default function TransactionDetailModal({
 }: TransactionDetailModalProps) {
   const { expenseCategories, incomeCategories, fundCategories, deleteTransaction } =
     useFinanceStore();
+  const insets = useSafeAreaInsets();
 
   if (!transaction) return null;
 
@@ -64,7 +66,12 @@ export default function TransactionDetailModal({
     >
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
 
-      <View style={styles.sheet}>
+      <View
+        style={[
+          styles.sheet,
+          { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+        ]}
+      >
         <View style={styles.handle} />
 
         <View style={styles.header}>

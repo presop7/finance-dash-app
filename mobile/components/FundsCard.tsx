@@ -34,7 +34,10 @@ export default function FundsCard({
 
       const balance30DaysAgo = fundTransactions
         .filter((t) => new Date(t.date).getTime() < thirtyDaysAgo.getTime())
-        .reduce((sum, t) => sum + (t.type === "income" ? t.amount : -t.amount), 0);
+        .reduce(
+          (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
+          0,
+        );
 
       return {
         fund,
@@ -115,6 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 14,
+    marginVertical: 4,
   },
   iconContainer: {
     width: 36,

@@ -1,6 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 // Import zustand store
 import { useFinanceStore, Transaction } from "./store/useFinanceStore";
@@ -62,6 +66,15 @@ const NAV_ITEMS: {
 ];
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabName>("dashboard");
   const [showTransaction, setShowTransaction] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
@@ -99,7 +112,12 @@ export default function App() {
       <View style={styles.screenContainer}>{renderScreen()}</View>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View
+        style={[
+          styles.bottomNav,
+          { paddingBottom: Math.max(insets.bottom, 8) },
+        ]}
+      >
         {/* Left side — Dashboard and Analytics */}
         <View style={styles.navSide}>
           {NAV_ITEMS.slice(0, 2).map((item) => (
