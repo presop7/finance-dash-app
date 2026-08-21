@@ -6,7 +6,6 @@ from models.category import CategoryType
 
 
 class CategoryCreate(BaseModel):
-    user_id: uuid.UUID | None = None
     name: str
     icon: str | None = None
     type: CategoryType

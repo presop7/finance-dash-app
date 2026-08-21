@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class AccountCreate(BaseModel):
-    user_id: uuid.UUID
     name: str
     currency: str
 
