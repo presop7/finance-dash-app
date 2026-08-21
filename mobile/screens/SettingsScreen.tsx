@@ -4,8 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore } from "../store/useFinanceStore";
+import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
+import { confirmAsync } from "../utils/confirm";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
@@ -14,8 +16,15 @@ type SettingsScreenProps = {
 
 export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps) {
   const { settings, updateSettings } = useFinanceStore();
+  const { session, signOut } = useAuthStore();
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    const ok = await confirmAsync("Sign Out", "Are you sure you want to sign out?");
+    if (!ok) return;
+    await signOut();
+  };
 
   return (
     <View style={styles.container}>
@@ -192,6 +201,30 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
               <Text style={styles.rowSubtitle}>Expenses, income and funds</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Account</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="person-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Signed in as</Text>
+              <Text style={styles.rowSubtitle}>{session?.user.email}</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={handleSignOut} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="log-out-outline" size={18} color={Colors.expense} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowTitle, { color: Colors.expense }]}>Sign Out</Text>
+            </View>
           </TouchableOpacity>
         </View>
 

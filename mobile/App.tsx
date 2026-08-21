@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -8,12 +8,14 @@ import {
 
 // Import zustand store
 import { useFinanceStore, Transaction } from "./store/useFinanceStore";
+import { useAuthStore } from "./store/useAuthStore";
 
 // Screens
 import DashboardScreen from "./screens/DashboardScreen";
 import AnalyticsScreen, { AnalyticsInitialFilter } from "./screens/AnalyticsScreen";
 import AlertsScreen from "./screens/AlertsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import AuthScreen from "./screens/AuthScreen";
 
 // Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
@@ -69,9 +71,27 @@ const NAV_ITEMS: {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppContent />
+      <RootNavigator />
     </SafeAreaProvider>
   );
+}
+
+function RootNavigator() {
+  const { session, initializing } = useAuthStore();
+
+  if (initializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <AuthScreen />;
+  }
+
+  return <AppContent />;
 }
 
 function AppContent() {
@@ -245,6 +265,12 @@ function AppContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.surface,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.surface,
   },
   screenContainer: {
