@@ -21,8 +21,9 @@ class Transaction(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    account_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("accounts.id"), nullable=False
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    fund_category_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("fund_categories.id"), nullable=False
     )
     category_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("categories.id"), nullable=False
@@ -41,5 +42,5 @@ class Transaction(Base):
         UUID(as_uuid=True), unique=True, nullable=False
     )
 
-    account: Mapped["Account"] = relationship(back_populates="transactions")
+    fund_category: Mapped["FundCategory"] = relationship(back_populates="transactions")
     category: Mapped["Category"] = relationship(back_populates="transactions")

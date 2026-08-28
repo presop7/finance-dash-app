@@ -24,6 +24,7 @@ class Category(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     icon: Mapped[str | None] = mapped_column(String, nullable=True)
+    color: Mapped[str | None] = mapped_column(String, nullable=True)
     type: Mapped[CategoryType] = mapped_column(
         Enum(CategoryType, name="category_type"), nullable=False
     )

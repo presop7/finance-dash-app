@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   SafeAreaProvider,
@@ -78,6 +78,16 @@ export default function App() {
 
 function RootNavigator() {
   const { session, initializing } = useAuthStore();
+  const { status, syncError, hydrate, reset } = useFinanceStore();
+
+  useEffect(() => {
+    if (session) {
+      hydrate();
+    } else {
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   if (initializing) {
     return (
@@ -89,6 +99,26 @@ function RootNavigator() {
 
   if (!session) {
     return <AuthScreen />;
+  }
+
+  if (status === "loading" || status === "idle") {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
+        <Text style={styles.errorText}>{syncError ?? "Couldn't load your data"}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={hydrate}>
+          <Text style={styles.retryBtnText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return <AppContent />;
@@ -230,8 +260,10 @@ function AppContent() {
         }}
         onOpenManageCategories={() => setCategoriesModal("expense")}
         onOpenManageFundCategories={() => setCategoriesModal("fund")}
-        onSave={(type, amount, category, fundCategory, title, note, date) => {
-          addTransaction({
+        onSave={async (type, amount, category, fundCategory, title, note, date) => {
+          // Errors propagate to AddTransactionModal's handleSave, which keeps
+          // the modal open (with the entered data intact) so the user can retry.
+          await addTransaction({
             title,
             type,
             amount,
@@ -271,7 +303,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
     backgroundColor: Colors.surface,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+  },
+  retryBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#fff",
   },
   screenContainer: {
     flex: 1,

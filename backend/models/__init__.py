@@ -1,11 +1,11 @@
-from models.account import Account
 from models.category import Category, CategoryType
+from models.fund_category import FundCategory
 from models.transaction import Transaction, TransactionType
 from models.user import User
 
 __all__ = [
     "User",
-    "Account",
+    "FundCategory",
     "Category",
     "CategoryType",
     "Transaction",

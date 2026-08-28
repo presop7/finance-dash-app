@@ -7,7 +7,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
-import { confirmAsync } from "../utils/confirm";
+import { confirmAsync, alertAsync } from "../utils/confirm";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
@@ -24,6 +24,17 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
     const ok = await confirmAsync("Sign Out", "Are you sure you want to sign out?");
     if (!ok) return;
     await signOut();
+  };
+
+  const handleUpdateSettings = async (changes: Parameters<typeof updateSettings>[0]) => {
+    try {
+      await updateSettings(changes);
+    } catch (err) {
+      await alertAsync(
+        "Couldn't save setting",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    }
   };
 
   return (
@@ -61,7 +72,7 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
                   key={c.code}
                   style={[styles.dropdownItem, c.code === settings.currency && styles.dropdownItemActive]}
                   onPress={() => {
-                    updateSettings({ currency: c.code });
+                    handleUpdateSettings({ currency: c.code });
                     setCurrencyOpen(false);
                   }}
                 >
@@ -93,7 +104,7 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
             </View>
             <Switch
               value={settings.hideBalance}
-              onValueChange={(v) => updateSettings({ hideBalance: v })}
+              onValueChange={(v) => handleUpdateSettings({ hideBalance: v })}
               trackColor={{ false: Colors.border, true: Colors.primary }}
             />
           </View>
@@ -110,7 +121,7 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
             <View style={styles.segmented}>
               <TouchableOpacity
                 style={[styles.segment, settings.timeFormat === "12h" && styles.segmentActive]}
-                onPress={() => updateSettings({ timeFormat: "12h" })}
+                onPress={() => handleUpdateSettings({ timeFormat: "12h" })}
               >
                 <Text
                   style={[
@@ -123,7 +134,7 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.segment, settings.timeFormat === "24h" && styles.segmentActive]}
-                onPress={() => updateSettings({ timeFormat: "24h" })}
+                onPress={() => handleUpdateSettings({ timeFormat: "24h" })}
               >
                 <Text
                   style={[
@@ -165,7 +176,7 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
                   key={f}
                   style={[styles.dropdownItem, f === settings.dateFormat && styles.dropdownItemActive]}
                   onPress={() => {
-                    updateSettings({ dateFormat: f });
+                    handleUpdateSettings({ dateFormat: f });
                     setDateFormatOpen(false);
                   }}
                 >

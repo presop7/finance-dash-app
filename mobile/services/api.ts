@@ -4,10 +4,12 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
 export class ApiError extends Error {
   status: number;
+  body: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -31,7 +33,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(response.status, body?.detail ?? response.statusText);
+    const detail = body?.detail;
+    const message = typeof detail === "string" ? detail : (detail?.message ?? response.statusText);
+    throw new ApiError(response.status, message, body);
   }
 
   if (response.status === 204) {
@@ -45,4 +49,7 @@ export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),
+  patch: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
+  delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };

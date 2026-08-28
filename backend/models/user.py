@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,5 +21,12 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    accounts: Mapped[list["Account"]] = relationship(back_populates="user")
+    currency: Mapped[str] = mapped_column(String, nullable=False, server_default="BGN")
+    hide_balance: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    time_format: Mapped[str] = mapped_column(String, nullable=False, server_default="24h")
+    date_format: Mapped[str] = mapped_column(
+        String, nullable=False, server_default="DD/MM/YYYY"
+    )
+
+    fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")

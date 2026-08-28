@@ -15,7 +15,9 @@ import { Colors } from "../../constants/colors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
-import { confirmAsync } from "../../utils/confirm";
+import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../../utils/confirm";
+import { ApiError } from "../../services/api";
+import type { DeleteConflictDetail } from "../../services/financeApi";
 
 const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cart-outline",
@@ -94,6 +96,7 @@ export default function CategoriesModal({
   const [selectedIcon, setSelectedIcon] =
     useState<keyof typeof Ionicons.glyphMap>("cart-outline");
   const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -129,39 +132,78 @@ export default function CategoriesModal({
     setShowForm(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!newName.trim()) return;
-    const id = editingId ?? newName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
-
-    if (activeType === "expense") {
-      const category: Category = { id, label: newName.trim(), icon: selectedIcon, color: selectedColor };
-      if (editingId) updateExpenseCategory(editingId, category);
-      else addExpenseCategory(category);
-    } else if (activeType === "income") {
-      const category: Category = { id, label: newName.trim(), icon: selectedIcon, color: selectedColor };
-      if (editingId) updateIncomeCategory(editingId, category);
-      else addIncomeCategory(category);
-    } else {
-      const fund: FundCategory = { id, name: newName.trim(), icon: selectedIcon, color: selectedColor };
-      if (editingId) updateFundCategory(editingId, fund);
-      else addFundCategory(fund);
+    setSaving(true);
+    try {
+      if (activeType === "expense") {
+        const fields = { label: newName.trim(), icon: selectedIcon, color: selectedColor };
+        if (editingId) await updateExpenseCategory(editingId, fields);
+        else await addExpenseCategory(fields);
+      } else if (activeType === "income") {
+        const fields = { label: newName.trim(), icon: selectedIcon, color: selectedColor };
+        if (editingId) await updateIncomeCategory(editingId, fields);
+        else await addIncomeCategory(fields);
+      } else {
+        const fields = { name: newName.trim(), icon: selectedIcon, color: selectedColor };
+        if (editingId) await updateFundCategory(editingId, fields);
+        else await addFundCategory(fields);
+      }
+      resetForm();
+    } catch (err) {
+      await alertAsync(
+        "Couldn't save",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    } finally {
+      setSaving(false);
     }
-
-    resetForm();
   };
 
   const handleDelete = async () => {
     if (!editingId) return;
     const noun = activeType === "fund" ? "Fund" : "Category";
-    const ok = await confirmAsync(
-      `Delete ${noun}`,
-      `Delete "${newName}"? Existing transactions using it will keep showing it as unknown.`,
-    );
+    const ok = await confirmAsync(`Delete ${noun}`, `Delete "${newName}"?`);
     if (!ok) return;
-    if (activeType === "expense") deleteExpenseCategory(editingId);
-    else if (activeType === "income") deleteIncomeCategory(editingId);
-    else deleteFundCategory(editingId);
-    resetForm();
+
+    const deleteFn =
+      activeType === "expense"
+        ? deleteExpenseCategory
+        : activeType === "income"
+          ? deleteIncomeCategory
+          : deleteFundCategory;
+
+    try {
+      await deleteFn(editingId);
+      resetForm();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        const detail = (err.body as { detail?: DeleteConflictDetail })?.detail;
+        const count = detail?.transaction_count ?? 0;
+        const confirmAgain = await confirmAsyncWithLabel(
+          `Delete ${noun}`,
+          `${count} transaction${count === 1 ? "" : "s"} ${count === 1 ? "uses" : "use"} this ${noun.toLowerCase()}. Deleting it will move ${
+            count === 1 ? "that transaction" : "them"
+          } to "Unassigned".`,
+          "Delete Anyway",
+        );
+        if (!confirmAgain) return;
+        try {
+          await deleteFn(editingId, true);
+          resetForm();
+        } catch (err2) {
+          await alertAsync(
+            "Couldn't delete",
+            err2 instanceof Error ? err2.message : "Something went wrong.",
+          );
+        }
+      } else {
+        await alertAsync(
+          "Couldn't delete",
+          err instanceof Error ? err.message : "Something went wrong.",
+        );
+      }
+    }
   };
 
   const noun = activeType === "fund" ? "Fund" : "Category";
@@ -315,12 +357,15 @@ export default function CategoriesModal({
                     <Text style={styles.cancelBtnText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.saveBtn, !newName.trim() && styles.saveBtnDisabled]}
+                    style={[
+                      styles.saveBtn,
+                      (!newName.trim() || saving) && styles.saveBtnDisabled,
+                    ]}
                     onPress={handleSave}
-                    disabled={!newName.trim()}
+                    disabled={!newName.trim() || saving}
                   >
                     <Text style={styles.saveBtnText}>
-                      {editingId ? "Save Changes" : `Save ${noun}`}
+                      {saving ? "Saving…" : editingId ? "Save Changes" : `Save ${noun}`}
                     </Text>
                   </TouchableOpacity>
                 </View>

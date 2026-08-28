@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
-import { confirmAsync } from "../../utils/confirm";
+import { confirmAsync, alertAsync } from "../../utils/confirm";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
 
@@ -49,8 +49,15 @@ export default function TransactionDetailModal({
       `Delete "${transaction.title || category?.label || "this transaction"}"? This can't be undone.`,
     );
     if (!ok) return;
-    deleteTransaction(transaction.id);
-    onClose();
+    try {
+      await deleteTransaction(transaction.id);
+      onClose();
+    } catch (err) {
+      await alertAsync(
+        "Couldn't delete transaction",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    }
   };
 
   return (

@@ -1,16 +1,17 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { Category } from "../constants/categories";
+import { FundCategory } from "../constants/fundCategories";
 import {
-  Category,
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
-} from "../constants/categories";
-import {
-  FundCategory,
-  DEFAULT_FUND_CATEGORIES,
-} from "../constants/fundCategories";
+  financeApi,
+  ApiCategory,
+  ApiFundCategory,
+  ApiTransaction,
+  ApiUser,
+} from "../services/financeApi";
 
 export type Transaction = {
   id: string;
@@ -69,36 +70,50 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
   { id: "default_monthly_expense", type: "monthlyExpenseOver", amount: 500, enabled: true },
 ];
 
+export type SyncStatus = "idle" | "loading" | "loaded" | "error";
+
+type CategoryFields = { label: string; icon: string; color?: string };
+type FundCategoryFields = { name: string; icon: string; color: string };
+type TransactionFields = Omit<Transaction, "id">;
+
 type FinanceStore = {
+  // --- synced from the backend, not persisted locally ---
+  status: SyncStatus;
+  syncError: string | null;
   transactions: Transaction[];
   expenseCategories: Category[];
   incomeCategories: Category[];
   fundCategories: FundCategory[];
+  settings: Settings;
+
+  hydrate: () => Promise<void>;
+  reset: () => void;
+
+  updateSettings: (changes: Partial<Settings>) => Promise<void>;
+
+  addTransaction: (transaction: TransactionFields) => Promise<void>;
+  updateTransaction: (id: string, changes: TransactionFields) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+
+  addExpenseCategory: (category: CategoryFields) => Promise<void>;
+  updateExpenseCategory: (id: string, changes: CategoryFields) => Promise<void>;
+  deleteExpenseCategory: (id: string, confirm?: boolean) => Promise<void>;
+  addIncomeCategory: (category: CategoryFields) => Promise<void>;
+  updateIncomeCategory: (id: string, changes: CategoryFields) => Promise<void>;
+  deleteIncomeCategory: (id: string, confirm?: boolean) => Promise<void>;
+
+  addFundCategory: (fundCategory: FundCategoryFields) => Promise<void>;
+  updateFundCategory: (id: string, changes: FundCategoryFields) => Promise<void>;
+  deleteFundCategory: (id: string, confirm?: boolean) => Promise<void>;
+
+  // --- local-only, persisted to AsyncStorage ---
   dashboardCardOrder: string[];
   dashboardCollapsedCards: Record<string, boolean>;
-  settings: Settings;
   alertRules: AlertRule[];
-  updateSettings: (changes: Partial<Settings>) => void;
   addAlertRule: (rule: Omit<AlertRule, "id">) => void;
   updateAlertRule: (id: string, changes: Partial<AlertRule>) => void;
   deleteAlertRule: (id: string) => void;
   toggleAlertRule: (id: string) => void;
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
-  updateTransaction: (
-    id: string,
-    changes: Omit<Transaction, "id">,
-  ) => void;
-  deleteTransaction: (id: string) => void;
-  clearAllTransactions: () => void;
-  addExpenseCategory: (category: Category) => void;
-  updateExpenseCategory: (id: string, changes: Category) => void;
-  deleteExpenseCategory: (id: string) => void;
-  addIncomeCategory: (category: Category) => void;
-  updateIncomeCategory: (id: string, changes: Category) => void;
-  deleteIncomeCategory: (id: string) => void;
-  addFundCategory: (fundCategory: FundCategory) => void;
-  updateFundCategory: (id: string, changes: FundCategory) => void;
-  deleteFundCategory: (id: string) => void;
   setDashboardCardOrder: (order: string[]) => void;
   toggleDashboardCard: (id: string) => void;
 };
@@ -129,20 +144,267 @@ const storage = {
   },
 };
 
+// ---- Mappers: backend (snake_case) <-> app shape (camelCase) ----
+
+function mapCategory(c: ApiCategory): Category {
+  return {
+    id: c.id,
+    label: c.name,
+    icon: (c.icon ?? "ellipsis-horizontal-outline") as Category["icon"],
+    color: c.color ?? undefined,
+  };
+}
+
+function mapFundCategory(f: ApiFundCategory): FundCategory {
+  return {
+    id: f.id,
+    name: f.name,
+    icon: f.icon ?? "wallet-outline",
+    color: f.color ?? "#1D2B4F",
+  };
+}
+
+function mapTransaction(t: ApiTransaction): Transaction {
+  return {
+    id: t.id,
+    title: t.title,
+    type: t.type,
+    amount: Number(t.amount),
+    category: t.category_id,
+    fundCategory: t.fund_category_id,
+    note: t.note ?? "",
+    date: new Date(t.occurred_at),
+  };
+}
+
+function mapSettings(u: ApiUser): Settings {
+  return {
+    currency: u.currency,
+    hideBalance: u.hide_balance,
+    timeFormat: u.time_format,
+    dateFormat: u.date_format,
+  };
+}
+
 export const useFinanceStore = create<FinanceStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      status: "idle",
+      syncError: null,
       transactions: [],
-      expenseCategories: EXPENSE_CATEGORIES,
-      incomeCategories: INCOME_CATEGORIES,
-      fundCategories: DEFAULT_FUND_CATEGORIES,
+      expenseCategories: [],
+      incomeCategories: [],
+      fundCategories: [],
+      settings: DEFAULT_SETTINGS,
+
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
-      settings: DEFAULT_SETTINGS,
       alertRules: DEFAULT_ALERT_RULES,
 
-      updateSettings: (changes) =>
-        set((state) => ({ settings: { ...state.settings, ...changes } })),
+      hydrate: async () => {
+        set({ status: "loading", syncError: null });
+        try {
+          const [me, apiCategories, apiFundCategories, apiTransactions] = await Promise.all([
+            financeApi.getMe(),
+            financeApi.listCategories(),
+            financeApi.listFundCategories(),
+            financeApi.listTransactions(),
+          ]);
+
+          set({
+            status: "loaded",
+            settings: mapSettings(me),
+            expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
+            incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
+            fundCategories: apiFundCategories.map(mapFundCategory),
+            transactions: apiTransactions
+              .map(mapTransaction)
+              .sort((a, b) => b.date.getTime() - a.date.getTime()),
+          });
+        } catch (err) {
+          set({
+            status: "error",
+            syncError: err instanceof Error ? err.message : "Failed to load your data",
+          });
+        }
+      },
+
+      reset: () =>
+        set({
+          status: "idle",
+          syncError: null,
+          transactions: [],
+          expenseCategories: [],
+          incomeCategories: [],
+          fundCategories: [],
+          settings: DEFAULT_SETTINGS,
+        }),
+
+      updateSettings: async (changes) => {
+        const me = await financeApi.updateSettings({
+          currency: changes.currency,
+          hide_balance: changes.hideBalance,
+          time_format: changes.timeFormat,
+          date_format: changes.dateFormat,
+        });
+        set({ settings: mapSettings(me) });
+      },
+
+      addTransaction: async (transaction) => {
+        const created = await financeApi.createTransaction({
+          title: transaction.title,
+          fund_category_id: transaction.fundCategory,
+          category_id: transaction.category,
+          amount: transaction.amount,
+          currency: get().settings.currency,
+          type: transaction.type,
+          note: transaction.note || null,
+          occurred_at: transaction.date.toISOString(),
+          client_generated_id: Crypto.randomUUID(),
+        });
+        set((state) => ({
+          transactions: [mapTransaction(created), ...state.transactions],
+        }));
+      },
+
+      updateTransaction: async (id, changes) => {
+        const updated = await financeApi.updateTransaction(id, {
+          title: changes.title,
+          fund_category_id: changes.fundCategory,
+          category_id: changes.category,
+          amount: changes.amount,
+          type: changes.type,
+          note: changes.note || null,
+          occurred_at: changes.date.toISOString(),
+        });
+        set((state) => ({
+          transactions: state.transactions.map((t) => (t.id === id ? mapTransaction(updated) : t)),
+        }));
+      },
+
+      deleteTransaction: async (id) => {
+        await financeApi.deleteTransaction(id);
+        set((state) => ({
+          transactions: state.transactions.filter((t) => t.id !== id),
+        }));
+      },
+
+      addExpenseCategory: async (category) => {
+        const created = await financeApi.createCategory({
+          name: category.label,
+          icon: category.icon,
+          color: category.color ?? null,
+          type: "expense",
+        });
+        set((state) => ({
+          expenseCategories: [...state.expenseCategories, mapCategory(created)],
+        }));
+      },
+
+      updateExpenseCategory: async (id, changes) => {
+        const updated = await financeApi.updateCategory(id, {
+          name: changes.label,
+          icon: changes.icon,
+          color: changes.color ?? null,
+        });
+        set((state) => ({
+          expenseCategories: state.expenseCategories.map((c) =>
+            c.id === id ? mapCategory(updated) : c,
+          ),
+        }));
+      },
+
+      deleteExpenseCategory: async (id, confirm = false) => {
+        await financeApi.deleteCategory(id, confirm);
+        const [categories, transactions] = await Promise.all([
+          financeApi.listCategories(),
+          financeApi.listTransactions(),
+        ]);
+        set({
+          expenseCategories: categories.filter((c) => c.type === "expense").map(mapCategory),
+          transactions: transactions
+            .map(mapTransaction)
+            .sort((a, b) => b.date.getTime() - a.date.getTime()),
+        });
+      },
+
+      addIncomeCategory: async (category) => {
+        const created = await financeApi.createCategory({
+          name: category.label,
+          icon: category.icon,
+          color: category.color ?? null,
+          type: "income",
+        });
+        set((state) => ({
+          incomeCategories: [...state.incomeCategories, mapCategory(created)],
+        }));
+      },
+
+      updateIncomeCategory: async (id, changes) => {
+        const updated = await financeApi.updateCategory(id, {
+          name: changes.label,
+          icon: changes.icon,
+          color: changes.color ?? null,
+        });
+        set((state) => ({
+          incomeCategories: state.incomeCategories.map((c) =>
+            c.id === id ? mapCategory(updated) : c,
+          ),
+        }));
+      },
+
+      deleteIncomeCategory: async (id, confirm = false) => {
+        await financeApi.deleteCategory(id, confirm);
+        const [categories, transactions] = await Promise.all([
+          financeApi.listCategories(),
+          financeApi.listTransactions(),
+        ]);
+        set({
+          incomeCategories: categories.filter((c) => c.type === "income").map(mapCategory),
+          transactions: transactions
+            .map(mapTransaction)
+            .sort((a, b) => b.date.getTime() - a.date.getTime()),
+        });
+      },
+
+      addFundCategory: async (fundCategory) => {
+        const created = await financeApi.createFundCategory({
+          name: fundCategory.name,
+          currency: get().settings.currency,
+          icon: fundCategory.icon,
+          color: fundCategory.color,
+        });
+        set((state) => ({
+          fundCategories: [...state.fundCategories, mapFundCategory(created)],
+        }));
+      },
+
+      updateFundCategory: async (id, changes) => {
+        const updated = await financeApi.updateFundCategory(id, {
+          name: changes.name,
+          icon: changes.icon,
+          color: changes.color,
+        });
+        set((state) => ({
+          fundCategories: state.fundCategories.map((f) =>
+            f.id === id ? mapFundCategory(updated) : f,
+          ),
+        }));
+      },
+
+      deleteFundCategory: async (id, confirm = false) => {
+        await financeApi.deleteFundCategory(id, confirm);
+        const [fundCategories, transactions] = await Promise.all([
+          financeApi.listFundCategories(),
+          financeApi.listTransactions(),
+        ]);
+        set({
+          fundCategories: fundCategories.map(mapFundCategory),
+          transactions: transactions
+            .map(mapTransaction)
+            .sort((a, b) => b.date.getTime() - a.date.getTime()),
+        });
+      },
 
       addAlertRule: (rule) =>
         set((state) => ({
@@ -171,86 +433,6 @@ export const useFinanceStore = create<FinanceStore>()(
           ),
         })),
 
-      addTransaction: (transaction) =>
-        set((state) => ({
-          transactions: [
-            {
-              ...transaction,
-              id: Date.now().toString(),
-            },
-            ...state.transactions,
-          ],
-        })),
-
-      updateTransaction: (id, changes) =>
-        set((state) => ({
-          transactions: state.transactions.map((t) =>
-            t.id === id ? { ...changes, id } : t,
-          ),
-        })),
-
-      deleteTransaction: (id) =>
-        set((state) => ({
-          transactions: state.transactions.filter((t) => t.id !== id),
-        })),
-
-      clearAllTransactions: () => set({ transactions: [] }),
-
-      addExpenseCategory: (category) =>
-        set((state) => ({
-          expenseCategories: [...state.expenseCategories, category],
-        })),
-
-      updateExpenseCategory: (id, changes) =>
-        set((state) => ({
-          expenseCategories: state.expenseCategories.map((c) =>
-            c.id === id ? { ...changes, id } : c,
-          ),
-        })),
-
-      deleteExpenseCategory: (id) =>
-        set((state) => ({
-          expenseCategories: state.expenseCategories.filter(
-            (c) => c.id !== id,
-          ),
-        })),
-
-      addIncomeCategory: (category) =>
-        set((state) => ({
-          incomeCategories: [...state.incomeCategories, category],
-        })),
-
-      updateIncomeCategory: (id, changes) =>
-        set((state) => ({
-          incomeCategories: state.incomeCategories.map((c) =>
-            c.id === id ? { ...changes, id } : c,
-          ),
-        })),
-
-      deleteIncomeCategory: (id) =>
-        set((state) => ({
-          incomeCategories: state.incomeCategories.filter(
-            (c) => c.id !== id,
-          ),
-        })),
-
-      addFundCategory: (fundCategory) =>
-        set((state) => ({
-          fundCategories: [...state.fundCategories, fundCategory],
-        })),
-
-      updateFundCategory: (id, changes) =>
-        set((state) => ({
-          fundCategories: state.fundCategories.map((f) =>
-            f.id === id ? { ...changes, id } : f,
-          ),
-        })),
-
-      deleteFundCategory: (id) =>
-        set((state) => ({
-          fundCategories: state.fundCategories.filter((f) => f.id !== id),
-        })),
-
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
 
       toggleDashboardCard: (id) =>
@@ -264,6 +446,13 @@ export const useFinanceStore = create<FinanceStore>()(
     {
       name: "finance-store",
       storage,
+      // Only local-only UI/notification state persists on-device — everything
+      // else is backend-synced and always rehydrated fresh via hydrate().
+      partialize: (state) => ({
+        dashboardCardOrder: state.dashboardCardOrder,
+        dashboardCollapsedCards: state.dashboardCollapsedCards,
+        alertRules: state.alertRules,
+      }),
     },
   ),
 );

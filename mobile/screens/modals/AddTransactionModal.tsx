@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +19,7 @@ import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
 import DateTimeFields from "../../components/DateTimeFields";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
-import { confirmAsync } from "../../utils/confirm";
+import { confirmAsync, alertAsync } from "../../utils/confirm";
 
 type TransactionType = "expense" | "income";
 
@@ -33,7 +34,7 @@ type AddTransactionModalProps = {
     title: string,
     note: string,
     date: Date,
-  ) => void;
+  ) => Promise<void>;
   onOpenManageCategories: () => void;
   onOpenManageFundCategories: () => void;
   // When set, the modal edits this transaction instead of creating a new one.
@@ -58,18 +59,21 @@ export default function AddTransactionModal({
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [showNumpad, setShowNumpad] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("food");
-  const [selectedFundCategory, setSelectedFundCategory] = useState("cash");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedFundCategory, setSelectedFundCategory] = useState(fundCategories[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date());
+  const [saving, setSaving] = useState(false);
 
   const isExpense = type === "expense";
   const activeColor = isExpense ? Colors.expense : Colors.income;
   const categories = isExpense ? expenseCategories : incomeCategories;
 
-  // Prefill the form when opened in edit mode.
+  // Prefill the form when opened in edit mode; default to the first available
+  // category/fund (real backend ids, not a hardcoded slug) for a new one.
   useEffect(() => {
-    if (visible && editTransaction) {
+    if (!visible) return;
+    if (editTransaction) {
       setType(editTransaction.type);
       setTitle(editTransaction.title);
       setAmount(editTransaction.amount.toString());
@@ -77,7 +81,11 @@ export default function AddTransactionModal({
       setSelectedFundCategory(editTransaction.fundCategory);
       setNote(editTransaction.note);
       setDate(new Date(editTransaction.date));
+    } else {
+      setSelectedCategory(expenseCategories[0]?.id ?? "");
+      setSelectedFundCategory(fundCategories[0]?.id ?? "");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, editTransaction]);
 
   // Reset form
@@ -86,8 +94,8 @@ export default function AddTransactionModal({
     setTitle("");
     setAmount("");
     setShowNumpad(false);
-    setSelectedCategory("food");
-    setSelectedFundCategory("cash");
+    setSelectedCategory(expenseCategories[0]?.id ?? "");
+    setSelectedFundCategory(fundCategories[0]?.id ?? "");
     setNote("");
     setDate(new Date());
     onClose();
@@ -96,36 +104,47 @@ export default function AddTransactionModal({
   // Switch type
   const handleTypeSwitch = (newType: TransactionType) => {
     setType(newType);
-    setSelectedCategory(newType === "expense" ? "food" : "salary");
+    const list = newType === "expense" ? expenseCategories : incomeCategories;
+    setSelectedCategory(list[0]?.id ?? "");
   };
 
   // Save
-  const handleSave = () => {
+  const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    if (isEditing && editTransaction) {
-      updateTransaction(editTransaction.id, {
-        type,
-        amount: parsedAmount,
-        category: selectedCategory,
-        fundCategory: selectedFundCategory,
-        title,
-        note,
-        date,
-      });
-    } else {
-      onSave(
-        type,
-        parsedAmount,
-        selectedCategory,
-        selectedFundCategory,
-        title,
-        note,
-        date,
+    setSaving(true);
+    try {
+      if (isEditing && editTransaction) {
+        await updateTransaction(editTransaction.id, {
+          type,
+          amount: parsedAmount,
+          category: selectedCategory,
+          fundCategory: selectedFundCategory,
+          title,
+          note,
+          date,
+        });
+      } else {
+        await onSave(
+          type,
+          parsedAmount,
+          selectedCategory,
+          selectedFundCategory,
+          title,
+          note,
+          date,
+        );
+      }
+      handleClose();
+    } catch (err) {
+      await alertAsync(
+        "Couldn't save transaction",
+        err instanceof Error ? err.message : "Something went wrong.",
       );
+    } finally {
+      setSaving(false);
     }
-    handleClose();
   };
 
   const handleDelete = async () => {
@@ -135,8 +154,15 @@ export default function AddTransactionModal({
       `Delete "${editTransaction.title || "this transaction"}"? This can't be undone.`,
     );
     if (!ok) return;
-    deleteTransaction(editTransaction.id);
-    handleClose();
+    try {
+      await deleteTransaction(editTransaction.id);
+      handleClose();
+    } catch (err) {
+      await alertAsync(
+        "Couldn't delete transaction",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    }
   };
 
   // Numpad handler
@@ -457,14 +483,18 @@ export default function AddTransactionModal({
                 styles.saveBtn,
                 styles.saveBtnFlex,
                 { backgroundColor: activeColor },
-                !amount && styles.saveBtnDisabled,
+                (!amount || saving) && styles.saveBtnDisabled,
               ]}
               onPress={handleSave}
-              disabled={!amount}
+              disabled={!amount || saving}
             >
-              <Text style={styles.saveBtnText}>
-                {isEditing ? "Save Changes" : `Save ${isExpense ? "Expense" : "Income"}`}
-              </Text>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveBtnText}>
+                  {isEditing ? "Save Changes" : `Save ${isExpense ? "Expense" : "Income"}`}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

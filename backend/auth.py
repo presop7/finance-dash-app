@@ -1,15 +1,15 @@
-import os
-
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from config import settings
 from database import get_db
+from models.fund_category import FundCategory
 from models.user import User
 
-SUPABASE_URL = os.environ["SUPABASE_URL"]
-JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+JWKS_URL = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 
 _jwks_client = jwt.PyJWKClient(JWKS_URL)
 
@@ -49,6 +49,33 @@ def get_current_user(
             display_name=display_name,
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        try:
+            db.flush()
+
+            db.add_all(
+                [
+                    FundCategory(
+                        user_id=user.id,
+                        name="Cash",
+                        currency="BGN",
+                        icon="cash-outline",
+                        color="#1D9E75",
+                    ),
+                    FundCategory(
+                        user_id=user.id,
+                        name="Unassigned",
+                        currency="BGN",
+                        icon="help-circle-outline",
+                        color="#5F5E5A",
+                    ),
+                ]
+            )
+            db.commit()
+        except IntegrityError:
+            # Lost a race with a concurrent request auto-provisioning the same
+            # user (e.g. several requests firing in parallel on first sign-in).
+            db.rollback()
+            user = db.query(User).filter(User.auth_provider_id == auth_provider_id).first()
+        else:
+            db.refresh(user)
     return user
