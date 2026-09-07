@@ -44,9 +44,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1002,
     elevation: 1002,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    // Colors.primary (#1D2B4F) at 40% — the shadow* props this replaces were
+    // deprecated in React Native 0.86.
+    boxShadow: "0px 4px 8px rgba(29, 43, 79, 0.4)",
   },
 });

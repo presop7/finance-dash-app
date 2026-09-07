@@ -6,7 +6,11 @@ import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../store/useFinanceStore";
 import { formatCurrency } from "../utils/currency";
 import { confirmAsync } from "../utils/confirm";
-import { hasNotificationPermission, ensureNotificationPermission } from "../utils/notifications";
+import {
+  hasNotificationPermission,
+  ensureNotificationPermission,
+  notificationsSupported,
+} from "../utils/notifications";
 import AlertRuleModal from "./modals/AlertRuleModal";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
@@ -97,16 +101,26 @@ export default function AlertsScreen() {
           </TouchableOpacity>
         </View>
 
-        {!permissionGranted && (
+        {!notificationsSupported ? (
           <View style={[styles.banner, GlobalStyles.screenPadding]}>
-            <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+            <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
-              Enable notifications to get alerts about your finances
+              Alerts still track your spending here, but device notifications aren't
+              available in Expo Go — they need a development build.
             </Text>
-            <TouchableOpacity style={styles.enableBtn} onPress={handleEnable}>
-              <Text style={styles.enableBtnText}>Enable</Text>
-            </TouchableOpacity>
           </View>
+        ) : (
+          !permissionGranted && (
+            <View style={[styles.banner, GlobalStyles.screenPadding]}>
+              <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+              <Text style={styles.bannerText}>
+                Enable notifications to get alerts about your finances
+              </Text>
+              <TouchableOpacity style={styles.enableBtn} onPress={handleEnable}>
+                <Text style={styles.enableBtnText}>Enable</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Alert Rules</Text>
