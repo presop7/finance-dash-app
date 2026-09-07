@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: finance-dash-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # Secrets — set these manually in the Render dashboard, never committed here.
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      # Bearer-token auth (no cookies) means a wide-open CORS policy carries no
+      # CSRF risk; tighten once there's a real bundle id / web domain to scope to.
+      - key: CORS_ORIGINS
+        value: "*"
