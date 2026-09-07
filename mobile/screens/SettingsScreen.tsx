@@ -7,7 +7,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
-import { confirmAsync, alertAsync } from "../utils/confirm";
+import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
@@ -15,12 +15,31 @@ type SettingsScreenProps = {
 };
 
 export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps) {
-  const { settings, updateSettings } = useFinanceStore();
+  const { settings, updateSettings, pendingOps } = useFinanceStore();
   const { session, signOut } = useAuthStore();
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
 
   const handleSignOut = async () => {
+    // Nothing is lost by signing out — the queue is kept in this account's own
+    // cache slot — but it can't drain until they're back online and signed in,
+    // so it's worth saying so rather than letting it silently sit there.
+    if (pendingOps.length > 0) {
+      const n = pendingOps.length;
+      const proceed = await confirmAsyncWithLabel(
+        "Unsynced changes",
+        `You have ${n} change${n === 1 ? "" : "s"} that haven't synced yet. ${
+          n === 1 ? "It's" : "They're"
+        } saved on this device and won't be lost, but ${
+          n === 1 ? "it" : "they"
+        } won't finish syncing until you're back online and signed in. Sign out anyway?`,
+        "Sign Out Anyway",
+      );
+      if (!proceed) return;
+      await signOut();
+      return;
+    }
+
     const ok = await confirmAsync("Sign Out", "Are you sure you want to sign out?");
     if (!ok) return;
     await signOut();

@@ -87,6 +87,9 @@ function RootNavigator() {
       // the cache when switching accounts mid-session), then refresh.
       (async () => {
         await useFinanceStore.persist.rehydrate();
+        // hydrate() flushes any queue left over from a previous session before
+        // fetching, so a launch that's already online still drains it — the
+        // connectivity listener alone wouldn't, since no transition occurs.
         await hydrate();
       })();
     } else {
@@ -132,11 +135,46 @@ function RootNavigator() {
   return <AppContent />;
 }
 
-// Thin status line shown only when the cached data on screen might be stale —
-// a background refresh in flight, or one that failed and left stale data up.
+// Thin status line for anything the user should know about data freshness:
+// being offline, changes waiting to sync, a refresh in flight, or a failed one.
 function SyncIndicator() {
   const status = useFinanceStore((s) => s.status);
   const syncError = useFinanceStore((s) => s.syncError);
+  const isConnected = useFinanceStore((s) => s.isConnected);
+  const pendingCount = useFinanceStore((s) => s.pendingOps.length);
+  const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
+
+  if (!isConnected) {
+    return (
+      <View style={styles.syncBar}>
+        <Text style={styles.syncText}>
+          {pendingCount > 0
+            ? `You're offline — ${pendingCount} change${pendingCount === 1 ? "" : "s"} will sync when reconnected`
+            : "You're offline — changes will sync when reconnected"}
+        </Text>
+      </View>
+    );
+  }
+
+  if (failedCount > 0) {
+    return (
+      <View style={styles.syncBar}>
+        <Text style={styles.syncText}>
+          {failedCount} change{failedCount === 1 ? "" : "s"} couldn't sync — will retry
+        </Text>
+      </View>
+    );
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <View style={styles.syncBar}>
+        <Text style={styles.syncText}>
+          Syncing {pendingCount} change{pendingCount === 1 ? "" : "s"}…
+        </Text>
+      </View>
+    );
+  }
 
   if (status === "refreshing") {
     return (

@@ -101,6 +101,12 @@ export default function TransactionList({
               <Text style={styles.category}>
                 {categoryDetails.label} · {formattedDate}
               </Text>
+              {transaction.isPending ? (
+                <View style={styles.noteHint}>
+                  <Ionicons name="time-outline" size={10} color={Colors.textMuted} />
+                  <Text style={styles.noteHintText}>Waiting to sync</Text>
+                </View>
+              ) : null}
               {transaction.note ? (
                 <View style={styles.noteHint}>
                   <Ionicons

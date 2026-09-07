@@ -1,5 +1,6 @@
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
 import * as Crypto from "expo-crypto";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -13,6 +14,7 @@ import {
   ApiTransaction,
   ApiUser,
 } from "../services/financeApi";
+import { ApiError } from "../services/api";
 
 export type Transaction = {
   id: string;
@@ -23,6 +25,8 @@ export type Transaction = {
   fundCategory: string;
   note: string;
   date: Date;
+  // Set while a create/edit for this row is still sitting in the offline queue.
+  isPending?: boolean;
 };
 
 export const DEFAULT_DASHBOARD_CARD_ORDER = [
@@ -76,7 +80,19 @@ export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
 
 type CategoryFields = { label: string; icon: string; color?: string };
 type FundCategoryFields = { name: string; icon: string; color: string };
-type TransactionFields = Omit<Transaction, "id">;
+type TransactionFields = Omit<Transaction, "id" | "isPending">;
+
+export type OpStatus = "pending" | "syncing" | "failed";
+
+// Writes made while offline are queued as operations and replayed on reconnect.
+// Ops are collapsed to their net effect at enqueue time (see queueWrite helpers
+// below), so there is at most one op per transaction and replay never has to
+// reason about ordering between conflicting ops.
+export type PendingOp =
+  // clientGeneratedId doubles as the local placeholder row id until it syncs
+  | { kind: "create"; clientGeneratedId: string; payload: TransactionFields; status: OpStatus }
+  | { kind: "update"; transactionId: string; payload: TransactionFields; status: OpStatus }
+  | { kind: "delete"; transactionId: string; status: OpStatus };
 
 type FinanceStore = {
   // --- synced from the backend, cached on-device per user ---
@@ -111,6 +127,13 @@ type FinanceStore = {
   addFundCategory: (fundCategory: FundCategoryFields) => Promise<void>;
   updateFundCategory: (id: string, changes: FundCategoryFields) => Promise<void>;
   deleteFundCategory: (id: string, confirm?: boolean) => Promise<void>;
+
+  // --- offline write queue (per-user, persisted) ---
+  isConnected: boolean;
+  pendingOps: PendingOp[];
+  setConnected: (connected: boolean) => void;
+  replayPendingOps: () => Promise<void>;
+  retryPendingOp: (key: string) => Promise<void>;
 
   // --- local-only, persisted to AsyncStorage ---
   dashboardCardOrder: string[];
@@ -248,6 +271,109 @@ function mapSettings(u: ApiUser): Settings {
   };
 }
 
+// ---- Offline queue helpers ----
+
+// Identifies the transaction an op belongs to. Collapsing guarantees at most
+// one op per transaction, so this is a stable unique key for the queue.
+const opKey = (op: PendingOp): string =>
+  op.kind === "create" ? op.clientGeneratedId : op.transactionId;
+
+function toCreatePayload(fields: TransactionFields, currency: string, clientGeneratedId: string) {
+  return {
+    title: fields.title,
+    fund_category_id: fields.fundCategory,
+    category_id: fields.category,
+    amount: fields.amount,
+    currency,
+    type: fields.type,
+    note: fields.note || null,
+    occurred_at: fields.date.toISOString(),
+    client_generated_id: clientGeneratedId,
+  };
+}
+
+function toUpdatePayload(fields: TransactionFields) {
+  return {
+    title: fields.title,
+    fund_category_id: fields.fundCategory,
+    category_id: fields.category,
+    amount: fields.amount,
+    type: fields.type,
+    note: fields.note || null,
+    occurred_at: fields.date.toISOString(),
+  };
+}
+
+// A 404 on update/delete means the row is already gone server-side (deleted from
+// another device); a 409 on create means this client_generated_id already landed
+// (a previous replay succeeded before the queue could be cleared). Both mean the
+// desired end state is already true, so the op is done rather than failed.
+function isAlreadySettled(err: unknown, kind: PendingOp["kind"]): boolean {
+  if (!(err instanceof ApiError)) return false;
+  return kind === "create" ? err.status === 409 : err.status === 404;
+}
+
+type FinanceSet = (
+  partial: Partial<FinanceStore> | ((state: FinanceStore) => Partial<FinanceStore>),
+) => void;
+type FinanceGet = () => FinanceStore;
+
+// Sends one queued op to the backend and reconciles local state with the result.
+async function runPendingOp(op: PendingOp, set: FinanceSet, get: FinanceGet): Promise<void> {
+  const key = opKey(op);
+  const setStatus = (status: OpStatus) =>
+    set((state) => ({
+      pendingOps: state.pendingOps.map((o) => (opKey(o) === key ? { ...o, status } : o)),
+    }));
+  const dropOp = () =>
+    set((state) => ({ pendingOps: state.pendingOps.filter((o) => opKey(o) !== key) }));
+
+  setStatus("syncing");
+
+  try {
+    if (op.kind === "create") {
+      const created = await financeApi.createTransaction(
+        toCreatePayload(op.payload, get().settings.currency, op.clientGeneratedId),
+      );
+      const real = mapTransaction(created);
+      // Swap the local placeholder (still keyed by clientGeneratedId) for the
+      // server row, which carries the real id.
+      set((state) => ({
+        transactions: state.transactions.map((t) =>
+          t.id === op.clientGeneratedId ? real : t,
+        ),
+      }));
+    } else if (op.kind === "update") {
+      const updated = await financeApi.updateTransaction(
+        op.transactionId,
+        toUpdatePayload(op.payload),
+      );
+      const real = mapTransaction(updated);
+      set((state) => ({
+        transactions: state.transactions.map((t) => (t.id === op.transactionId ? real : t)),
+      }));
+    } else {
+      await financeApi.deleteTransaction(op.transactionId);
+    }
+    dropOp();
+  } catch (err) {
+    if (isAlreadySettled(err, op.kind)) {
+      // Server already reflects the intent. Clear the pending marker; the
+      // hydrate at the end of replay reconciles any id mismatch.
+      const id = op.kind === "create" ? op.clientGeneratedId : op.transactionId;
+      set((state) => ({
+        transactions: state.transactions.map((t) =>
+          t.id === id ? { ...t, isPending: false } : t,
+        ),
+      }));
+      dropOp();
+      return;
+    }
+    // Leave it queued so it can be retried rather than blocking the rest.
+    setStatus("failed");
+  }
+}
+
 export const useFinanceStore = create<FinanceStore>()(
   persist(
     (set, get) => ({
@@ -261,6 +387,11 @@ export const useFinanceStore = create<FinanceStore>()(
       fundCategories: [],
       settings: DEFAULT_SETTINGS,
 
+      // Assume online until NetInfo says otherwise, so a first write isn't
+      // needlessly queued before the listener has reported in.
+      isConnected: true,
+      pendingOps: [],
+
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
       alertRules: DEFAULT_ALERT_RULES,
@@ -270,6 +401,17 @@ export const useFinanceStore = create<FinanceStore>()(
         // a cold load — don't blank the UI out behind a spinner for it.
         const hasCache = get().status === "loaded";
         set({ status: hasCache ? "refreshing" : "loading", syncError: null });
+
+        // Flush queued writes before reading, so the fetched state already
+        // includes them. This is also what retries failed ops: any sync —
+        // launch, reconnect, sign-in — gets them moving again, rather than
+        // them being stuck until connectivity happens to flap.
+        if (get().isConnected) {
+          for (const op of get().pendingOps.filter((o) => o.status !== "syncing")) {
+            await runPendingOp(op, set, get);
+          }
+        }
+
         try {
           const [me, apiCategories, apiFundCategories, apiTransactions] = await Promise.all([
             financeApi.getMe(),
@@ -311,6 +453,10 @@ export const useFinanceStore = create<FinanceStore>()(
           incomeCategories: [],
           fundCategories: [],
           settings: DEFAULT_SETTINGS,
+          // Clears in memory only — the signed-out user's queue stays on disk in
+          // their own slot (activeUserId is already null here, so this write
+          // can't touch it) and comes back when they sign in again.
+          pendingOps: [],
         }),
 
       updateSettings: async (changes) => {
@@ -324,38 +470,94 @@ export const useFinanceStore = create<FinanceStore>()(
       },
 
       addTransaction: async (transaction) => {
-        const created = await financeApi.createTransaction({
-          title: transaction.title,
-          fund_category_id: transaction.fundCategory,
-          category_id: transaction.category,
-          amount: transaction.amount,
-          currency: get().settings.currency,
-          type: transaction.type,
-          note: transaction.note || null,
-          occurred_at: transaction.date.toISOString(),
-          client_generated_id: Crypto.randomUUID(),
-        });
+        const clientGeneratedId = Crypto.randomUUID();
+
+        if (!get().isConnected) {
+          set((state) => ({
+            pendingOps: [
+              ...state.pendingOps,
+              { kind: "create", clientGeneratedId, payload: transaction, status: "pending" },
+            ],
+            transactions: [
+              { ...transaction, id: clientGeneratedId, isPending: true },
+              ...state.transactions,
+            ],
+          }));
+          return;
+        }
+
+        const created = await financeApi.createTransaction(
+          toCreatePayload(transaction, get().settings.currency, clientGeneratedId),
+        );
         set((state) => ({
           transactions: [mapTransaction(created), ...state.transactions],
         }));
       },
 
       updateTransaction: async (id, changes) => {
-        const updated = await financeApi.updateTransaction(id, {
-          title: changes.title,
-          fund_category_id: changes.fundCategory,
-          category_id: changes.category,
-          amount: changes.amount,
-          type: changes.type,
-          note: changes.note || null,
-          occurred_at: changes.date.toISOString(),
-        });
+        if (!get().isConnected) {
+          set((state) => {
+            const pendingCreate = state.pendingOps.find(
+              (op) => op.kind === "create" && op.clientGeneratedId === id,
+            );
+
+            const pendingOps: PendingOp[] = pendingCreate
+              ? // Never reached the server yet — fold the edit into the queued
+                // create so it still syncs as a single POST.
+                state.pendingOps.map((op) =>
+                  op.kind === "create" && op.clientGeneratedId === id
+                    ? { ...op, payload: changes, status: "pending" }
+                    : op,
+                )
+              : state.pendingOps.some((op) => op.kind === "update" && op.transactionId === id)
+                ? // Repeated offline edits collapse — only the latest values matter.
+                  state.pendingOps.map((op) =>
+                    op.kind === "update" && op.transactionId === id
+                      ? { ...op, payload: changes, status: "pending" }
+                      : op,
+                  )
+                : [
+                    ...state.pendingOps,
+                    { kind: "update", transactionId: id, payload: changes, status: "pending" },
+                  ];
+
+            return {
+              pendingOps,
+              transactions: state.transactions.map((t) =>
+                t.id === id ? { ...changes, id, isPending: true } : t,
+              ),
+            };
+          });
+          return;
+        }
+
+        const updated = await financeApi.updateTransaction(id, toUpdatePayload(changes));
         set((state) => ({
           transactions: state.transactions.map((t) => (t.id === id ? mapTransaction(updated) : t)),
         }));
       },
 
       deleteTransaction: async (id) => {
+        if (!get().isConnected) {
+          set((state) => {
+            const hasPendingCreate = state.pendingOps.some(
+              (op) => op.kind === "create" && op.clientGeneratedId === id,
+            );
+
+            // A row that never reached the server just disappears — dropping the
+            // queued create means nothing is sent at all, not a create-then-delete.
+            const withoutThisRow = state.pendingOps.filter((op) => opKey(op) !== id);
+
+            return {
+              pendingOps: hasPendingCreate
+                ? withoutThisRow
+                : [...withoutThisRow, { kind: "delete", transactionId: id, status: "pending" }],
+              transactions: state.transactions.filter((t) => t.id !== id),
+            };
+          });
+          return;
+        }
+
         await financeApi.deleteTransaction(id);
         set((state) => ({
           transactions: state.transactions.filter((t) => t.id !== id),
@@ -479,6 +681,28 @@ export const useFinanceStore = create<FinanceStore>()(
         });
       },
 
+      setConnected: (connected) => {
+        const wasConnected = get().isConnected;
+        set({ isConnected: connected });
+        // Coming back online: sync, which drains the queue then refetches.
+        if (!wasConnected && connected && get().pendingOps.length > 0) {
+          void get().hydrate();
+        }
+      },
+
+      // hydrate() drains the queue first and then reconciles against server
+      // truth, which is exactly what a replay needs (it also fixes up ids for
+      // replayed creates), so this is just a named entry point for it.
+      replayPendingOps: async () => {
+        await get().hydrate();
+      },
+
+      retryPendingOp: async (key) => {
+        const op = get().pendingOps.find((o) => opKey(o) === key);
+        if (!op || op.status === "syncing") return;
+        await runPendingOp(op, set, get);
+      },
+
       addAlertRule: (rule) =>
         set((state) => ({
           alertRules: [
@@ -528,6 +752,7 @@ export const useFinanceStore = create<FinanceStore>()(
         dashboardCollapsedCards: state.dashboardCollapsedCards,
         // per-user
         alertRules: state.alertRules,
+        pendingOps: state.pendingOps,
         transactions: state.transactions,
         expenseCategories: state.expenseCategories,
         incomeCategories: state.incomeCategories,
@@ -547,6 +772,17 @@ export const useFinanceStore = create<FinanceStore>()(
             ...t,
             date: new Date(t.date),
           })),
+          pendingOps: (saved.pendingOps ?? []).map((op) => {
+            // An op stuck in "syncing" means the app died mid-replay; reset it
+            // to "pending" so it's retried instead of skipped forever.
+            const status = op.status === "syncing" ? ("pending" as const) : op.status;
+            // Queued payloads carry a Date too, which JSON round-tripping
+            // flattened to a string — revive it or replay would blow up on
+            // .toISOString().
+            return op.kind === "delete"
+              ? { ...op, status }
+              : { ...op, status, payload: { ...op.payload, date: new Date(op.payload.date) } };
+          }),
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -560,3 +796,37 @@ export const useFinanceStore = create<FinanceStore>()(
     },
   ),
 );
+
+// Connectivity feeds the offline queue: writes are queued while disconnected and
+// replayed on the offline -> online transition (handled in setConnected).
+const applyConnectivity = (connected: boolean) => {
+  if (connected !== useFinanceStore.getState().isConnected) {
+    useFinanceStore.getState().setConnected(connected);
+  }
+};
+
+NetInfo.addEventListener((state) => {
+  // `isInternetReachable` is null while it's still being determined — only treat
+  // it as offline once it's definitively false, otherwise a brief null on boot
+  // would queue writes that could have gone straight through.
+  applyConnectivity(Boolean(state.isConnected) && state.isInternetReachable !== false);
+});
+
+// NetInfo's web implementation only listens to `navigator.connection`'s change
+// event when that API exists (it does in Chromium), so it never sees the plain
+// online/offline events browsers actually fire. Subscribe to those directly on
+// web so offline handling works there too; native is unaffected.
+if (Platform.OS === "web" && typeof window !== "undefined") {
+  applyConnectivity(window.navigator.onLine);
+  window.addEventListener("online", () => applyConnectivity(true));
+  window.addEventListener("offline", () => applyConnectivity(false));
+}
+
+// Returning to the app is a natural moment to try again: it covers the case
+// where the *backend* was unreachable (asleep, erroring) while the device
+// itself stayed online, so no connectivity transition ever fired to retry.
+AppState.addEventListener("change", (appState) => {
+  if (appState !== "active") return;
+  const { isConnected, pendingOps, hydrate } = useFinanceStore.getState();
+  if (isConnected && pendingOps.length > 0) void hydrate();
+});
