@@ -33,6 +33,9 @@ import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
 
+// Explanation dialog for the offline / failed-sync status bar
+import { alertAsync } from "./utils/confirm";
+
 // TypeScript type for tab names
 type TabName = "dashboard" | "analytics" | "alerts" | "settings";
 
@@ -135,8 +138,16 @@ function RootNavigator() {
   return <AppContent />;
 }
 
-// Thin status line for anything the user should know about data freshness:
-// being offline, changes waiting to sync, a refresh in flight, or a failed one.
+const unsyncedAdvice = (count: number) =>
+  `Your changes are saved on this phone and will sync automatically as soon as you're back online.\n\n` +
+  `Until ${count === 1 ? "it syncs" : "they sync"}:\n` +
+  `• ${count === 1 ? "It exists" : "They exist"} only on this device — not on your other devices yet.\n` +
+  `• Avoid signing out, uninstalling, or clearing the app's data. That's the only way unsynced changes can be lost.\n\n` +
+  `You can keep adding, editing and deleting transactions as normal — everything is queued and sent in order once you reconnect.`;
+
+// Status line above the tab bar. Offline and failed states get a colour so they
+// actually get noticed, and are tappable for an explanation of what's at risk;
+// routine background syncing stays quiet since it needs no action.
 function SyncIndicator() {
   const status = useFinanceStore((s) => s.status);
   const syncError = useFinanceStore((s) => s.syncError);
@@ -146,23 +157,48 @@ function SyncIndicator() {
 
   if (!isConnected) {
     return (
-      <View style={styles.syncBar}>
-        <Text style={styles.syncText}>
+      <TouchableOpacity
+        style={[styles.syncBar, styles.syncBarWarning]}
+        activeOpacity={0.7}
+        onPress={() =>
+          alertAsync(
+            "You're offline",
+            pendingCount > 0
+              ? unsyncedAdvice(pendingCount)
+              : "Anything you add, edit or delete while offline is saved on this phone and syncs automatically once you're back online.\n\nJust avoid signing out or uninstalling the app before it syncs — that's the only way unsynced changes can be lost.",
+          )
+        }
+      >
+        <Ionicons name="cloud-offline-outline" size={13} color={Colors.warningText} />
+        <Text style={[styles.syncText, styles.syncTextWarning]}>
           {pendingCount > 0
-            ? `You're offline — ${pendingCount} change${pendingCount === 1 ? "" : "s"} will sync when reconnected`
+            ? `You're offline — ${pendingCount} change${pendingCount === 1 ? "" : "s"} waiting to sync`
             : "You're offline — changes will sync when reconnected"}
         </Text>
-      </View>
+        <Ionicons name="information-circle-outline" size={13} color={Colors.warningText} />
+      </TouchableOpacity>
     );
   }
 
   if (failedCount > 0) {
     return (
-      <View style={styles.syncBar}>
-        <Text style={styles.syncText}>
-          {failedCount} change{failedCount === 1 ? "" : "s"} couldn't sync — will retry
+      <TouchableOpacity
+        style={[styles.syncBar, styles.syncBarError]}
+        activeOpacity={0.7}
+        onPress={() =>
+          alertAsync(
+            "Some changes haven't synced",
+            `${failedCount} change${failedCount === 1 ? "" : "s"} couldn't reach the server yet.\n\n` +
+              unsyncedAdvice(failedCount) +
+              `\n\nThe app retries automatically whenever it syncs — reopening it is usually enough.`,
+          )
+        }
+      >
+        <Ionicons name="alert-circle-outline" size={13} color={Colors.errorText} />
+        <Text style={[styles.syncText, styles.syncTextError]}>
+          {failedCount} change{failedCount === 1 ? "" : "s"} couldn't sync — tap to learn more
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -400,16 +436,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   syncBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 16,
     backgroundColor: Colors.surfaceSecondary,
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
   },
+  syncBarWarning: {
+    backgroundColor: Colors.warningBg,
+    borderTopColor: Colors.warningText + "40",
+    paddingVertical: 7,
+  },
+  syncBarError: {
+    backgroundColor: Colors.errorBg,
+    borderTopColor: Colors.errorText + "40",
+    paddingVertical: 7,
+  },
   syncText: {
     fontSize: 10,
     color: Colors.textMuted,
     textAlign: "center",
+  },
+  syncTextWarning: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.warningText,
+  },
+  syncTextError: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.errorText,
   },
   bottomNav: {
     flexDirection: "row",

@@ -50,6 +50,12 @@ export const Colors = {
         surfaceSecondary: '#F9FAFB',
         border: '#E5E7EB',
 
+    // Status Colors — for state that should stand out from the UI, not blend in
+        warningBg: '#FEF3C7',
+        warningText: '#854F0B',
+        errorBg: '#FDECEA',
+        errorText: '#993C1D',
+
     // Category Colors
         categories: {
     food: { bg: '#E1F5EE', icon: '#0F6E56' },
