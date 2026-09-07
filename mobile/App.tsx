@@ -78,11 +78,17 @@ export default function App() {
 
 function RootNavigator() {
   const { session, initializing } = useAuthStore();
-  const { status, syncError, hydrate, reset } = useFinanceStore();
+  const { status, syncError, persistHydrated, hydrate, reset } = useFinanceStore();
 
   useEffect(() => {
     if (session) {
-      hydrate();
+      // Re-read the cache first so it resolves against *this* user's slot
+      // (rehydration otherwise only happens once at launch, which would skip
+      // the cache when switching accounts mid-session), then refresh.
+      (async () => {
+        await useFinanceStore.persist.rehydrate();
+        await hydrate();
+      })();
     } else {
       reset();
     }
@@ -101,7 +107,9 @@ function RootNavigator() {
     return <AuthScreen />;
   }
 
-  if (status === "loading" || status === "idle") {
+  // Brief, local-disk-only wait — determines whether there's a cached snapshot
+  // to render instead of a spinner.
+  if (!persistHydrated || status === "loading" || status === "idle") {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={Colors.primary} />
@@ -122,6 +130,31 @@ function RootNavigator() {
   }
 
   return <AppContent />;
+}
+
+// Thin status line shown only when the cached data on screen might be stale —
+// a background refresh in flight, or one that failed and left stale data up.
+function SyncIndicator() {
+  const status = useFinanceStore((s) => s.status);
+  const syncError = useFinanceStore((s) => s.syncError);
+
+  if (status === "refreshing") {
+    return (
+      <View style={styles.syncBar}>
+        <Text style={styles.syncText}>Syncing…</Text>
+      </View>
+    );
+  }
+
+  if (syncError && status === "loaded") {
+    return (
+      <View style={styles.syncBar}>
+        <Text style={styles.syncText}>Showing saved data — sync failed, will retry</Text>
+      </View>
+    );
+  }
+
+  return null;
 }
 
 function AppContent() {
@@ -176,6 +209,8 @@ function AppContent() {
     <View style={styles.container}>
       {/* Active Screen */}
       <View style={styles.screenContainer}>{renderScreen()}</View>
+
+      <SyncIndicator />
 
       {/* Bottom Navigation */}
       <View
@@ -325,6 +360,18 @@ const styles = StyleSheet.create({
   },
   screenContainer: {
     flex: 1,
+  },
+  syncBar: {
+    paddingVertical: 4,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surfaceSecondary,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  syncText: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: "center",
   },
   bottomNav: {
     flexDirection: "row",

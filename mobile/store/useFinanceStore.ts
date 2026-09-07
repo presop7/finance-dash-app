@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Category } from "../constants/categories";
 import { FundCategory } from "../constants/fundCategories";
+import { useAuthStore } from "./useAuthStore";
 import {
   financeApi,
   ApiCategory,
@@ -70,16 +71,21 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
   { id: "default_monthly_expense", type: "monthlyExpenseOver", amount: 500, enabled: true },
 ];
 
-export type SyncStatus = "idle" | "loading" | "loaded" | "error";
+// "refreshing" = showing cached data while a background hydrate is in flight.
+export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
 
 type CategoryFields = { label: string; icon: string; color?: string };
 type FundCategoryFields = { name: string; icon: string; color: string };
 type TransactionFields = Omit<Transaction, "id">;
 
 type FinanceStore = {
-  // --- synced from the backend, not persisted locally ---
+  // --- synced from the backend, cached on-device per user ---
   status: SyncStatus;
   syncError: string | null;
+  lastSyncedAt: number | null;
+  // False until the persisted snapshot has been read off disk (AsyncStorage is
+  // async, so there's a brief window on boot before the cache lands).
+  persistHydrated: boolean;
   transactions: Transaction[];
   expenseCategories: Category[];
   incomeCategories: Category[];
@@ -118,22 +124,78 @@ type FinanceStore = {
   toggleDashboardCard: (id: string) => void;
 };
 
+// Fields shared device-wide across every account signed in on this device.
+// Everything else that gets persisted is namespaced under the signed-in user,
+// so switching accounts never shows (or clobbers) another user's data.
+const DEVICE_FIELDS: readonly string[] = ["dashboardCardOrder", "dashboardCollapsedCards"];
+
+type PersistedBlob = {
+  device: Record<string, unknown>;
+  users: Record<string, Record<string, unknown>>;
+  version?: number;
+};
+
+const emptyBlob = (): PersistedBlob => ({ device: {}, users: {} });
+
+const activeUserId = (): string | null =>
+  useAuthStore.getState().session?.user.id ?? null;
+
 // localStorage only exists in the browser — AsyncStorage backs native (iOS/Android).
+async function readRaw(name: string): Promise<string | null> {
+  if (Platform.OS === "web") return localStorage.getItem(name);
+  return AsyncStorage.getItem(name);
+}
+
+async function writeRaw(name: string, value: string): Promise<void> {
+  if (Platform.OS === "web") {
+    localStorage.setItem(name, value);
+    return;
+  }
+  await AsyncStorage.setItem(name, value);
+}
+
+async function readBlob(name: string): Promise<PersistedBlob> {
+  const str = await readRaw(name);
+  if (!str) return emptyBlob();
+  try {
+    const parsed = JSON.parse(str);
+    // Anything not in the {device, users} shape is a pre-split blob from an
+    // older build — drop it rather than risk attributing it to the wrong user.
+    if (parsed && typeof parsed === "object" && parsed.device && parsed.users) {
+      return parsed as PersistedBlob;
+    }
+    return emptyBlob();
+  } catch {
+    return emptyBlob();
+  }
+}
+
 const storage = {
   getItem: async (name: string) => {
-    if (Platform.OS === "web") {
-      const str = localStorage.getItem(name);
-      return str ? JSON.parse(str) : null;
-    }
-    const str = await AsyncStorage.getItem(name);
-    return str ? JSON.parse(str) : null;
+    const blob = await readBlob(name);
+    const userId = activeUserId();
+    const userState = userId ? (blob.users[userId] ?? {}) : {};
+    return { state: { ...blob.device, ...userState }, version: blob.version };
   },
-  setItem: async (name: string, value: unknown) => {
-    if (Platform.OS === "web") {
-      localStorage.setItem(name, JSON.stringify(value));
-      return;
+  setItem: async (name: string, value: { state: Record<string, unknown>; version?: number }) => {
+    const blob = await readBlob(name);
+    const userId = activeUserId();
+
+    const device = { ...blob.device };
+    const userState = { ...(userId ? (blob.users[userId] ?? {}) : {}) };
+
+    for (const [key, val] of Object.entries(value.state)) {
+      if (DEVICE_FIELDS.includes(key)) device[key] = val;
+      // With no signed-in user there's nothing meaningful to key per-user data
+      // under, so it's simply not written (rather than leaking into `device`).
+      else if (userId) userState[key] = val;
     }
-    await AsyncStorage.setItem(name, JSON.stringify(value));
+
+    blob.device = device;
+    blob.version = value.version;
+    if (userId) blob.users[userId] = userState;
+
+    await writeRaw(name, JSON.stringify(blob));
   },
   removeItem: async (name: string) => {
     if (Platform.OS === "web") {
@@ -191,6 +253,8 @@ export const useFinanceStore = create<FinanceStore>()(
     (set, get) => ({
       status: "idle",
       syncError: null,
+      lastSyncedAt: null,
+      persistHydrated: false,
       transactions: [],
       expenseCategories: [],
       incomeCategories: [],
@@ -202,7 +266,10 @@ export const useFinanceStore = create<FinanceStore>()(
       alertRules: DEFAULT_ALERT_RULES,
 
       hydrate: async () => {
-        set({ status: "loading", syncError: null });
+        // With cached data already on screen this is a background refresh, not
+        // a cold load — don't blank the UI out behind a spinner for it.
+        const hasCache = get().status === "loaded";
+        set({ status: hasCache ? "refreshing" : "loading", syncError: null });
         try {
           const [me, apiCategories, apiFundCategories, apiTransactions] = await Promise.all([
             financeApi.getMe(),
@@ -213,6 +280,7 @@ export const useFinanceStore = create<FinanceStore>()(
 
           set({
             status: "loaded",
+            lastSyncedAt: Date.now(),
             settings: mapSettings(me),
             expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
             incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
@@ -222,10 +290,14 @@ export const useFinanceStore = create<FinanceStore>()(
               .sort((a, b) => b.date.getTime() - a.date.getTime()),
           });
         } catch (err) {
-          set({
-            status: "error",
-            syncError: err instanceof Error ? err.message : "Failed to load your data",
-          });
+          const message = err instanceof Error ? err.message : "Failed to load your data";
+          // A failed refresh keeps the cached data on screen — the hard error
+          // screen is only for having nothing to show at all.
+          set(
+            hasCache
+              ? { status: "loaded", syncError: message }
+              : { status: "error", syncError: message },
+          );
         }
       },
 
@@ -233,6 +305,7 @@ export const useFinanceStore = create<FinanceStore>()(
         set({
           status: "idle",
           syncError: null,
+          lastSyncedAt: null,
           transactions: [],
           expenseCategories: [],
           incomeCategories: [],
@@ -446,13 +519,44 @@ export const useFinanceStore = create<FinanceStore>()(
     {
       name: "finance-store",
       storage,
-      // Only local-only UI/notification state persists on-device — everything
-      // else is backend-synced and always rehydrated fresh via hydrate().
+      // The synced slice is cached on-device so the app can render instantly
+      // from the last-known snapshot while a fresh hydrate() runs in the
+      // background — see the per-user split in the storage adapter above.
       partialize: (state) => ({
+        // device-global
         dashboardCardOrder: state.dashboardCardOrder,
         dashboardCollapsedCards: state.dashboardCollapsedCards,
+        // per-user
         alertRules: state.alertRules,
+        transactions: state.transactions,
+        expenseCategories: state.expenseCategories,
+        incomeCategories: state.incomeCategories,
+        fundCategories: state.fundCategories,
+        settings: state.settings,
+        lastSyncedAt: state.lastSyncedAt,
       }),
+      // JSON.stringify turns Transaction.date into an ISO string; JSON.parse
+      // doesn't revive it, so rebuild the Dates rather than making every
+      // consumer handle a string.
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<FinanceStore>;
+        return {
+          ...current,
+          ...saved,
+          transactions: (saved.transactions ?? []).map((t) => ({
+            ...t,
+            date: new Date(t.date),
+          })),
+        };
+      },
+      onRehydrateStorage: () => (state) => {
+        useFinanceStore.setState({
+          persistHydrated: true,
+          // A previous successful sync means there's real cached data to show
+          // immediately; hydrate() will then run as a background refresh.
+          status: state?.lastSyncedAt ? "loaded" : "idle",
+        });
+      },
     },
   ),
 );
