@@ -1,10 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { enableScreens } from "react-native-screens";
+import { NavigationContainer } from "@react-navigation/native";
+import {
+  createBottomTabNavigator,
+  SceneStyleInterpolators,
+  type BottomTabBarProps,
+} from "@react-navigation/bottom-tabs";
 
 // Import zustand store
 import { useFinanceStore, Transaction } from "./store/useFinanceStore";
@@ -36,35 +44,54 @@ import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
 // Explanation dialog for the offline / failed-sync status bar
 import { alertAsync } from "./utils/confirm";
 
-// TypeScript type for tab names
-type TabName = "dashboard" | "analytics" | "alerts" | "settings";
+// react-native-screens' native screen containers, used under the hood by the
+// tab navigator below — this is what makes tab switches use real native
+// transitions instead of hand-rolled JS animation over mounted React trees
+// (which is what produced the flicker: two heavy, stateful screens stacked
+// and cross-faded in JS).
+enableScreens();
+
+export type TabParamList = {
+  Dashboard: undefined;
+  Analytics: { filter?: AnalyticsInitialFilter } | undefined;
+  Alerts: undefined;
+  Settings: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
+
+// 250ms crossfade, as opposed to the library's 150ms default.
+const FADE_TRANSITION_SPEC = {
+  animation: "timing" as const,
+  config: { duration: 250, easing: Easing.inOut(Easing.ease) },
+};
 
 const NAV_ITEMS: {
-  name: TabName;
+  name: keyof TabParamList;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   activeIcon: keyof typeof Ionicons.glyphMap;
 }[] = [
   {
-    name: "dashboard",
+    name: "Dashboard",
     label: "Dashboard",
     icon: "home-outline",
     activeIcon: "home",
   },
   {
-    name: "analytics",
+    name: "Analytics",
     label: "Analytics",
     icon: "bar-chart-outline",
     activeIcon: "bar-chart",
   },
   {
-    name: "alerts",
+    name: "Alerts",
     label: "Alerts",
     icon: "notifications-outline",
     activeIcon: "notifications",
   },
   {
-    name: "settings",
+    name: "Settings",
     label: "Settings",
     icon: "settings-outline",
     activeIcon: "settings",
@@ -73,9 +100,13 @@ const NAV_ITEMS: {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <RootNavigator />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -83,8 +114,15 @@ function RootNavigator() {
   const { session, initializing } = useAuthStore();
   const { status, syncError, persistHydrated, hydrate, reset } = useFinanceStore();
 
+  // Keyed on the user id rather than the session object: Supabase hands back a
+  // new session object on every token refresh, and re-running hydrate() then
+  // would race with (and could clobber) whatever the user is doing at that
+  // moment — e.g. a settings toggle landing locally just before a stale
+  // in-flight hydrate() overwrites it back.
+  const userId = session?.user.id ?? null;
+
   useEffect(() => {
-    if (session) {
+    if (userId) {
       // Re-read the cache first so it resolves against *this* user's slot
       // (rehydration otherwise only happens once at launch, which would skip
       // the cache when switching accounts mid-session), then refresh.
@@ -99,7 +137,7 @@ function RootNavigator() {
       reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [userId]);
 
   if (initializing) {
     return (
@@ -231,9 +269,72 @@ function SyncIndicator() {
   return null;
 }
 
-function AppContent() {
+// Reproduces the app's original bottom nav UI (icons/labels on either side of
+// a floating add button) on top of react-navigation's tab bar, so the visual
+// design is unchanged even though the navigator now owns tab switching.
+function CustomTabBar({
+  state,
+  navigation,
+  onAddPress,
+}: BottomTabBarProps & { onAddPress: () => void }) {
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<TabName>("dashboard");
+
+  const renderItem = (index: number) => {
+    const route = state.routes[index];
+    const item = NAV_ITEMS.find((i) => i.name === route.name);
+    if (!item) return null;
+    const isFocused = state.index === index;
+
+    const onPress = () => {
+      const event = navigation.emit({
+        type: "tabPress",
+        target: route.key,
+        canPreventDefault: true,
+      });
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        key={route.key}
+        style={styles.navItem}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name={isFocused ? item.activeIcon : item.icon}
+          size={22}
+          color={isFocused ? Colors.primary : Colors.textMuted}
+        />
+        <Text style={[styles.navLabel, isFocused && styles.navLabelActive]}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View>
+      <SyncIndicator />
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        {/* Left side — Dashboard and Analytics */}
+        <View style={styles.navSide}>{[0, 1].map(renderItem)}</View>
+
+        {/* Center — FAB Button */}
+        <View style={styles.navCenter}>
+          <FABButton onPress={onAddPress} />
+        </View>
+
+        {/* Right side — Alerts and Settings */}
+        <View style={styles.navSide}>{[2, 3].map(renderItem)}</View>
+      </View>
+    </View>
+  );
+}
+
+function AppContent() {
   const [showTransaction, setShowTransaction] = useState(false);
   const [categoriesModal, setCategoriesModal] = useState<CategoryTabType | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
@@ -241,124 +342,49 @@ function AppContent() {
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(
     null,
   );
-  const [analyticsFilter, setAnalyticsFilter] =
-    useState<AnalyticsInitialFilter | null>(null);
   const { addTransaction } = useFinanceStore();
 
   useAlertsMonitor();
 
-  const navigateToAnalytics = (filter: AnalyticsInitialFilter) => {
-    setAnalyticsFilter(filter);
-    setActiveTab("analytics");
-  };
-
-  const renderScreen = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return (
-          <DashboardScreen
-            onTransactionPress={(transaction) =>
-              setSelectedTransaction(transaction)
-            }
-            onNavigateToAnalytics={navigateToAnalytics}
-          />
-        );
-      case "analytics":
-        return (
-          <AnalyticsScreen
-            initialFilter={analyticsFilter}
-            onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
-          />
-        );
-      case "alerts":
-        return <AlertsScreen />;
-      case "settings":
-        return (
-          <SettingsScreen onOpenCategories={(type) => setCategoriesModal(type)} />
-        );
-    }
-  };
-
   return (
     <View style={styles.container}>
-      {/* Active Screen */}
-      <View style={styles.screenContainer}>{renderScreen()}</View>
-
-      <SyncIndicator />
-
-      {/* Bottom Navigation */}
-      <View
-        style={[
-          styles.bottomNav,
-          { paddingBottom: Math.max(insets.bottom, 8) },
-        ]}
-      >
-        {/* Left side — Dashboard and Analytics */}
-        <View style={styles.navSide}>
-          {NAV_ITEMS.slice(0, 2).map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              style={styles.navItem}
-              onPress={() => setActiveTab(item.name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={activeTab === item.name ? item.activeIcon : item.icon}
-                size={22}
-                color={
-                  activeTab === item.name ? Colors.primary : Colors.textMuted
-                }
-              />
-              <Text
-                style={[
-                  styles.navLabel,
-                  activeTab === item.name && styles.navLabelActive,
-                ]}
-              >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Center — FAB Button */}
-        <View style={styles.navCenter}>
-          <FABButton
-            onPress={() => {
+      <Tab.Navigator
+        tabBar={(props) => (
+          <CustomTabBar
+            {...props}
+            onAddPress={() => {
               setEditTransaction(null);
               setShowTransaction(true);
             }}
           />
-        </View>
-
-        {/* Right side — Alerts and Settings */}
-        <View style={styles.navSide}>
-          {NAV_ITEMS.slice(2, 4).map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              style={styles.navItem}
-              onPress={() => setActiveTab(item.name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={activeTab === item.name ? item.activeIcon : item.icon}
-                size={22}
-                color={
-                  activeTab === item.name ? Colors.primary : Colors.textMuted
-                }
-              />
-              <Text
-                style={[
-                  styles.navLabel,
-                  activeTab === item.name && styles.navLabelActive,
-                ]}
-              >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+        )}
+        screenOptions={{
+          headerShown: false,
+          transitionSpec: FADE_TRANSITION_SPEC,
+          sceneStyleInterpolator: SceneStyleInterpolators.forFade,
+        }}
+      >
+        <Tab.Screen name="Dashboard">
+          {({ navigation }) => (
+            <DashboardScreen
+              onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
+              onNavigateToAnalytics={(filter) => navigation.navigate("Analytics", { filter })}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Analytics">
+          {({ route }) => (
+            <AnalyticsScreen
+              initialFilter={route.params?.filter ?? null}
+              onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen name="Alerts" component={AlertsScreen} />
+        <Tab.Screen name="Settings">
+          {() => <SettingsScreen onOpenCategories={(type) => setCategoriesModal(type)} />}
+        </Tab.Screen>
+      </Tab.Navigator>
 
       <AddTransactionModal
         visible={showTransaction}
@@ -431,9 +457,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#fff",
-  },
-  screenContainer: {
-    flex: 1,
   },
   syncBar: {
     flexDirection: "row",
