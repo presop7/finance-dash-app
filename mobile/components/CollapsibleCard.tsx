@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import HoldPressable from "./HoldPressable";
@@ -11,12 +11,18 @@ type CollapsibleCardProps = {
   onToggleCollapse: () => void;
   onHoldComplete?: () => void;
   reorderMode?: boolean;
+  // Shared 0->1 value owned by the parent list: 0 = normal, 1 = fully in
+  // reorder mode. Drives this card's shrink and its header controls
+  // crossfading in lockstep with the reorder panel appearing/disappearing.
+  reorderProgress?: Animated.Value;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   children: ReactNode;
 };
+
+const STATIC_ZERO = new Animated.Value(0);
 
 export default function CollapsibleCard({
   title,
@@ -25,14 +31,18 @@ export default function CollapsibleCard({
   onToggleCollapse,
   onHoldComplete,
   reorderMode,
+  reorderProgress = STATIC_ZERO,
   onMoveUp,
   onMoveDown,
   canMoveUp,
   canMoveDown,
   children,
 }: CollapsibleCardProps) {
+  const scale = reorderProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
+  const collapseBtnOpacity = reorderProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
   return (
-    <View style={[styles.wrapper, reorderMode && styles.wrapperShrunk]}>
+    <Animated.View style={[styles.wrapper, { transform: [{ scale }] }]}>
       <View style={styles.header}>
         {/* Grip — hold for a beat to enter reorder mode */}
         <HoldPressable
@@ -51,8 +61,13 @@ export default function CollapsibleCard({
           </View>
         </HoldPressable>
 
-        {reorderMode ? (
-          <View style={styles.reorderControls}>
+        {/* Both control sets stay mounted and crossfade via reorderProgress,
+            stacked in a fixed-size slot so neither pop of layout occurs. */}
+        <View style={styles.controlsSlot}>
+          <Animated.View
+            style={[styles.controlsOverlay, { opacity: reorderProgress }]}
+            pointerEvents={reorderMode ? "auto" : "none"}
+          >
             <TouchableOpacity
               style={[styles.moveBtn, !canMoveUp && styles.moveBtnDisabled]}
               onPress={onMoveUp}
@@ -77,33 +92,35 @@ export default function CollapsibleCard({
                 color={canMoveDown ? Colors.textPrimary : Colors.textMuted}
               />
             </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.collapseBtn}
-            onPress={onToggleCollapse}
-            hitSlop={8}
+          </Animated.View>
+
+          <Animated.View
+            style={[styles.controlsOverlay, { opacity: collapseBtnOpacity }]}
+            pointerEvents={reorderMode ? "none" : "auto"}
           >
-            <Ionicons
-              name={collapsed ? "chevron-down" : "chevron-up"}
-              size={18}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
-        )}
+            <TouchableOpacity
+              style={styles.collapseBtn}
+              onPress={onToggleCollapse}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={collapsed ? "chevron-down" : "chevron-up"}
+                size={18}
+                color={Colors.textMuted}
+              />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
 
       {!collapsed && <View style={styles.body}>{children}</View>}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: {
     marginTop: 16,
-  },
-  wrapperShrunk: {
-    transform: [{ scale: 0.97 }],
   },
   header: {
     flexDirection: "row",
@@ -131,6 +148,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
   },
+  // Fixed size big enough for either control set (two 28px buttons + 6 gap),
+  // right-aligned, so the crossfade never causes a layout jump.
+  controlsSlot: {
+    width: 70,
+    height: 28,
+  },
+  controlsOverlay: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   collapseBtn: {
     width: 28,
     height: 28,
@@ -138,10 +169,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surfaceSecondary,
-  },
-  reorderControls: {
-    flexDirection: "row",
-    gap: 6,
   },
   moveBtn: {
     width: 28,

@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { Animated, LayoutChangeEvent, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import CollapsibleCard from "./CollapsibleCard";
@@ -19,6 +19,8 @@ type DashboardCardListProps = {
   onToggleCollapse: (id: string) => void;
 };
 
+const TRANSITION_MS = 220;
+
 export default function DashboardCardList({
   cards,
   order,
@@ -28,6 +30,38 @@ export default function DashboardCardList({
 }: DashboardCardListProps) {
   const [reorderMode, setReorderMode] = useState(false);
   const [draftOrder, setDraftOrder] = useState(order);
+
+  // Layout props (margin/padding/border/radius) can only ever animate on
+  // the JS thread, forcing a native relayout every single frame — even
+  // isolated on their own value, that's still visibly choppy. So the panel's
+  // geometry snaps to its target instantly (one relayout) at the same
+  // moment this starts, and fadeAnim — native-driven, so it stays smooth
+  // regardless of JS thread load — carries all the actual motion (header
+  // opacity, card scale/control crossfade), masking the snap.
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // FLIP-style reorder animation: each card's last-measured Y position, and
+  // a per-card translateY it animates from (its old position, relative to
+  // its new one) back to 0 whenever a move changes where it lands.
+  const cardPositions = useRef(new Map<string, number>()).current;
+  const cardAnims = useRef(new Map<string, Animated.Value>()).current;
+  const getCardAnim = (id: string) => {
+    let anim = cardAnims.get(id);
+    if (!anim) {
+      anim = new Animated.Value(0);
+      cardAnims.set(id, anim);
+    }
+    return anim;
+  };
+  const handleCardLayout = (id: string) => (e: LayoutChangeEvent) => {
+    const newY = e.nativeEvent.layout.y;
+    const prevY = cardPositions.get(id);
+    cardPositions.set(id, newY);
+    if (prevY === undefined || prevY === newY) return;
+    const anim = getCardAnim(id);
+    anim.setValue(prevY - newY);
+    Animated.timing(anim, { toValue: 0, duration: TRANSITION_MS, useNativeDriver: true }).start();
+  };
 
   const knownIdsKey = cards.map((c) => c.id).join("|");
 
@@ -48,7 +82,21 @@ export default function DashboardCardList({
 
   const enterReorderMode = () => {
     setDraftOrder(order);
+    // reorderMode flips true immediately so the header/panel chrome mounts
+    // right away, at progress 0, and animates in from there.
     setReorderMode(true);
+    Animated.timing(fadeAnim, { toValue: 1, duration: TRANSITION_MS, useNativeDriver: true }).start();
+  };
+
+  // Animates back to 0 first, then unmounts the reorder chrome — so it fades
+  // out instead of vanishing the instant the button is tapped. The panel's
+  // geometry stays at its reorder-mode size throughout (reorderMode is still
+  // true until this completes) and only snaps back once this finishes, by
+  // which point it's already invisible.
+  const leaveReorderMode = () => {
+    Animated.timing(fadeAnim, { toValue: 0, duration: TRANSITION_MS, useNativeDriver: true }).start(() =>
+      setReorderMode(false),
+    );
   };
 
   const moveCard = (id: string, direction: -1 | 1) => {
@@ -64,11 +112,11 @@ export default function DashboardCardList({
 
   const confirmReorder = () => {
     onReorder(draftOrder);
-    setReorderMode(false);
+    leaveReorderMode();
   };
 
   const discardReorder = () => {
-    setReorderMode(false);
+    leaveReorderMode();
   };
 
   const displayOrder = reorderMode ? draftOrder : order;
@@ -77,50 +125,58 @@ export default function DashboardCardList({
     const card = cards.find((c) => c.id === id);
     if (!card) return null;
     return (
-      <CollapsibleCard
+      <Animated.View
         key={id}
-        title={card.title}
-        subtitle={card.subtitle}
-        collapsed={Boolean(collapsed[id])}
-        onToggleCollapse={() => onToggleCollapse(id)}
-        onHoldComplete={enterReorderMode}
-        reorderMode={reorderMode}
-        onMoveUp={() => moveCard(id, -1)}
-        onMoveDown={() => moveCard(id, 1)}
-        canMoveUp={index > 0}
-        canMoveDown={index < displayOrder.length - 1}
+        onLayout={handleCardLayout(id)}
+        style={{ transform: [{ translateY: getCardAnim(id) }] }}
       >
-        {card.content}
-      </CollapsibleCard>
+        <CollapsibleCard
+          title={card.title}
+          subtitle={card.subtitle}
+          collapsed={Boolean(collapsed[id])}
+          onToggleCollapse={() => onToggleCollapse(id)}
+          onHoldComplete={enterReorderMode}
+          reorderMode={reorderMode}
+          reorderProgress={fadeAnim}
+          onMoveUp={() => moveCard(id, -1)}
+          onMoveDown={() => moveCard(id, 1)}
+          canMoveUp={index > 0}
+          canMoveDown={index < displayOrder.length - 1}
+        >
+          {card.content}
+        </CollapsibleCard>
+      </Animated.View>
     );
   });
 
-  if (!reorderMode) return <>{cardList}</>;
-
   return (
-    <View style={styles.reorderPanel}>
-      <View style={styles.reorderHeader}>
-        <TouchableOpacity style={styles.discardBtn} onPress={discardReorder}>
-          <Ionicons name="close-circle" size={18} color={Colors.expense} />
-          <Text style={styles.discardText}>Discard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveBtn} onPress={confirmReorder}>
-          <Ionicons name="checkmark-circle" size={18} color={Colors.income} />
-          <Text style={styles.saveText}>Save Order</Text>
-        </TouchableOpacity>
-      </View>
+    <Animated.View style={[styles.panel, reorderMode && styles.panelActive]}>
+      {reorderMode && (
+        <Animated.View style={[styles.reorderHeader, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={styles.discardBtn} onPress={discardReorder}>
+            <Ionicons name="close-circle" size={18} color={Colors.expense} />
+            <Text style={styles.discardText}>Discard</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveBtn} onPress={confirmReorder}>
+            <Ionicons name="checkmark-circle" size={18} color={Colors.income} />
+            <Text style={styles.saveText}>Save Order</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
       {cardList}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  reorderPanel: {
+  panel: {
+    borderColor: Colors.primary,
+  },
+  panelActive: {
     marginTop: 16,
     marginHorizontal: 16,
     padding: 12,
     borderWidth: 1.5,
-    borderColor: Colors.primary,
     borderRadius: 16,
     backgroundColor: Colors.surfaceSecondary,
   },
@@ -128,6 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 16,
+    marginBottom: 8,
   },
   discardBtn: {
     flexDirection: "row",
