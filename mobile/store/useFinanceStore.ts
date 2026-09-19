@@ -107,6 +107,10 @@ type FinanceStore = {
   incomeCategories: Category[];
   fundCategories: FundCategory[];
   settings: Settings;
+  // Bumped on every updateSettings() call so a slower, superseded response
+  // (an out-of-order PATCH, or a hydrate() that started before a more recent
+  // local change) can tell it's stale and skip overwriting settings.
+  settingsVersion: number;
 
   hydrate: () => Promise<void>;
   reset: () => void;
@@ -386,6 +390,7 @@ export const useFinanceStore = create<FinanceStore>()(
       incomeCategories: [],
       fundCategories: [],
       settings: DEFAULT_SETTINGS,
+      settingsVersion: 0,
 
       // Assume online until NetInfo says otherwise, so a first write isn't
       // needlessly queued before the listener has reported in.
@@ -412,6 +417,11 @@ export const useFinanceStore = create<FinanceStore>()(
           }
         }
 
+        // Snapshot the settings version before fetching: if updateSettings()
+        // lands locally while this fetch is in flight, the fetched `me` below
+        // reflects pre-update server state and must not overwrite it.
+        const settingsVersionAtFetch = get().settingsVersion;
+
         try {
           const [me, apiCategories, apiFundCategories, apiTransactions] = await Promise.all([
             financeApi.getMe(),
@@ -420,10 +430,12 @@ export const useFinanceStore = create<FinanceStore>()(
             financeApi.listTransactions(),
           ]);
 
+          const settingsStale = get().settingsVersion !== settingsVersionAtFetch;
+
           set({
             status: "loaded",
             lastSyncedAt: Date.now(),
-            settings: mapSettings(me),
+            ...(settingsStale ? {} : { settings: mapSettings(me) }),
             expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
             incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
             fundCategories: apiFundCategories.map(mapFundCategory),
@@ -460,13 +472,35 @@ export const useFinanceStore = create<FinanceStore>()(
         }),
 
       updateSettings: async (changes) => {
-        const me = await financeApi.updateSettings({
-          currency: changes.currency,
-          hide_balance: changes.hideBalance,
-          time_format: changes.timeFormat,
-          date_format: changes.dateFormat,
-        });
-        set({ settings: mapSettings(me) });
+        // Claim the latest version up front so a slower, superseded call
+        // (or a racing hydrate()) can tell its result is stale and skip
+        // applying it once this one lands.
+        const myVersion = get().settingsVersion + 1;
+        const previousSettings = get().settings;
+
+        // Apply optimistically, synchronously with the call, rather than
+        // waiting for the PATCH round-trip: a control like the Hide Balance
+        // Switch moves the instant it's tapped, and if the store's `settings`
+        // (its `value` prop) doesn't follow immediately, an unrelated
+        // re-render while the request is in flight snaps it back to the old
+        // value before the response arrives and flips it again — a visible
+        // flip/revert/flip glitch.
+        set({ settingsVersion: myVersion, settings: { ...previousSettings, ...changes } });
+
+        try {
+          const me = await financeApi.updateSettings({
+            currency: changes.currency,
+            hide_balance: changes.hideBalance,
+            time_format: changes.timeFormat,
+            date_format: changes.dateFormat,
+          });
+
+          if (get().settingsVersion !== myVersion) return;
+          set({ settings: mapSettings(me) });
+        } catch (err) {
+          if (get().settingsVersion === myVersion) set({ settings: previousSettings });
+          throw err;
+        }
       },
 
       addTransaction: async (transaction) => {
