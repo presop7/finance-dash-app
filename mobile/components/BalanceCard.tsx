@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, View, Text, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
@@ -78,6 +78,23 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
 
   const masked = settings.hideBalance && !revealed;
 
+  // The content swap (dots <-> real value) happens at the midpoint of the
+  // animation, while it's fully faded out, so the change itself is never
+  // seen — only the smooth 0.25s dissolve on either side of it is.
+  const [displayedMasked, setDisplayedMasked] = useState(masked);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (masked === displayedMasked) return;
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 125, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 125, useNativeDriver: true }),
+    ]).start();
+    const swapTimer = setTimeout(() => setDisplayedMasked(masked), 125);
+    return () => clearTimeout(swapTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masked]);
+
   return (
     <LinearGradient
       colors={[Colors.primary, "#7383ac"]}
@@ -92,9 +109,9 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
       >
       {/* Main Balance */}
       <Text style={styles.balanceLabel}>Total Balance</Text>
-      <Text style={styles.balanceAmount}>
-        {masked ? "•••••" : formatCurrency(balance, settings.currency)}
-      </Text>
+      <Animated.Text style={[styles.balanceAmount, { opacity: fadeAnim }]}>
+        {displayedMasked ? "•••••" : formatCurrency(balance, settings.currency)}
+      </Animated.Text>
 
       {/* Divider */}
       <View style={styles.divider} />
@@ -152,9 +169,9 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
           onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "income" })}
         >
           <Text style={styles.colLabel}>Income</Text>
-          <Text style={styles.colAmount}>
-            {masked ? "•••" : `+${stats.income.toFixed(2)}`}
-          </Text>
+          <Animated.Text style={[styles.colAmount, { opacity: fadeAnim }]}>
+            {displayedMasked ? "•••" : `+${stats.income.toFixed(2)}`}
+          </Animated.Text>
           {stats.hasPrevPeriod && (
             <Text style={styles.colTrend}>
               {stats.incomePct >= 0 ? "▲" : "▼"} {Math.abs(stats.incomePct)}%
@@ -171,9 +188,9 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
           onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "expense" })}
         >
           <Text style={styles.colLabel}>Expenses</Text>
-          <Text style={[styles.colAmount, styles.expenseAmount]}>
-            {masked ? "•••" : `-${stats.expense.toFixed(2)}`}
-          </Text>
+          <Animated.Text style={[styles.colAmount, styles.expenseAmount, { opacity: fadeAnim }]}>
+            {displayedMasked ? "•••" : `-${stats.expense.toFixed(2)}`}
+          </Animated.Text>
           {stats.hasPrevPeriod && (
             <Text style={[styles.colTrend, styles.expenseTrend]}>
               {stats.expensePct >= 0 ? "▲" : "▼"} {Math.abs(stats.expensePct)}%
@@ -185,14 +202,15 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
 
         <View style={styles.col}>
           <Text style={styles.colLabel}>Savings</Text>
-          <Text
+          <Animated.Text
             style={[
               styles.colAmount,
               stats.savings < 0 && styles.expenseAmount,
+              { opacity: fadeAnim },
             ]}
           >
-            {masked ? "•••" : `${stats.savings >= 0 ? "+" : ""}${stats.savings.toFixed(2)}`}
-          </Text>
+            {displayedMasked ? "•••" : `${stats.savings >= 0 ? "+" : ""}${stats.savings.toFixed(2)}`}
+          </Animated.Text>
           {stats.hasPrevPeriod && (
             <Text
               style={[
