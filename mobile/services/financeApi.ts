@@ -63,6 +63,13 @@ export type ApiTransactionCreate = {
 };
 export type ApiTransactionUpdate = Partial<Omit<ApiTransactionCreate, "client_generated_id">>;
 
+export type ApiTransactionBulkFailure = { index: number; detail: string };
+export type ApiTransactionBulkResult = {
+  created: ApiTransaction[];
+  skipped_duplicates: number;
+  failed: ApiTransactionBulkFailure[];
+};
+
 export type ApiUser = {
   id: string;
   auth_provider_id: string;
@@ -108,6 +115,8 @@ export const financeApi = {
   listTransactions: () => api.get<ApiTransaction[]>("/transactions"),
   createTransaction: (body: ApiTransactionCreate) =>
     api.post<ApiTransaction>("/transactions", body),
+  bulkCreateTransactions: (transactions: ApiTransactionCreate[]) =>
+    api.post<ApiTransactionBulkResult>("/transactions/bulk", { transactions }),
   updateTransaction: (id: string, body: ApiTransactionUpdate) =>
     api.patch<ApiTransaction>(`/transactions/${id}`, body),
   deleteTransaction: (id: string) => api.delete<void>(`/transactions/${id}`),

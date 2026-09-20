@@ -8,17 +8,20 @@ import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { financeApi } from "../services/financeApi";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
   onOpenCategories: (type: CategoryTabType) => void;
+  onOpenImport: () => void;
 };
 
-export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps) {
-  const { settings, updateSettings, pendingOps } = useFinanceStore();
+export default function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps) {
+  const { settings, updateSettings, pendingOps, transactions, isConnected, hydrate } = useFinanceStore();
   const { session, signOut } = useAuthStore();
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
+  const [clearingTransactions, setClearingTransactions] = useState(false);
 
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
@@ -53,6 +56,46 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
         "Couldn't save setting",
         err instanceof Error ? err.message : "Something went wrong.",
       );
+    }
+  };
+
+  // Dev/testing convenience — wipes every transaction so a CSV import test
+  // run doesn't mix in with earlier data. Requires being online for the
+  // same reason CSV import does: this is a bulk operation and the offline
+  // queue isn't built for deleting in bulk.
+  const handleClearAllTransactions = async () => {
+    if (!isConnected) {
+      await alertAsync("You're offline", "Clearing transactions needs an internet connection.");
+      return;
+    }
+    if (transactions.length === 0) {
+      await alertAsync("Nothing to clear", "You don't have any transactions yet.");
+      return;
+    }
+
+    const count = transactions.length;
+    const proceed = await confirmAsyncWithLabel(
+      "Clear All Transactions",
+      `This will permanently delete all ${count} transaction${count === 1 ? "" : "s"}. This cannot be undone.`,
+      "Delete All",
+    );
+    if (!proceed) return;
+
+    setClearingTransactions(true);
+    try {
+      const results = await Promise.allSettled(
+        transactions.map((t) => financeApi.deleteTransaction(t.id)),
+      );
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      await hydrate();
+      if (failedCount > 0) {
+        await alertAsync(
+          "Some deletions failed",
+          `${failedCount} transaction${failedCount === 1 ? "" : "s"} couldn't be deleted — try again.`,
+        );
+      }
+    } finally {
+      setClearingTransactions(false);
     }
   };
 
@@ -231,6 +274,39 @@ export default function SettingsScreen({ onOpenCategories }: SettingsScreenProps
               <Text style={styles.rowSubtitle}>Expenses, income and funds</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={onOpenImport} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Import Transactions from CSV</Text>
+              <Text style={styles.rowSubtitle}>Bring in history from another app</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Danger Zone</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={handleClearAllTransactions}
+            activeOpacity={0.7}
+            disabled={clearingTransactions}
+          >
+            <View style={styles.rowIcon}>
+              <Ionicons name="trash-outline" size={18} color={Colors.expense} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowTitle, { color: Colors.expense }]}>
+                {clearingTransactions ? "Clearing…" : "Clear All Transactions"}
+              </Text>
+              <Text style={styles.rowSubtitle}>Permanently deletes every transaction</Text>
+            </View>
           </TouchableOpacity>
         </View>
 

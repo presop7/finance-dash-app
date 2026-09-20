@@ -37,6 +37,7 @@ import { Colors } from "./constants/colors";
 // Category Management Modal
 import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesModal";
 import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
+import ImportCsvModal from "./screens/modals/ImportCsvModal";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
@@ -337,6 +338,7 @@ function CustomTabBar({
 function AppContent() {
   const [showTransaction, setShowTransaction] = useState(false);
   const [categoriesModal, setCategoriesModal] = useState<CategoryTabType | null>(null);
+  const [showImportCsv, setShowImportCsv] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(
@@ -382,7 +384,12 @@ function AppContent() {
         </Tab.Screen>
         <Tab.Screen name="Alerts" component={AlertsScreen} />
         <Tab.Screen name="Settings">
-          {() => <SettingsScreen onOpenCategories={(type) => setCategoriesModal(type)} />}
+          {() => (
+            <SettingsScreen
+              onOpenCategories={(type) => setCategoriesModal(type)}
+              onOpenImport={() => setShowImportCsv(true)}
+            />
+          )}
         </Tab.Screen>
       </Tab.Navigator>
 
@@ -415,6 +422,7 @@ function AppContent() {
         initialType={categoriesModal ?? "expense"}
         onClose={() => setCategoriesModal(null)}
       />
+      <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
 
       <TransactionDetailModal
         transaction={selectedTransaction}
