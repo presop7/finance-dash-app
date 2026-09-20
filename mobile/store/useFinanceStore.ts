@@ -496,7 +496,20 @@ export const useFinanceStore = create<FinanceStore>()(
           });
 
           if (get().settingsVersion !== myVersion) return;
-          set({ settings: mapSettings(me) });
+          // Only re-set (and so re-render, and so reassign a fresh `value`
+          // prop to controls like the Hide Balance Switch) if the server's
+          // confirmed value actually differs from what was already applied
+          // optimistically. The redundant re-render this used to always do
+          // was harmless to state but would land moments after the
+          // optimistic one — often while Android's native switch thumb
+          // animation was still mid-flight — truncating it into a snap on
+          // fast networks while staying smooth on slower ones.
+          const confirmed = mapSettings(me);
+          const current = get().settings;
+          const changed = (Object.keys(confirmed) as (keyof Settings)[]).some(
+            (key) => confirmed[key] !== current[key],
+          );
+          if (changed) set({ settings: confirmed });
         } catch (err) {
           if (get().settingsVersion === myVersion) set({ settings: previousSettings });
           throw err;
