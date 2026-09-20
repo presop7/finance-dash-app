@@ -10,6 +10,13 @@ type CollapsibleCardProps = {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onHoldComplete?: () => void;
+  // Whether this card can be dragged into reorder mode at all. Some screens
+  // (Analytics' Summary card) reuse CollapsibleCard purely for its
+  // collapse/expand behavior, outside any reorderable list — the
+  // hold-to-reorder affordance (grip icon, hold-fill animation) would be
+  // misleading there since holding it does nothing. Defaults to true to
+  // match every existing (actually reorderable) usage.
+  reorderable?: boolean;
   reorderMode?: boolean;
   // Shared 0->1 value owned by the parent list: 0 = normal, 1 = fully in
   // reorder mode. Drives this card's shrink and its header controls
@@ -30,6 +37,7 @@ export default function CollapsibleCard({
   collapsed,
   onToggleCollapse,
   onHoldComplete,
+  reorderable = true,
   reorderMode,
   reorderProgress = STATIC_ZERO,
   onMoveUp,
@@ -45,21 +53,28 @@ export default function CollapsibleCard({
     <Animated.View style={[styles.wrapper, { transform: [{ scale }] }]}>
       <View style={styles.header}>
         {/* Grip — hold for a beat to enter reorder mode */}
-        <HoldPressable
-          style={styles.grip}
-          disabled={reorderMode}
-          onHoldComplete={() => onHoldComplete?.()}
-        >
-          <Ionicons
-            name="reorder-three-outline"
-            size={18}
-            color={Colors.textMuted}
-          />
-          <View>
+        {reorderable ? (
+          <HoldPressable
+            style={styles.grip}
+            disabled={reorderMode}
+            onHoldComplete={() => onHoldComplete?.()}
+          >
+            <Ionicons
+              name="reorder-three-outline"
+              size={18}
+              color={Colors.textMuted}
+            />
+            <View>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
+          </HoldPressable>
+        ) : (
+          <View style={styles.grip}>
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
-        </HoldPressable>
+        )}
 
         {/* Both control sets stay mounted and crossfade via reorderProgress,
             stacked in a fixed-size slot so neither pop of layout occurs. */}

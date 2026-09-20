@@ -1,5 +1,15 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  View,
+  Text,
+  StyleSheet,
+  StyleProp,
+  TextStyle,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
@@ -55,6 +65,48 @@ export default function AnalyticsScreen({
   const maxBar = Math.max(summary.income, summary.expense, 1);
   const activeFilterCount = countActiveFilters(filters);
 
+  // Bars grow from empty and amounts count up from 0 to the real value
+  // whenever the summary changes (switching the Expense/Income/All tab,
+  // applying filters, etc.), instead of snapping straight to the new
+  // numbers. JS-driven (width and arbitrary number values aren't eligible
+  // for the native driver). The bar widths are cheap — Animated mutates the
+  // native view directly each tick without going through React — but the
+  // count-up numbers used to drive this via addListener -> setState *here*,
+  // which re-rendered the whole screen (TransactionList included) on every
+  // tick; that's what was choppy. CountUpAmount below owns its own listener
+  // and state so those re-renders stay scoped to just the number text.
+  const incomeBarAnim = useRef(new Animated.Value(0)).current;
+  const expenseBarAnim = useRef(new Animated.Value(0)).current;
+  const incomeAmountAnim = useRef(new Animated.Value(0)).current;
+  const expenseAmountAnim = useRef(new Animated.Value(0)).current;
+  const netAmountAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const incomePct = (summary.income / maxBar) * 100;
+    const expensePct = (summary.expense / maxBar) * 100;
+
+    [incomeBarAnim, expenseBarAnim, incomeAmountAnim, expenseAmountAnim, netAmountAnim].forEach((a) =>
+      a.setValue(0),
+    );
+    Animated.parallel(
+      [
+        [incomeBarAnim, incomePct],
+        [expenseBarAnim, expensePct],
+        [incomeAmountAnim, summary.income],
+        [expenseAmountAnim, summary.expense],
+        [netAmountAnim, summary.net],
+      ].map(([anim, toValue]) =>
+        Animated.timing(anim as Animated.Value, {
+          toValue: toValue as number,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ),
+    ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary.income, summary.expense, summary.net, maxBar]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, GlobalStyles.screenPadding]}>
@@ -96,6 +148,7 @@ export default function AnalyticsScreen({
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <CollapsibleCard
           title="Summary"
+          reorderable={false}
           collapsed={summaryCollapsed}
           onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
         >
@@ -104,13 +157,20 @@ export default function AnalyticsScreen({
               <View style={styles.barLabelRow}>
                 <View style={[styles.dot, { backgroundColor: Colors.income }]} />
                 <Text style={styles.barLabel}>Income</Text>
-                <Text style={styles.barAmount}>{formatCurrency(summary.income, settings.currency)}</Text>
+                <CountUpAmount anim={incomeAmountAnim} currency={settings.currency} style={styles.barAmount} />
               </View>
               <View style={styles.barTrack}>
-                <View
+                <Animated.View
                   style={[
                     styles.barFill,
-                    { width: `${(summary.income / maxBar) * 100}%`, backgroundColor: Colors.income },
+                    {
+                      width: incomeBarAnim.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                        extrapolate: "clamp",
+                      }),
+                      backgroundColor: Colors.income,
+                    },
                   ]}
                 />
               </View>
@@ -120,13 +180,20 @@ export default function AnalyticsScreen({
               <View style={styles.barLabelRow}>
                 <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
                 <Text style={styles.barLabel}>Expenses</Text>
-                <Text style={styles.barAmount}>{formatCurrency(summary.expense, settings.currency)}</Text>
+                <CountUpAmount anim={expenseAmountAnim} currency={settings.currency} style={styles.barAmount} />
               </View>
               <View style={styles.barTrack}>
-                <View
+                <Animated.View
                   style={[
                     styles.barFill,
-                    { width: `${(summary.expense / maxBar) * 100}%`, backgroundColor: Colors.expense },
+                    {
+                      width: expenseBarAnim.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ["0%", "100%"],
+                        extrapolate: "clamp",
+                      }),
+                      backgroundColor: Colors.expense,
+                    },
                   ]}
                 />
               </View>
@@ -134,10 +201,13 @@ export default function AnalyticsScreen({
 
             <View style={styles.netRow}>
               <Text style={styles.netLabel}>Net</Text>
-              <Text style={[styles.netAmount, summary.net < 0 && { color: Colors.expense }]}>
-                {summary.net >= 0 ? "+" : ""}
-                {formatCurrency(summary.net, settings.currency)}
-              </Text>
+              <CountUpAmount
+                anim={netAmountAnim}
+                currency={settings.currency}
+                style={styles.netAmount}
+                negativeStyle={{ color: Colors.expense }}
+                showSign
+              />
             </View>
           </View>
         </CollapsibleCard>
@@ -159,6 +229,39 @@ export default function AnalyticsScreen({
         onClose={() => setShowFiltersModal(false)}
       />
     </View>
+  );
+}
+
+// Owns its own listener + state for the count-up animation, so the re-render
+// each tick produces is scoped to just this Text rather than the whole
+// screen (which is what made the animation choppy when the parent held that
+// state instead — every tick re-rendered AnalyticsScreen, TransactionList
+// included).
+function CountUpAmount({
+  anim,
+  currency,
+  style,
+  negativeStyle,
+  showSign,
+}: {
+  anim: Animated.Value;
+  currency: string;
+  style?: StyleProp<TextStyle>;
+  negativeStyle?: StyleProp<TextStyle>;
+  showSign?: boolean;
+}) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    const id = anim.addListener(({ value }) => setValue(value));
+    return () => anim.removeListener(id);
+  }, [anim]);
+
+  return (
+    <Text style={[style, negativeStyle && value < 0 && negativeStyle]}>
+      {showSign && value >= 0 ? "+" : ""}
+      {formatCurrency(value, currency)}
+    </Text>
   );
 }
 
