@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from models.transaction import TransactionType
 
@@ -44,3 +44,20 @@ class TransactionOut(BaseModel):
     occurred_at: datetime
     created_at: datetime
     client_generated_id: uuid.UUID
+
+
+class TransactionBulkCreate(BaseModel):
+    # Capped so one request can't be used to force an unbounded batch insert -
+    # nothing else in this app limits request body size.
+    transactions: list[TransactionCreate] = Field(min_length=1, max_length=500)
+
+
+class TransactionBulkFailure(BaseModel):
+    index: int
+    detail: str
+
+
+class TransactionBulkResult(BaseModel):
+    created: list[TransactionOut]
+    skipped_duplicates: int
+    failed: list[TransactionBulkFailure]
