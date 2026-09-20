@@ -78,20 +78,29 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
 
   const masked = settings.hideBalance && !revealed;
 
-  // The content swap (dots <-> real value) happens at the midpoint of the
-  // animation, while it's fully faded out, so the change itself is never
-  // seen — only the smooth 0.25s dissolve on either side of it is.
+  // The content swap (dots <-> real value) happens once the fade-out has
+  // actually reached 0, so the change itself is never seen — only the
+  // smooth 0.25s dissolve on either side of it is. Tied to the animation's
+  // own completion callback rather than a fixed setTimeout: consecutive
+  // rapid reveals (press in/out faster than 250ms) each interrupt the prior
+  // fade-out mid-flight, and a wall-clock timer set at trigger time would
+  // fire at the wrong point relative to that restarted animation, causing
+  // the displayed content to desync from what's actually fading — visible
+  // as a glitch between states. The callback fires exactly when opacity
+  // hits 0 for whichever fade-out is current, however many times it's been
+  // restarted, so it always stays in sync.
   const [displayedMasked, setDisplayedMasked] = useState(masked);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (masked === displayedMasked) return;
-    Animated.sequence([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 125, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 125, useNativeDriver: true }),
-    ]).start();
-    const swapTimer = setTimeout(() => setDisplayedMasked(masked), 125);
-    return () => clearTimeout(swapTimer);
+    Animated.timing(fadeAnim, { toValue: 0, duration: 125, useNativeDriver: true }).start(({ finished }) => {
+      // Interrupted by a newer trigger (masked changed again before this
+      // finished) — that trigger's own effect run owns the swap now.
+      if (!finished) return;
+      setDisplayedMasked(masked);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 125, useNativeDriver: true }).start();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [masked]);
 
