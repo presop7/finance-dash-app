@@ -7,8 +7,12 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  PanResponder,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
@@ -17,48 +21,11 @@ import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../../utils/confirm";
 import { ApiError } from "../../services/api";
+import { financeApi } from "../../services/financeApi";
 import type { DeleteConflictDetail } from "../../services/financeApi";
-
-const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
-  "cart-outline",
-  "cafe-outline",
-  "car-outline",
-  "game-controller-outline",
-  "business-outline",
-  "briefcase-outline",
-  "trending-up-outline",
-  "home-outline",
-  "heart-outline",
-  "book-outline",
-  "airplane-outline",
-  "fitness-outline",
-  "medical-outline",
-  "gift-outline",
-  "restaurant-outline",
-  "phone-portrait-outline",
-  "musical-notes-outline",
-  "bus-outline",
-  "bicycle-outline",
-  "cash-outline",
-  "card-outline",
-  "wallet-outline",
-  "diamond-outline",
-  "ellipsis-horizontal-outline",
-];
-
-const AVAILABLE_COLORS = [
-  "#1D9E75",
-  "#D85A30",
-  "#185FA5",
-  "#854F0B",
-  "#0F6E56",
-  "#993C1D",
-  "#6B21A8",
-  "#0E7490",
-  "#B45309",
-  "#BE123C",
-  "#1D2B4F",
-];
+import HoldPressable from "../../components/HoldPressable";
+import ModalCloseButton from "../../components/ModalCloseButton";
+import CategoryEditModal from "./CategoryEditModal";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -66,17 +33,31 @@ type CategoriesModalProps = {
   visible: boolean;
   initialType?: CategoryTabType;
   onClose: () => void;
+  // When set, this modal is acting as a picker (opened from the transaction
+  // form's "+New" button, not from Settings): tapping a category selects it
+  // and closes the modal immediately, instead of doing nothing. Holding a
+  // chip still enters multi-select the same as it does from Settings, and
+  // editing is reachable only by holding the pencil icon, in both contexts
+  // equally — this prop only changes what a plain tap does.
+  onPick?: (id: string) => void;
+  // Opens directly into editing this category/fund instead of the list —
+  // used when the transaction form's category chips are held rather than
+  // the manager being opened via "+New".
+  initialEditId?: string;
 };
 
 export default function CategoriesModal({
   visible,
   initialType = "expense",
   onClose,
+  onPick,
+  initialEditId,
 }: CategoriesModalProps) {
   const {
     expenseCategories,
     incomeCategories,
     fundCategories,
+    transactions,
     addExpenseCategory,
     updateExpenseCategory,
     deleteExpenseCategory,
@@ -90,21 +71,40 @@ export default function CategoriesModal({
   const insets = useSafeAreaInsets();
 
   const [activeType, setActiveType] = useState<CategoryTabType>(initialType);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [selectedIcon, setSelectedIcon] =
-    useState<keyof typeof Ionicons.glyphMap>("cart-outline");
-  const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0]);
-  const [saving, setSaving] = useState(false);
+  // The edit/create form lives in its own modal (CategoryEditModal), stacked
+  // on top of this one: null means closed, "new" means creating, and an item
+  // means editing that one. Keeping it separate (rather than inline below
+  // the grid) means the grid's scroll position survives opening and closing
+  // it — editing several items near the top no longer means scrolling all
+  // the way down to the form and back up each time.
+  const [editTarget, setEditTarget] = useState<Category | FundCategory | "new" | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (visible) {
-      setActiveType(initialType);
-      setShowForm(false);
-      setEditingId(null);
-    }
-  }, [visible, initialType]);
+    if (!visible) return;
+    setActiveType(initialType);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setSearch("");
+
+    // Reads the store directly rather than depending on the destructured
+    // category arrays — those changing identity (e.g. a background sync)
+    // shouldn't re-run this reset while the modal is legitimately open.
+    const store = useFinanceStore.getState();
+    const list =
+      initialType === "expense"
+        ? store.expenseCategories
+        : initialType === "income"
+          ? store.incomeCategories
+          : store.fundCategories;
+    const match = initialEditId ? list.find((i) => i.id === initialEditId) : undefined;
+
+    setEditTarget(match ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialType, initialEditId]);
 
   const items: Array<Category | FundCategory> =
     activeType === "expense"
@@ -116,54 +116,180 @@ export default function CategoriesModal({
   const getLabel = (item: Category | FundCategory) =>
     activeType === "fund" ? (item as FundCategory).name : (item as Category).label;
 
-  const resetForm = () => {
-    setNewName("");
-    setSelectedIcon("cart-outline");
-    setSelectedColor(AVAILABLE_COLORS[0]);
-    setShowForm(false);
-    setEditingId(null);
+  // Same behavior as the category search in the transaction modal — filters
+  // the grid live instead of relying purely on scrolling to find one.
+  const trimmedSearch = search.trim().toLowerCase();
+  const filteredItems = trimmedSearch
+    ? items.filter((item) => getLabel(item).toLowerCase().includes(trimmedSearch))
+    : items;
+
+  // How many transactions reference each category/fund — the empty ones
+  // (0) are exactly the duplicates worth finding and clearing out.
+  const countsById = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      const key = activeType === "fund" ? t.fundCategory : t.category;
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return map;
+  }, [transactions, activeType]);
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
   };
 
+  const enterSelectMode = (id: string) => {
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Drag-to-select, like a phone photo gallery: once in select mode, press
+  // down anywhere in the grid and drag across chips to select all of them
+  // in one gesture, instead of tapping each one individually. Built on
+  // PanResponder rather than per-chip touch handlers, since a child
+  // Pressable claiming a touch would stop the grid from ever seeing it move
+  // across siblings — the grid itself has to own the gesture.
+  const selectModeRef = useRef(selectMode);
+  useEffect(() => {
+    selectModeRef.current = selectMode;
+  }, [selectMode]);
+
+  const gridRef = useRef<View>(null);
+  const gridOffsetRef = useRef({ x: 0, y: 0 });
+  const chipLayoutsRef = useRef(new Map<string, { x: number; y: number; width: number; height: number }>());
+  const dragProcessedRef = useRef(new Set<string>());
+
+  const handleChipLayout = (id: string, event: { nativeEvent: { layout: { x: number; y: number; width: number; height: number } } }) => {
+    chipLayoutsRef.current.set(id, event.nativeEvent.layout);
+  };
+
+  // One persistent scale value per pencil icon (keyed by item id) so tapping
+  // it gives a quick pop of feedback — a Map instead of a Map lookup per
+  // render new Animated.Value would reset the animation state constantly.
+  const editIconScalesRef = useRef(new Map<string, Animated.Value>());
+  const getEditIconScale = (id: string) => {
+    let anim = editIconScalesRef.current.get(id);
+    if (!anim) {
+      anim = new Animated.Value(1);
+      editIconScalesRef.current.set(id, anim);
+    }
+    return anim;
+  };
+
+  const hitTestChip = (pageX: number, pageY: number): string | null => {
+    const relX = pageX - gridOffsetRef.current.x;
+    const relY = pageY - gridOffsetRef.current.y;
+    for (const [id, layout] of chipLayoutsRef.current) {
+      if (
+        relX >= layout.x &&
+        relX <= layout.x + layout.width &&
+        relY >= layout.y &&
+        relY <= layout.y + layout.height
+      ) {
+        return id;
+      }
+    }
+    return null;
+  };
+
+  // Claiming the gesture immediately (on touch-start, or on the first pixel
+  // of movement) broke vertical scrolling — every swipe got intercepted as
+  // a drag-select before the ScrollView ever saw it. This gates the claim
+  // behind both a short hold *and* actual movement, using the Capture
+  // variants so the parent gets first refusal and can "steal" an
+  // in-progress gesture once those conditions are met: a quick swipe never
+  // holds long enough to be stolen (scrolls normally), a quick tap never
+  // moves enough to be stolen (reaches the chip's own onPress), and only a
+  // deliberate hold-then-drag engages drag-select.
+  const touchStartTimeRef = useRef(0);
+  const HOLD_BEFORE_DRAG_MS = 200;
+  const MOVE_THRESHOLD = 6;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => {
+        if (selectModeRef.current) touchStartTimeRef.current = Date.now();
+        return false;
+      },
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        if (!selectModeRef.current) return false;
+        const heldLongEnough = Date.now() - touchStartTimeRef.current >= HOLD_BEFORE_DRAG_MS;
+        const movedEnough =
+          Math.abs(gestureState.dx) > MOVE_THRESHOLD || Math.abs(gestureState.dy) > MOVE_THRESHOLD;
+        return heldLongEnough && movedEnough;
+      },
+      onPanResponderGrant: (evt) => {
+        dragProcessedRef.current = new Set();
+        const { pageX, pageY } = evt.nativeEvent;
+        gridRef.current?.measureInWindow((x, y) => {
+          gridOffsetRef.current = { x, y };
+          const id = hitTestChip(pageX, pageY);
+          if (id) {
+            toggleSelected(id);
+            dragProcessedRef.current.add(id);
+          }
+        });
+      },
+      onPanResponderMove: (evt) => {
+        const { pageX, pageY } = evt.nativeEvent;
+        const id = hitTestChip(pageX, pageY);
+        if (id && !dragProcessedRef.current.has(id)) {
+          toggleSelected(id);
+          dragProcessedRef.current.add(id);
+        }
+      },
+    }),
+  ).current;
+
+  // Only ever called in normal (non-select) mode now — select-mode chips
+  // call toggleSelected directly, since they're a separate Pressable branch.
   const handleChipPress = (item: Category | FundCategory) => {
-    setEditingId(item.id);
-    setNewName(getLabel(item));
-    setSelectedIcon(item.icon as keyof typeof Ionicons.glyphMap);
-    setSelectedColor(item.color ?? AVAILABLE_COLORS[0]);
-    setShowForm(true);
+    setEditTarget(item);
   };
 
-  const handleSave = async () => {
-    if (!newName.trim()) return;
-    setSaving(true);
+  const handleFormSave = async (fields: {
+    name: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+  }) => {
+    const editingId = editTarget && editTarget !== "new" ? editTarget.id : null;
     try {
       if (activeType === "expense") {
-        const fields = { label: newName.trim(), icon: selectedIcon, color: selectedColor };
-        if (editingId) await updateExpenseCategory(editingId, fields);
-        else await addExpenseCategory(fields);
+        const payload = { label: fields.name, icon: fields.icon, color: fields.color };
+        if (editingId) await updateExpenseCategory(editingId, payload);
+        else await addExpenseCategory(payload);
       } else if (activeType === "income") {
-        const fields = { label: newName.trim(), icon: selectedIcon, color: selectedColor };
-        if (editingId) await updateIncomeCategory(editingId, fields);
-        else await addIncomeCategory(fields);
+        const payload = { label: fields.name, icon: fields.icon, color: fields.color };
+        if (editingId) await updateIncomeCategory(editingId, payload);
+        else await addIncomeCategory(payload);
       } else {
-        const fields = { name: newName.trim(), icon: selectedIcon, color: selectedColor };
-        if (editingId) await updateFundCategory(editingId, fields);
-        else await addFundCategory(fields);
+        const payload = { name: fields.name, icon: fields.icon, color: fields.color };
+        if (editingId) await updateFundCategory(editingId, payload);
+        else await addFundCategory(payload);
       }
-      resetForm();
+      setEditTarget(null);
     } catch (err) {
       await alertAsync(
         "Couldn't save",
         err instanceof Error ? err.message : "Something went wrong.",
       );
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!editingId) return;
+  const handleFormDelete = async () => {
+    if (!editTarget || editTarget === "new") return;
     const noun = activeType === "fund" ? "Fund" : "Category";
-    const ok = await confirmAsync(`Delete ${noun}`, `Delete "${newName}"?`);
+    const ok = await confirmAsync(`Delete ${noun}`, `Delete "${getLabel(editTarget)}"?`);
     if (!ok) return;
 
     const deleteFn =
@@ -172,10 +298,11 @@ export default function CategoriesModal({
         : activeType === "income"
           ? deleteIncomeCategory
           : deleteFundCategory;
+    const id = editTarget.id;
 
     try {
-      await deleteFn(editingId);
-      resetForm();
+      await deleteFn(id);
+      setEditTarget(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const detail = (err.body as { detail?: DeleteConflictDetail })?.detail;
@@ -189,8 +316,8 @@ export default function CategoriesModal({
         );
         if (!confirmAgain) return;
         try {
-          await deleteFn(editingId, true);
-          resetForm();
+          await deleteFn(id, true);
+          setEditTarget(null);
         } catch (err2) {
           await alertAsync(
             "Couldn't delete",
@@ -206,21 +333,89 @@ export default function CategoriesModal({
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const noun = activeType === "fund" ? "funds" : "categories";
+
+    const ok = await confirmAsyncWithLabel(
+      `Delete ${ids.length} ${noun}`,
+      `Delete ${ids.length} selected ${noun}? This cannot be undone.`,
+      "Delete",
+    );
+    if (!ok) return;
+
+    // Deliberately bypasses deleteExpenseCategory/deleteIncomeCategory/
+    // deleteFundCategory here — each of those does its own full categories+
+    // transactions refetch after every single delete, which for a batch of
+    // N means up to 3N sequential round trips (and the refetches get more
+    // redundant as more of the batch has already landed). Calling the API
+    // directly, in parallel, and refetching once at the very end turns that
+    // into N concurrent deletes plus a single refetch.
+    const apiDelete = activeType === "fund" ? financeApi.deleteFundCategory : financeApi.deleteCategory;
+
+    setBulkDeleting(true);
+    const conflicted: string[] = [];
+    const failed: string[] = [];
+    const results = await Promise.allSettled(ids.map((id) => apiDelete(id, false)));
+    results.forEach((result, i) => {
+      if (result.status !== "rejected") return;
+      const err = result.reason;
+      if (err instanceof ApiError && err.status === 409) conflicted.push(ids[i]);
+      else failed.push(ids[i]);
+    });
+
+    // Anything still in use gets one combined "delete anyway" prompt rather
+    // than one per item — the single-delete flow's 409 handling adapted to
+    // a batch instead of asked N times.
+    if (conflicted.length > 0) {
+      const confirmAgain = await confirmAsyncWithLabel(
+        "Some still have transactions",
+        `${conflicted.length} of the selected still have transactions attached. Delete them anyway? Their transactions will move to "Unassigned".`,
+        "Delete Anyway",
+      );
+      if (confirmAgain) {
+        const retryResults = await Promise.allSettled(conflicted.map((id) => apiDelete(id, true)));
+        retryResults.forEach((result, i) => {
+          if (result.status === "rejected") failed.push(conflicted[i]);
+        });
+      }
+    }
+
+    await useFinanceStore.getState().hydrate();
+
+    setBulkDeleting(false);
+    exitSelectMode();
+
+    if (failed.length > 0) {
+      await alertAsync(
+        "Some deletions failed",
+        `${failed.length} couldn't be deleted — try again.`,
+      );
+    }
+  };
+
   const noun = activeType === "fund" ? "Fund" : "Category";
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable style={styles.overlay} onPress={onClose} />
 
+        {/* android.softwareKeyboardLayoutMode isn't set in app.json, so
+            Android has no native window-resize to lean on here — "height"
+            drives the push-up directly instead of assuming one exists. */}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoider}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
           <View style={styles.handle} />
 
           <View style={styles.header}>
             <Text style={styles.title}>Manage Categories</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
+            <ModalCloseButton onPress={onClose} />
           </View>
 
           <View style={styles.typeToggle}>
@@ -240,7 +435,9 @@ export default function CategoriesModal({
                 ]}
                 onPress={() => {
                   setActiveType(type);
-                  resetForm();
+                  setEditTarget(null);
+                  exitSelectMode();
+                  setSearch("");
                 }}
               >
                 <Text
@@ -255,131 +452,177 @@ export default function CategoriesModal({
             ))}
           </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-            <View style={styles.categoriesGrid}>
-              {items.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.categoryChip}
-                  onPress={() => handleChipPress(item)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={item.icon as keyof typeof Ionicons.glyphMap}
-                    size={16}
-                    color={item.color ?? Colors.primary}
-                  />
-                  <Text style={styles.categoryChipText}>{getLabel(item)}</Text>
-                  <Ionicons name="pencil" size={11} color={Colors.textMuted} />
+          <View style={styles.searchBox}>
+            <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+              placeholder={`Search ${activeType === "fund" ? "funds" : "categories"}`}
+              placeholderTextColor={Colors.textMuted}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch("")} hitSlop={8}>
+                <Ionicons name="close-circle" size={14} color={Colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {selectMode && (
+            <View style={styles.selectBar}>
+              <Text style={styles.selectBarText}>{selectedIds.size} selected</Text>
+              <View style={styles.selectBarActions}>
+                <TouchableOpacity onPress={exitSelectMode} style={styles.selectBarCancelBtn}>
+                  <Text style={styles.selectBarCancelText}>Cancel</Text>
                 </TouchableOpacity>
-              ))}
+                <TouchableOpacity
+                  style={[
+                    styles.selectBarDeleteBtn,
+                    (selectedIds.size === 0 || bulkDeleting) && styles.selectBarDeleteBtnDisabled,
+                  ]}
+                  onPress={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                >
+                  <Ionicons name="trash-outline" size={14} color="#fff" />
+                  <Text style={styles.selectBarDeleteText}>
+                    {bulkDeleting ? "Deleting…" : "Delete"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+            <View
+              ref={gridRef}
+              style={styles.categoriesGrid}
+              {...(selectMode ? panResponder.panHandlers : {})}
+            >
+              {filteredItems.length === 0 && (
+                <Text style={styles.emptySearchText}>No matches for "{search.trim()}"</Text>
+              )}
+              {filteredItems.map((item) => {
+                const count = countsById.get(item.id) ?? 0;
+                const isSelected = selectedIds.has(item.id);
+                const iconAndLabel = (
+                  <>
+                    {selectMode && (
+                      <Ionicons
+                        name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                        size={16}
+                        color={isSelected ? Colors.primary : Colors.textMuted}
+                      />
+                    )}
+                    <Ionicons
+                      name={item.icon as keyof typeof Ionicons.glyphMap}
+                      size={16}
+                      color={item.color ?? Colors.primary}
+                    />
+                    <Text style={styles.categoryChipText}>{getLabel(item)}</Text>
+                    <View style={[styles.countBadge, count === 0 && styles.countBadgeEmpty]}>
+                      <Text style={[styles.countBadgeText, count === 0 && styles.countBadgeTextEmpty]}>
+                        {count}
+                      </Text>
+                    </View>
+                  </>
+                );
+
+                // In select mode the chip is a Pressable with just onPress
+                // (no hold gesture, no animation) — a quick tap reaches it
+                // normally, but the grid's own PanResponder can "steal" an
+                // in-progress touch once it's been held and then dragged
+                // (see the capture-phase gating above), letting it track the
+                // finger moving across siblings for the gallery-style
+                // multi-select, which a per-chip touchable alone couldn't do.
+                if (selectMode) {
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onLayout={(e) => handleChipLayout(item.id, e)}
+                      onPress={() => toggleSelected(item.id)}
+                      style={[styles.categoryChip, isSelected && styles.categoryChipSelected]}
+                    >
+                      {iconAndLabel}
+                    </Pressable>
+                  );
+                }
+
+                // Unified across both contexts, so neither interferes with
+                // the other: holding the chip always enters multi-select
+                // (same as Settings' own behavior always was); a plain tap
+                // only does something when this modal is a picker (selects
+                // and returns to the transaction form) — otherwise it's
+                // inert, since editing no longer lives on the chip itself.
+                // Editing is reachable by tapping the pencil icon
+                // specifically, which is its own nested Pressable and so
+                // claims that touch before the outer chip ever sees it — a
+                // tap there opens the edit modal (now a separate modal
+                // stacked on top rather than an inline form, so a tap no
+                // longer risks losing your place — see CategoryEditModal),
+                // while the outer chip itself still needs a hold to enter
+                // multi-select, keeping that gesture distinct from tapping
+                // the pencil right next to it.
+                const editIconScale = getEditIconScale(item.id);
+                return (
+                  <HoldPressable
+                    key={item.id}
+                    style={styles.categoryChip}
+                    onPress={onPick ? () => onPick(item.id) : undefined}
+                    onHoldComplete={() => enterSelectMode(item.id)}
+                  >
+                    {iconAndLabel}
+                    <Pressable
+                      style={styles.editIconBtn}
+                      hitSlop={8}
+                      onPress={() => handleChipPress(item)}
+                      onPressIn={() =>
+                        Animated.spring(editIconScale, {
+                          toValue: 1.35,
+                          useNativeDriver: true,
+                          speed: 50,
+                          bounciness: 8,
+                        }).start()
+                      }
+                      onPressOut={() =>
+                        Animated.spring(editIconScale, {
+                          toValue: 1,
+                          useNativeDriver: true,
+                          speed: 50,
+                          bounciness: 8,
+                        }).start()
+                      }
+                    >
+                      <Animated.View style={{ transform: [{ scale: editIconScale }] }}>
+                        <Ionicons name="pencil" size={16} color={Colors.textMuted} />
+                      </Animated.View>
+                    </Pressable>
+                  </HoldPressable>
+                );
+              })}
             </View>
 
-            {showForm ? (
-              <View style={styles.form}>
-                <Text style={styles.formLabel}>
-                  {editingId ? `Edit ${noun}` : `${noun} Name`}
-                </Text>
-                <View style={styles.fieldContainer}>
-                  <Ionicons name="text-outline" size={16} color={Colors.textMuted} />
-                  <TextInput
-                    style={styles.fieldInput}
-                    placeholder={activeType === "fund" ? "e.g. Bank Account" : "e.g. Groceries"}
-                    placeholderTextColor={Colors.textMuted}
-                    value={newName}
-                    onChangeText={setNewName}
-                    autoFocus
-                  />
-                </View>
-
-                <Text style={styles.formLabel}>Icon</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.iconGrid}
-                >
-                  {AVAILABLE_ICONS.map((icon) => (
-                    <TouchableOpacity
-                      key={icon}
-                      style={[
-                        styles.iconOption,
-                        selectedIcon === icon && {
-                          borderColor: selectedColor,
-                          borderWidth: 2,
-                          backgroundColor: selectedColor + "22",
-                        },
-                      ]}
-                      onPress={() => setSelectedIcon(icon)}
-                    >
-                      <Ionicons
-                        name={icon}
-                        size={22}
-                        color={selectedIcon === icon ? selectedColor : Colors.textMuted}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <Text style={styles.formLabel}>Color</Text>
-                <View style={styles.colorGrid}>
-                  {AVAILABLE_COLORS.map((color) => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorSelected,
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                    >
-                      {selectedColor === color && <Ionicons name="checkmark" size={16} color="#fff" />}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={styles.formLabel}>Preview</Text>
-                <View style={styles.preview}>
-                  <View style={[styles.previewIcon, { backgroundColor: selectedColor + "22" }]}>
-                    <Ionicons name={selectedIcon} size={24} color={selectedColor} />
-                  </View>
-                  <Text style={[styles.previewLabel, { color: selectedColor }]}>
-                    {newName || `${noun} Name`}
-                  </Text>
-                </View>
-
-                <View style={styles.formActions}>
-                  {editingId && (
-                    <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                      <Ionicons name="trash-outline" size={16} color={Colors.expense} />
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.saveBtn,
-                      (!newName.trim() || saving) && styles.saveBtnDisabled,
-                    ]}
-                    onPress={handleSave}
-                    disabled={!newName.trim() || saving}
-                  >
-                    <Text style={styles.saveBtnText}>
-                      {saving ? "Saving…" : editingId ? "Save Changes" : `Save ${noun}`}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.addNewBtn} onPress={() => setShowForm(true)}>
+            {!selectMode && (
+              <TouchableOpacity style={styles.addNewBtn} onPress={() => setEditTarget("new")}>
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.addNewText}>Add New {noun}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
+
+    <CategoryEditModal
+      visible={editTarget !== null}
+      noun={noun}
+      item={editTarget && editTarget !== "new" ? editTarget : null}
+      getLabel={getLabel}
+      onSave={handleFormSave}
+      onDelete={editTarget && editTarget !== "new" ? handleFormDelete : undefined}
+      onClose={() => setEditTarget(null)}
+    />
+    </>
   );
 }
 
@@ -393,16 +636,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
+  // Deliberately not absolutely positioned: KeyboardAvoidingView's "padding"
+  // behavior pushes its content up by padding *itself*, which only moves a
+  // normal flow child — an absolutely-positioned bottom:0 child ignores
+  // that and stays pinned to the screen edge, under the keyboard. Sitting
+  // at the bottom is instead handled by keyboardAvoider's justifyContent.
   sheet: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
     maxHeight: "75%",
+  },
+  keyboardAvoider: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
   },
   scrollArea: { flexShrink: 1 },
   handle: {
@@ -422,14 +674,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   typeToggle: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -448,6 +692,53 @@ const styles = StyleSheet.create({
   toggleText: { fontSize: 13, fontWeight: "500" },
   toggleActiveText: { color: "#fff" },
   toggleInactiveText: { color: Colors.textMuted },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: Colors.surfaceSecondary,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: Colors.textPrimary, padding: 0 },
+  emptySearchText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+  },
+  selectBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.primary + "10",
+    borderWidth: 0.5,
+    borderColor: Colors.primary + "40",
+  },
+  selectBarText: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  selectBarActions: { flexDirection: "row", alignItems: "center", gap: 10 },
+  selectBarCancelBtn: { paddingHorizontal: 4, paddingVertical: 6 },
+  selectBarCancelText: { fontSize: 13, fontWeight: "500", color: Colors.textSecondary },
+  selectBarDeleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.expense,
+  },
+  selectBarDeleteBtnDisabled: { opacity: 0.5 },
+  selectBarDeleteText: { fontSize: 12, fontWeight: "600", color: "#fff" },
   categoriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -466,95 +757,34 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
+  categoryChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + "10",
+  },
+  // A real touch target around the pencil icon, not just a decorative
+  // glyph — sized well past the icon itself (roughly double the original)
+  // since it has to be comfortably holdable, not just tappable.
+  editIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   categoryChipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
-  form: { paddingHorizontal: 16 },
-  formLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: Colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  fieldContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  fieldInput: { flex: 1, fontSize: 13, color: Colors.textPrimary },
-  iconGrid: { gap: 8, paddingBottom: 4 },
-  iconOption: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.surfaceSecondary,
-    borderWidth: 1.5,
-    borderColor: "transparent",
-  },
-  colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  colorOption: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
+  // Transaction count per category — muted/gray when empty (0) so an empty
+  // duplicate stands out at a glance instead of needing to be counted.
+  countBadge: {
+    minWidth: 18,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 9,
+    backgroundColor: Colors.primary + "18",
     alignItems: "center",
   },
-  colorSelected: {
-    borderWidth: 3,
-    borderColor: "#fff",
-    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.3)",
-    elevation: 4,
-  },
-  preview: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  previewIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  previewLabel: { fontSize: 14, fontWeight: "500" },
-  formActions: { flexDirection: "row", gap: 10, marginTop: 16 },
-  cancelBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: Colors.surfaceSecondary,
-    borderWidth: 0.5,
-    borderColor: Colors.border,
-  },
-  deleteBtn: {
-    width: 44,
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.expense + "15",
-    borderWidth: 0.5,
-    borderColor: Colors.expense + "40",
-  },
-  cancelBtnText: { fontSize: 14, fontWeight: "500", color: Colors.textSecondary },
-  saveBtn: { flex: 2, padding: 14, borderRadius: 12, alignItems: "center", backgroundColor: Colors.primary },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  countBadgeEmpty: { backgroundColor: Colors.border },
+  countBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.primary },
+  countBadgeTextEmpty: { color: Colors.textMuted },
   addNewBtn: {
     flexDirection: "row",
     alignItems: "center",

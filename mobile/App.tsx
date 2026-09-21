@@ -338,6 +338,18 @@ function CustomTabBar({
 function AppContent() {
   const [showTransaction, setShowTransaction] = useState(false);
   const [categoriesModal, setCategoriesModal] = useState<CategoryTabType | null>(null);
+  // Set only when categoriesModal was opened as a picker (from the
+  // transaction form's "+New" button, via onOpenManageCategories/
+  // onOpenManageFundCategories) rather than from Settings — stored as a
+  // functional update since the value itself is a function.
+  const [categoryPickHandler, setCategoryPickHandler] = useState<((id: string) => void) | null>(
+    null,
+  );
+  // Set when the manager should open straight into editing this category,
+  // instead of the list — holding a chip in the transaction form does this.
+  const [categoryInitialEditId, setCategoryInitialEditId] = useState<string | undefined>(
+    undefined,
+  );
   const [showImportCsv, setShowImportCsv] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
@@ -369,16 +381,30 @@ function AppContent() {
         <Tab.Screen name="Dashboard">
           {({ navigation }) => (
             <DashboardScreen
-              onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
+              // setSelectedTransaction directly, not a wrapping arrow — a
+              // fresh closure here on every AppContent render (e.g. from
+              // any modal's own state changing) would propagate down and
+              // defeat TransactionList's row-level React.memo every time,
+              // since useState's setter is otherwise referentially stable.
+              onTransactionPress={setSelectedTransaction}
               onNavigateToAnalytics={(filter) => navigation.navigate("Analytics", { filter })}
             />
           )}
         </Tab.Screen>
-        <Tab.Screen name="Analytics">
+        {/* lazy: false — mounts this at app startup instead of on first tap.
+            Rendering ~280 unvirtualized transaction rows is a genuine
+            one-time cost; this just moves it to happen quietly in the
+            background while Dashboard is already on screen, rather than
+            right when the user switches to this tab. */}
+        <Tab.Screen name="Analytics" options={{ lazy: false }}>
           {({ route }) => (
             <AnalyticsScreen
               initialFilter={route.params?.filter ?? null}
-              onTransactionPress={(transaction) => setSelectedTransaction(transaction)}
+              onTransactionPress={setSelectedTransaction}
+              onHoldEditCategory={(type, id) => {
+                setCategoryInitialEditId(id);
+                setCategoriesModal(type);
+              }}
             />
           )}
         </Tab.Screen>
@@ -400,8 +426,16 @@ function AppContent() {
           setShowTransaction(false);
           setEditTransaction(null);
         }}
-        onOpenManageCategories={() => setCategoriesModal("expense")}
-        onOpenManageFundCategories={() => setCategoriesModal("fund")}
+        onOpenManageCategories={(onPicked, initialEditId) => {
+          setCategoryPickHandler(() => onPicked);
+          setCategoryInitialEditId(initialEditId);
+          setCategoriesModal("expense");
+        }}
+        onOpenManageFundCategories={(onPicked, initialEditId) => {
+          setCategoryPickHandler(() => onPicked);
+          setCategoryInitialEditId(initialEditId);
+          setCategoriesModal("fund");
+        }}
         onSave={async (type, amount, category, fundCategory, title, note, date) => {
           // Errors propagate to AddTransactionModal's handleSave, which keeps
           // the modal open (with the entered data intact) so the user can retry.
@@ -420,7 +454,22 @@ function AppContent() {
       <CategoriesModal
         visible={categoriesModal !== null}
         initialType={categoriesModal ?? "expense"}
-        onClose={() => setCategoriesModal(null)}
+        initialEditId={categoryInitialEditId}
+        onClose={() => {
+          setCategoriesModal(null);
+          setCategoryPickHandler(null);
+          setCategoryInitialEditId(undefined);
+        }}
+        onPick={
+          categoryPickHandler
+            ? (id) => {
+                categoryPickHandler(id);
+                setCategoriesModal(null);
+                setCategoryPickHandler(null);
+                setCategoryInitialEditId(undefined);
+              }
+            : undefined
+        }
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
 

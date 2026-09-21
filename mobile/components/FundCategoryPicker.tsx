@@ -1,4 +1,6 @@
+import { useEffect, useRef } from "react";
 import {
+  Animated,
   View,
   Text,
   StyleSheet,
@@ -8,22 +10,41 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { FundCategory } from "../constants/fundCategories";
 import { Colors } from "../constants/colors";
+import HoldPressable from "./HoldPressable";
 
 type FundCategoryPickerProps = {
   fundCategories: FundCategory[];
   selected: string;
   onSelect: (id: string) => void;
   onAdd?: () => void;
+  // Holding a chip opens it for editing in the category manager, instead of
+  // needing to go there via "+New" and find it again.
+  onHoldEdit: (id: string) => void;
 };
 
 export default function FundCategoryPicker({
   fundCategories,
   selected,
   onSelect,
+  onHoldEdit,
   // onAdd,
 }: FundCategoryPickerProps) {
+  // Jumps the strip to the selected chip whenever the selection changes
+  // from outside a direct tap here — e.g. returning from the category
+  // manager after picking one there, which could be scrolled off-screen.
+  const scrollRef = useRef<ScrollView>(null);
+  const itemOffsetsRef = useRef(new Map<string, number>());
+
+  useEffect(() => {
+    const x = itemOffsetsRef.current.get(selected);
+    if (x !== undefined) {
+      scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+    }
+  }, [selected]);
+
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
@@ -32,40 +53,51 @@ export default function FundCategoryPicker({
         const isSelected = item.id === selected;
 
         return (
-          <TouchableOpacity
+          <HoldPressable
             key={item.id}
             style={styles.item}
             onPress={() => onSelect(item.id)}
-            activeOpacity={0.7}
+            onHoldComplete={() => onHoldEdit(item.id)}
+            onLayout={(e) => itemOffsetsRef.current.set(item.id, e.nativeEvent.layout.x)}
           >
-            {/* Icon */}
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: item.color + "22" },
-                isSelected && {
-                  borderWidth: 2,
-                  borderColor: item.color,
-                },
-              ]}
-            >
-              <Ionicons
-                name={item.icon as keyof typeof Ionicons.glyphMap}
-                size={20}
-                color={item.color}
-              />
-            </View>
+            {(fillWidth) => (
+              <>
+                {/* Icon */}
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: item.color + "22" },
+                    isSelected && {
+                      borderWidth: 2,
+                      borderColor: item.color,
+                    },
+                  ]}
+                >
+                  {/* Confines the hold-fill to just this square instead of
+                      the whole chip (icon + label below it). */}
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[styles.iconFill, { width: fillWidth }]}
+                  />
+                  <Ionicons
+                    name={item.icon as keyof typeof Ionicons.glyphMap}
+                    size={20}
+                    color={item.color}
+                  />
+                </View>
 
-            {/* Label */}
-            <Text
-              style={[
-                styles.label,
-                isSelected && { color: item.color, fontWeight: "600" },
-              ]}
-            >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
+                {/* Label */}
+                <Text
+                  style={[
+                    styles.label,
+                    isSelected && { color: item.color, fontWeight: "600" },
+                  ]}
+                >
+                  {item.name}
+                </Text>
+              </>
+            )}
+          </HoldPressable>
         );
       })}
 
@@ -96,6 +128,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  iconFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: Colors.primary + "22",
   },
   label: {
     fontSize: 10,

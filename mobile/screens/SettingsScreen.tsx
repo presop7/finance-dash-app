@@ -22,6 +22,7 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
   const [clearingTransactions, setClearingTransactions] = useState(false);
+  const [creatingTestCategories, setCreatingTestCategories] = useState(false);
 
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
@@ -96,6 +97,45 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
       }
     } finally {
       setClearingTransactions(false);
+    }
+  };
+
+  // Dev/testing convenience — a one-tap way to get a batch of dummy
+  // categories to exercise the multi-select bulk-delete flow with, instead
+  // of creating 20 by hand one at a time.
+  const handleCreateTestCategories = async () => {
+    if (!isConnected) {
+      await alertAsync("You're offline", "This needs an internet connection.");
+      return;
+    }
+    const proceed = await confirmAsync(
+      "Create Test Categories",
+      "Create 20 dummy expense categories for testing?",
+    );
+    if (!proceed) return;
+
+    setCreatingTestCategories(true);
+    try {
+      const results = await Promise.allSettled(
+        Array.from({ length: 20 }, (_, i) =>
+          financeApi.createCategory({
+            name: `Test Category ${i + 1}`,
+            icon: "pricetag-outline",
+            color: null,
+            type: "expense",
+          }),
+        ),
+      );
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      await hydrate();
+      if (failedCount > 0) {
+        await alertAsync(
+          "Some failed",
+          `${failedCount} test categor${failedCount === 1 ? "y" : "ies"} couldn't be created.`,
+        );
+      }
+    } finally {
+      setCreatingTestCategories(false);
     }
   };
 
@@ -306,6 +346,25 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
                 {clearingTransactions ? "Clearing…" : "Clear All Transactions"}
               </Text>
               <Text style={styles.rowSubtitle}>Permanently deletes every transaction</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={handleCreateTestCategories}
+            activeOpacity={0.7}
+            disabled={creatingTestCategories}
+          >
+            <View style={styles.rowIcon}>
+              <Ionicons name="flask-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>
+                {creatingTestCategories ? "Creating…" : "Create 20 Test Categories"}
+              </Text>
+              <Text style={styles.rowSubtitle}>Dummy expense categories, for testing bulk delete</Text>
             </View>
           </TouchableOpacity>
         </View>
