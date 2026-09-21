@@ -84,7 +84,10 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      // android.softwareKeyboardLayoutMode isn't set in app.json, so Android
+      // has no native window-resize to lean on here — "height" drives the
+      // push-up directly instead of assuming one exists.
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         style={styles.scroll}
