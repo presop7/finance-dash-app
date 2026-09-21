@@ -7,6 +7,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
+import ModalCloseButton from "../../components/ModalCloseButton";
 
 const TYPE_LABELS: Record<AlertRuleType, string> = {
   lowBalance: "Low Balance",
@@ -121,14 +124,19 @@ export default function AlertRuleModal({
       <View style={styles.root}>
         <Pressable style={styles.overlay} onPress={onClose} />
 
+        {/* android.softwareKeyboardLayoutMode isn't set in app.json, so
+            Android has no native window-resize to lean on here — "height"
+            drives the push-up directly instead of assuming one exists. */}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoider}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
           <View style={styles.handle} />
 
           <View style={styles.header}>
             <Text style={styles.title}>{editingRule ? "Edit Alert" : "Add Alert"}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
+            <ModalCloseButton onPress={onClose} />
           </View>
 
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
@@ -257,6 +265,7 @@ export default function AlertRuleModal({
             </View>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -272,16 +281,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
+  // Deliberately not absolutely positioned: KeyboardAvoidingView's "padding"
+  // behavior pushes its content up by padding *itself*, which only moves a
+  // normal flow child — an absolutely-positioned bottom:0 child ignores
+  // that and stays pinned to the screen edge, under the keyboard. Sitting
+  // at the bottom is instead handled by keyboardAvoider's justifyContent.
   sheet: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 32,
     maxHeight: "75%",
+  },
+  keyboardAvoider: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
   },
   scrollArea: { flexShrink: 1 },
   handle: {
@@ -301,14 +319,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   body: { paddingHorizontal: 16 },
   formLabel: {
     fontSize: 11,

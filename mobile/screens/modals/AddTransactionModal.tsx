@@ -20,6 +20,7 @@ import FundCategoryPicker from "../../components/FundCategoryPicker";
 import DateTimeFields from "../../components/DateTimeFields";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync, alertAsync } from "../../utils/confirm";
+import ModalCloseButton from "../../components/ModalCloseButton";
 
 type TransactionType = "expense" | "income";
 
@@ -35,8 +36,13 @@ type AddTransactionModalProps = {
     note: string,
     date: Date,
   ) => Promise<void>;
-  onOpenManageCategories: () => void;
-  onOpenManageFundCategories: () => void;
+  // Takes a callback: if the user picks an existing category/fund directly
+  // from the manager instead of adding a new one, this modal's own
+  // selection updates with it and the manager closes itself. The optional
+  // second argument opens the manager straight into editing that category
+  // (used when holding a chip here instead of tapping "+New").
+  onOpenManageCategories: (onPicked: (id: string) => void, initialEditId?: string) => void;
+  onOpenManageFundCategories: (onPicked: (id: string) => void, initialEditId?: string) => void;
   // When set, the modal edits this transaction instead of creating a new one.
   editTransaction?: Transaction | null;
 };
@@ -215,12 +221,12 @@ export default function AddTransactionModal({
           }}
         />
 
-        {/* Android already resizes the window for the keyboard
-            (windowSoftInputMode="adjustResize"); "height" behavior here would
-            double-compensate and leave a permanent gap above the nav bar. */}
+        {/* android.softwareKeyboardLayoutMode isn't set in app.json, so
+            Android has no native window-resize to lean on here — "height"
+            drives the push-up directly instead of assuming one exists. */}
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
         <View
           style={[
@@ -236,9 +242,7 @@ export default function AddTransactionModal({
             <Text style={styles.title}>
               {isEditing ? "Edit Transaction" : "New Transaction"}
             </Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
+            <ModalCloseButton onPress={handleClose} />
           </View>
 
           <ScrollView
@@ -403,7 +407,7 @@ export default function AddTransactionModal({
               <Text style={styles.sectionLabel}>Category</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
-                onPress={onOpenManageCategories}
+                onPress={() => onOpenManageCategories(setSelectedCategory)}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
                 <Text style={styles.manageCatText}>New</Text>
@@ -414,6 +418,7 @@ export default function AddTransactionModal({
               categories={categories}
               selected={selectedCategory}
               onSelect={setSelectedCategory}
+              onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
             />
 
             {/* Fund Category */}
@@ -421,7 +426,7 @@ export default function AddTransactionModal({
               <Text style={styles.sectionLabel}>Fund</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
-                onPress={onOpenManageFundCategories}
+                onPress={() => onOpenManageFundCategories(setSelectedFundCategory)}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
                 <Text style={styles.manageCatText}>New</Text>
@@ -432,7 +437,8 @@ export default function AddTransactionModal({
               fundCategories={fundCategories}
               selected={selectedFundCategory}
               onSelect={setSelectedFundCategory}
-              onAdd={onOpenManageFundCategories}
+              onAdd={() => onOpenManageFundCategories(setSelectedFundCategory)}
+              onHoldEdit={(id) => onOpenManageFundCategories(setSelectedFundCategory, id)}
             />
 
             {/* Date and Time — native tap-to-open pickers on iOS/Android,
@@ -554,14 +560,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.textPrimary,
-  },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
   },
   typeToggle: {
     flexDirection: "row",

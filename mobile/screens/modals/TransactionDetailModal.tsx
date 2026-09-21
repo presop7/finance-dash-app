@@ -14,6 +14,7 @@ import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync, alertAsync } from "../../utils/confirm";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
+import ModalCloseButton from "../../components/ModalCloseButton";
 
 type TransactionDetailModalProps = {
   transaction: Transaction | null;
@@ -75,9 +76,7 @@ export default function TransactionDetailModal({
 
           <View style={styles.header}>
             <Text style={styles.title}>Transaction Details</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
+            <ModalCloseButton onPress={onClose} />
           </View>
 
           <ScrollView
@@ -206,14 +205,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.textPrimary,
-  },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
   },
   scrollArea: {
     flexShrink: 1,

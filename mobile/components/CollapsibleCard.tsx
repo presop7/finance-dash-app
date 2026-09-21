@@ -3,6 +3,7 @@ import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import HoldPressable from "./HoldPressable";
+import BorderPressButton from "./BorderPressButton";
 
 type CollapsibleCardProps = {
   title: string;
@@ -113,7 +114,7 @@ export default function CollapsibleCard({
             style={[styles.controlsOverlay, { opacity: collapseBtnOpacity }]}
             pointerEvents={reorderMode ? "none" : "auto"}
           >
-            <TouchableOpacity
+            <BorderPressButton
               style={styles.collapseBtn}
               onPress={onToggleCollapse}
               hitSlop={8}
@@ -123,7 +124,7 @@ export default function CollapsibleCard({
                 size={18}
                 color={Colors.textMuted}
               />
-            </TouchableOpacity>
+            </BorderPressButton>
           </Animated.View>
         </View>
       </View>
