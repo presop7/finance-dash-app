@@ -12,7 +12,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore } from "../../store/useFinanceStore";
+import { confirmUnsavedChanges } from "../../utils/confirm";
 import CalendarRangePicker from "../../components/CalendarRangePicker";
+import HoldPressable from "../../components/HoldPressable";
+import ModalCloseButton from "../../components/ModalCloseButton";
+import type { CategoryTabType } from "./CategoriesModal";
 import {
   TransactionFilters,
   DATE_RANGE_PRESETS,
@@ -20,13 +24,14 @@ import {
   DEFAULT_FILTERS,
 } from "../../utils/filterTransactions";
 
-const CHIP_ROW_HEIGHT = 36;
-
 type TransactionFiltersModalProps = {
   visible: boolean;
   filters: TransactionFilters;
   onApply: (filters: TransactionFilters) => void;
   onClose: () => void;
+  // Holding a chip opens it for editing in the category manager instead of
+  // toggling it, same gesture as everywhere else chips are held in the app.
+  onHoldEditCategory?: (type: CategoryTabType, id: string) => void;
 };
 
 export default function TransactionFiltersModal({
@@ -34,22 +39,44 @@ export default function TransactionFiltersModal({
   filters,
   onApply,
   onClose,
+  onHoldEditCategory,
 }: TransactionFiltersModalProps) {
-  const { fundCategories, expenseCategories, incomeCategories } = useFinanceStore();
+  const { fundCategories, expenseCategories, incomeCategories } =
+    useFinanceStore();
   const insets = useSafeAreaInsets();
 
   const [draft, setDraft] = useState<TransactionFilters>(filters);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  // The sheet still slides in for a beat after the native Modal reports
+  // "shown" — a tap that lands on a chip mid-slide lands on a target that's
+  // still moving, so it hits nothing and reads back as the whole sheet
+  // "jumping". Ignore touches until that entrance animation has actually
+  // settled instead of accepting taps the moment the dialog appears.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setDraft(filters);
       setDateDropdownOpen(false);
+      setReady(false);
     }
   }, [visible, filters]);
 
+  const handleModalShow = () => {
+    setTimeout(() => setReady(true), 300);
+  };
+
   const toggleId = (list: string[], id: string): string[] =>
     list.includes(id) ? list.filter((i) => i !== id) : [...list, id];
+
+  // Splits into two rows (even indices on top, odd on bottom) instead of
+  // faking a 2-row grid with flexWrap-column + a fixed pixel height.
+  const splitIntoRows = <T,>(items: T[]): [T[], T[]] => {
+    const top: T[] = [];
+    const bottom: T[] = [];
+    items.forEach((item, i) => (i % 2 === 0 ? top : bottom).push(item));
+    return [top, bottom];
+  };
 
   const handleReset = () => setDraft(DEFAULT_FILTERS);
 
@@ -58,10 +85,37 @@ export default function TransactionFiltersModal({
     onClose();
   };
 
+  const hasUnsavedChanges = JSON.stringify(draft) !== JSON.stringify(filters);
+
+  const handleRequestClose = async () => {
+    if (!hasUnsavedChanges) {
+      onClose();
+      return;
+    }
+    const choice = await confirmUnsavedChanges(
+      "Unapplied Filters",
+      "You changed some filters but didn't apply them. Apply them now, or discard the changes?",
+      "Apply Filters",
+      "Discard",
+    );
+    if (choice === "apply") {
+      onApply(draft);
+      onClose();
+    } else if (choice === "discard") {
+      onClose();
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleRequestClose}
+      onShow={handleModalShow}
+    >
       <View style={styles.root}>
-        <Pressable style={styles.overlay} onPress={onClose} />
+        <Pressable style={styles.overlay} onPress={handleRequestClose} />
 
         <View style={styles.sheet}>
           <View style={styles.handle} />
@@ -72,13 +126,14 @@ export default function TransactionFiltersModal({
               <TouchableOpacity onPress={handleReset}>
                 <Text style={styles.resetText}>Reset all</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={Colors.textMuted} />
-              </TouchableOpacity>
+              <ModalCloseButton onPress={handleRequestClose} />
             </View>
           </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollArea}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.body}>
               <Text style={styles.sectionLabel}>Date Range</Text>
               <TouchableOpacity
@@ -102,7 +157,8 @@ export default function TransactionFiltersModal({
                       key={p}
                       style={[
                         styles.dropdownItem,
-                        p === draft.dateRangePreset && styles.dropdownItemActive,
+                        p === draft.dateRangePreset &&
+                          styles.dropdownItemActive,
                       ]}
                       onPress={() => {
                         setDraft((d) => ({ ...d, dateRangePreset: p }));
@@ -112,13 +168,18 @@ export default function TransactionFiltersModal({
                       <Text
                         style={[
                           styles.dropdownItemText,
-                          p === draft.dateRangePreset && styles.dropdownItemTextActive,
+                          p === draft.dateRangePreset &&
+                            styles.dropdownItemTextActive,
                         ]}
                       >
                         {DATE_RANGE_LABELS[p]}
                       </Text>
                       {p === draft.dateRangePreset && (
-                        <Ionicons name="checkmark" size={14} color={Colors.primary} />
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={Colors.primary}
+                        />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -131,7 +192,11 @@ export default function TransactionFiltersModal({
                     start={draft.customStart}
                     end={draft.customEnd}
                     onChange={(start, end) =>
-                      setDraft((d) => ({ ...d, customStart: start, customEnd: end }))
+                      setDraft((d) => ({
+                        ...d,
+                        customStart: start,
+                        customEnd: end,
+                      }))
                     }
                   />
                 </View>
@@ -139,96 +204,181 @@ export default function TransactionFiltersModal({
 
               <Text style={styles.sectionLabel}>Fund Location</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.chipColumns}>
-                  {fundCategories.map((fund) => {
-                    const active = draft.fundIds.includes(fund.id);
-                    return (
-                      <TouchableOpacity
-                        key={fund.id}
-                        style={[styles.chip, active && { backgroundColor: fund.color }]}
-                        onPress={() => setDraft((d) => ({ ...d, fundIds: toggleId(d.fundIds, fund.id) }))}
-                      >
-                        <Ionicons
-                          name={fund.icon as keyof typeof Ionicons.glyphMap}
-                          size={14}
-                          color={active ? "#fff" : fund.color}
-                        />
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {fund.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <View style={styles.chipRows}>
+                  {splitIntoRows(fundCategories).map((row, rowIndex) => (
+                    <View key={rowIndex} style={styles.chipRow}>
+                      {row.map((fund) => {
+                        const active = draft.fundIds.includes(fund.id);
+                        return (
+                          <HoldPressable
+                            key={fund.id}
+                            style={[
+                              styles.chip,
+                              active && { backgroundColor: fund.color },
+                            ]}
+                            onPress={() =>
+                              setDraft((d) => ({
+                                ...d,
+                                fundIds: toggleId(d.fundIds, fund.id),
+                              }))
+                            }
+                            onHoldComplete={() =>
+                              onHoldEditCategory?.("fund", fund.id)
+                            }
+                          >
+                            <Ionicons
+                              name={fund.icon as keyof typeof Ionicons.glyphMap}
+                              size={14}
+                              color={active ? "#fff" : fund.color}
+                            />
+                            <Text
+                              style={[
+                                styles.chipText,
+                                active && styles.chipTextActive,
+                              ]}
+                            >
+                              {fund.name}
+                            </Text>
+                          </HoldPressable>
+                        );
+                      })}
+                    </View>
+                  ))}
                 </View>
               </ScrollView>
 
               <Text style={styles.sectionLabel}>Expense Categories</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.chipColumns}>
-                  {expenseCategories.map((cat) => {
-                    const active = draft.expenseCategoryIds.includes(cat.id);
-                    return (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[styles.chip, active && { backgroundColor: cat.color ?? Colors.expense }]}
-                        onPress={() =>
-                          setDraft((d) => ({
-                            ...d,
-                            expenseCategoryIds: toggleId(d.expenseCategoryIds, cat.id),
-                          }))
-                        }
-                      >
-                        <Ionicons
-                          name={cat.icon}
-                          size={14}
-                          color={active ? "#fff" : (cat.color ?? Colors.expense)}
-                        />
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {cat.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <View style={styles.chipRows}>
+                  {splitIntoRows(expenseCategories).map((row, rowIndex) => (
+                    <View key={rowIndex} style={styles.chipRow}>
+                      {row.map((cat) => {
+                        const active = draft.expenseCategoryIds.includes(
+                          cat.id,
+                        );
+                        return (
+                          <HoldPressable
+                            key={cat.id}
+                            style={[
+                              styles.chip,
+                              active && {
+                                backgroundColor: cat.color ?? Colors.expense,
+                              },
+                            ]}
+                            onPress={() =>
+                              setDraft((d) => ({
+                                ...d,
+                                expenseCategoryIds: toggleId(
+                                  d.expenseCategoryIds,
+                                  cat.id,
+                                ),
+                              }))
+                            }
+                            onHoldComplete={() =>
+                              onHoldEditCategory?.("expense", cat.id)
+                            }
+                          >
+                            <Ionicons
+                              name={cat.icon}
+                              size={14}
+                              color={
+                                active ? "#fff" : (cat.color ?? Colors.expense)
+                              }
+                            />
+                            <Text
+                              style={[
+                                styles.chipText,
+                                active && styles.chipTextActive,
+                              ]}
+                            >
+                              {cat.label}
+                            </Text>
+                          </HoldPressable>
+                        );
+                      })}
+                    </View>
+                  ))}
                 </View>
               </ScrollView>
 
               <Text style={styles.sectionLabel}>Income Categories</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.chipColumns}>
-                  {incomeCategories.map((cat) => {
-                    const active = draft.incomeCategoryIds.includes(cat.id);
-                    return (
-                      <TouchableOpacity
-                        key={cat.id}
-                        style={[styles.chip, active && { backgroundColor: cat.color ?? Colors.income }]}
-                        onPress={() =>
-                          setDraft((d) => ({
-                            ...d,
-                            incomeCategoryIds: toggleId(d.incomeCategoryIds, cat.id),
-                          }))
-                        }
-                      >
-                        <Ionicons
-                          name={cat.icon}
-                          size={14}
-                          color={active ? "#fff" : (cat.color ?? Colors.income)}
-                        />
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                          {cat.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                <View style={styles.chipRows}>
+                  {splitIntoRows(incomeCategories).map((row, rowIndex) => (
+                    <View key={rowIndex} style={styles.chipRow}>
+                      {row.map((cat) => {
+                        const active = draft.incomeCategoryIds.includes(cat.id);
+                        return (
+                          <HoldPressable
+                            key={cat.id}
+                            style={[
+                              styles.chip,
+                              active && {
+                                backgroundColor: cat.color ?? Colors.income,
+                              },
+                            ]}
+                            onPress={() =>
+                              setDraft((d) => ({
+                                ...d,
+                                incomeCategoryIds: toggleId(
+                                  d.incomeCategoryIds,
+                                  cat.id,
+                                ),
+                              }))
+                            }
+                            onHoldComplete={() =>
+                              onHoldEditCategory?.("income", cat.id)
+                            }
+                          >
+                            <Ionicons
+                              name={cat.icon}
+                              size={14}
+                              color={
+                                active ? "#fff" : (cat.color ?? Colors.income)
+                              }
+                            />
+                            <Text
+                              style={[
+                                styles.chipText,
+                                active && styles.chipTextActive,
+                              ]}
+                            >
+                              {cat.label}
+                            </Text>
+                          </HoldPressable>
+                        );
+                      })}
+                    </View>
+                  ))}
                 </View>
               </ScrollView>
             </View>
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: Math.max(insets.bottom, 16) },
+            ]}
+          >
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
               <Text style={styles.applyBtnText}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
+
+          {/* A glass pane that's actually unmounted once ready, rather than a
+              pointerEvents flip on a view that stays mounted — Android is a
+              beat slow to pick up a live pointerEvents change, so the flip
+              approach silently ate the first real tap after it fired. An
+              unmount takes effect immediately since the blocking node is
+              gone from the tree, not just reconfigured. */}
+          {!ready && (
+            <View
+              style={StyleSheet.absoluteFill}
+              onStartShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+            />
+          )}
         </View>
       </View>
     </Modal>
@@ -236,7 +386,12 @@ export default function TransactionFiltersModal({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  // justifyContent: "flex-end" (not position:"absolute"/bottom:0 on the sheet
+  // itself) so Yoga measures the sheet's content height and places it in one
+  // pass — pinning the sheet's bottom edge first and letting its height
+  // resolve afterward is what produced a visible snap once real chip/text
+  // measurements landed a beat after the entrance animation.
+  root: { flex: 1, justifyContent: "flex-end" },
   overlay: {
     position: "absolute",
     top: 0,
@@ -246,10 +401,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -275,14 +426,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 14 },
   resetText: { fontSize: 12, fontWeight: "500", color: Colors.income },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   body: { paddingHorizontal: 16, paddingBottom: 12 },
   sectionLabel: {
     fontSize: 11,
@@ -303,7 +446,11 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  dateDropdownText: { fontSize: 13, color: Colors.textPrimary, fontWeight: "500" },
+  dateDropdownText: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    fontWeight: "500",
+  },
   dropdown: {
     borderRadius: 10,
     backgroundColor: Colors.surfaceSecondary,
@@ -322,17 +469,17 @@ const styles = StyleSheet.create({
   dropdownItemActive: { backgroundColor: Colors.primary + "10" },
   dropdownItemText: { fontSize: 12, color: Colors.textSecondary },
   dropdownItemTextActive: { color: Colors.primary, fontWeight: "600" },
-  chipColumns: {
+  chipRows: {
     flexDirection: "column",
-    flexWrap: "wrap",
-    height: CHIP_ROW_HEIGHT * 2 + 8,
-    alignContent: "flex-start",
+  },
+  chipRow: {
+    flexDirection: "row",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    height: CHIP_ROW_HEIGHT,
+    height: 36,
     paddingHorizontal: 12,
     borderRadius: 18,
     backgroundColor: Colors.surfaceSecondary,

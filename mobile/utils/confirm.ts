@@ -41,3 +41,26 @@ export function confirmAsyncWithLabel(
     ]);
   });
 }
+
+// Three-way prompt for leaving a screen/modal with unsaved changes: apply
+// them, discard them, or stay put. web's window.confirm only has two
+// options, so there "cancel" (stay) collapses into "discard" is avoided by
+// treating OK as apply and Cancel as staying — discard isn't reachable on
+// web via this dialog, which is an acceptable trade-off for a dev/debug target.
+export function confirmUnsavedChanges(
+  title: string,
+  message: string,
+  applyLabel: string,
+  discardLabel: string,
+): Promise<"apply" | "discard" | "cancel"> {
+  if (Platform.OS === "web") {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`) ? "apply" : "cancel");
+  }
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: discardLabel, style: "destructive", onPress: () => resolve("discard") },
+      { text: "Cancel", style: "cancel", onPress: () => resolve("cancel") },
+      { text: applyLabel, onPress: () => resolve("apply") },
+    ]);
+  });
+}
