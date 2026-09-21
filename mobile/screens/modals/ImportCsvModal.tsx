@@ -10,6 +10,8 @@ import {
   TextInput,
   Switch,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -19,14 +21,22 @@ import { useFinanceStore } from "../../store/useFinanceStore";
 import { CURRENCIES } from "../../constants/currencies";
 import { DateFormat, DATE_FORMAT_PRESETS, formatDate } from "../../utils/formatDateTime";
 import { alertAsync } from "../../utils/confirm";
+import ModalCloseButton from "../../components/ModalCloseButton";
 import { financeApi, ApiTransactionBulkResult } from "../../services/financeApi";
 import {
   parseCsv,
+  parseAmount,
+  resolveMainType,
   resolveDistinctValues,
   buildImportPayload,
+  categoryKey,
+  fundKey,
   ColumnMapping,
   UnresolvedValue,
   BuiltRow,
+  RowIssue,
+  TypeResolution,
+  MainType,
 } from "../../utils/csvImport";
 
 type ImportCsvModalProps = {
@@ -55,6 +65,15 @@ const HEADER_HINTS: Record<FieldKey, string[]> = {
   note: ["note", "memo", "comment"],
 };
 const EMPTY_MAPPING: ColumnMapping = { date: -1, title: -1, amount: -1, category: -1, fund: -1, note: -1 };
+
+type TypeMode = TypeResolution["mode"];
+const TYPE_MODE_OPTIONS: { mode: TypeMode; label: string }[] = [
+  { mode: "sign", label: "Negative = Expense" },
+  { mode: "sign-inverted", label: "Negative = Income" },
+  { mode: "all-expense", label: "Everything is Expense" },
+  { mode: "all-income", label: "Everything is Income" },
+  { mode: "column", label: "Use a column" },
+];
 
 function guessMapping(headers: string[]): ColumnMapping {
   const mapping = { ...EMPTY_MAPPING };
@@ -90,6 +109,10 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   const [rows, setRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>(EMPTY_MAPPING);
   const [dateFormat, setDateFormat] = useState<DateFormat>("DD/MM/YYYY");
+  const [typeMode, setTypeMode] = useState<TypeMode>("sign");
+  const [typeColumn, setTypeColumn] = useState(-1);
+  const [typeFallback, setTypeFallback] = useState<MainType>("expense");
+  const [typeColumnDropdownOpen, setTypeColumnDropdownOpen] = useState(false);
   const [sameCurrency, setSameCurrency] = useState(true);
   const [csvCurrency, setCsvCurrency] = useState(settings.currency);
   const [rateText, setRateText] = useState("1");
@@ -99,6 +122,9 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   const [importResult, setImportResult] = useState<ApiTransactionBulkResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [openMappingField, setOpenMappingField] = useState<FieldKey | null>(null);
+  // Keyed by `${rowIndex}:${field}` since a row can have more than one issue.
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [creatingKeys, setCreatingKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!visible) return;
@@ -108,6 +134,10 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     setRows([]);
     setMapping(EMPTY_MAPPING);
     setDateFormat("DD/MM/YYYY");
+    setTypeMode("sign");
+    setTypeColumn(-1);
+    setTypeFallback("expense");
+    setTypeColumnDropdownOpen(false);
     setSameCurrency(true);
     setCsvCurrency(settings.currency);
     setRateText("1");
@@ -117,6 +147,8 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     setImportResult(null);
     setImportError(null);
     setOpenMappingField(null);
+    setEditValues({});
+    setCreatingKeys(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
@@ -180,10 +212,23 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     }
   };
 
+  const buildTypeResolution = (): TypeResolution => {
+    switch (typeMode) {
+      case "column":
+        return { mode: "column", columnIndex: typeColumn, fallback: typeFallback };
+      default:
+        return { mode: typeMode };
+    }
+  };
+
   const handleMappingContinue = () => {
     const missing = REQUIRED_FIELDS.filter((f) => mapping[f] === -1);
     if (missing.length > 0) {
       alertAsync("Missing columns", `Please map: ${missing.map((f) => FIELD_LABELS[f]).join(", ")}`);
+      return;
+    }
+    if (typeMode === "column" && typeColumn === -1) {
+      alertAsync("Missing column", "Pick which column tells income apart from expense.");
       return;
     }
     if (!sameCurrency && (!rateText || Number(rateText) <= 0)) {
@@ -193,6 +238,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     const { unresolved: found, autoResolved } = resolveDistinctValues(
       rows,
       mapping,
+      buildTypeResolution(),
       expenseCategories,
       incomeCategories,
       fundCategories,
@@ -208,9 +254,66 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
 
   const goToPreview = (finalResolutionMap: Map<string, string>) => {
     const rate = sameCurrency ? 1 : Number(rateText) || 1;
-    const built = buildImportPayload(rows, mapping, dateFormat, rate, settings.currency, finalResolutionMap);
+    const built = buildImportPayload(
+      rows,
+      headers,
+      mapping,
+      dateFormat,
+      buildTypeResolution(),
+      rate,
+      settings.currency,
+      finalResolutionMap,
+    );
     setBuiltRows(built);
     setStep("preview");
+  };
+
+  // Applies an inline fix from the Preview step's editable error cards:
+  // writes the corrected value into that row's cell, and — for a category or
+  // fund fix specifically — tries to resolve the corrected text against
+  // existing categories/funds immediately, rather than only relying on
+  // resolutionMap (which only has entries for text values that existed in
+  // the CSV *before* this edit). Then re-runs buildImportPayload so the row
+  // (and only that row, in practice) re-validates live.
+  const handleFixRow = (rowIndex: number, issue: RowIssue, rawNewValue: string) => {
+    const colIndex = mapping[issue.field];
+    if (colIndex < 0) return;
+
+    const newRows = rows.map((r, i) =>
+      i === rowIndex ? r.map((c, ci) => (ci === colIndex ? rawNewValue : c)) : r,
+    );
+    setRows(newRows);
+
+    let nextResolutionMap = resolutionMap;
+    const trimmed = rawNewValue.trim();
+    if (trimmed && (issue.field === "category" || issue.field === "fund")) {
+      if (issue.field === "fund") {
+        const match = fundCategories.find((f) => f.name.trim().toLowerCase() === trimmed.toLowerCase());
+        if (match) nextResolutionMap = new Map(resolutionMap).set(fundKey(trimmed), match.id);
+      } else {
+        const amount = parseAmount(newRows[rowIndex][mapping.amount] ?? "");
+        if (amount !== null) {
+          const mainType = resolveMainType(newRows[rowIndex], amount, buildTypeResolution());
+          const list = mainType === "expense" ? expenseCategories : incomeCategories;
+          const match = list.find((c) => c.label.trim().toLowerCase() === trimmed.toLowerCase());
+          if (match) nextResolutionMap = new Map(resolutionMap).set(categoryKey(mainType, trimmed), match.id);
+        }
+      }
+      if (nextResolutionMap !== resolutionMap) setResolutionMap(nextResolutionMap);
+    }
+
+    const rate = sameCurrency ? 1 : Number(rateText) || 1;
+    const rebuilt = buildImportPayload(
+      newRows,
+      headers,
+      mapping,
+      dateFormat,
+      buildTypeResolution(),
+      rate,
+      settings.currency,
+      nextResolutionMap,
+    );
+    setBuiltRows(rebuilt);
   };
 
   const resolveManually = (item: UnresolvedValue, id: string) => {
@@ -218,6 +321,11 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   };
 
   const handleCreateNew = async (item: UnresolvedValue) => {
+    // Guards the gap between tap and the create request actually landing:
+    // without this, a user who doesn't see instant feedback taps again
+    // (and again), creating duplicate categories from a single intent.
+    if (creatingKeys.has(item.key) || resolutionMap.has(item.key)) return;
+    setCreatingKeys((prev) => new Set(prev).add(item.key));
     try {
       if (item.kind === "fund") {
         await addFundCategory({ name: item.text, icon: "wallet-outline", color: Colors.primary });
@@ -235,6 +343,12 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
       }
     } catch (err) {
       await alertAsync("Couldn't create", err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setCreatingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(item.key);
+        return next;
+      });
     }
   };
 
@@ -280,14 +394,16 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }]}>
+      {/* android.softwareKeyboardLayoutMode isn't set in app.json, so
+          Android has no native window-resize to lean on here — "height"
+          drives the push-up directly instead of assuming one exists. */}
+      <KeyboardAvoidingView
+        style={[styles.root, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{titleForStep[step]}</Text>
-          {step !== "importing" && (
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={8}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
-          )}
+          {step !== "importing" && <ModalCloseButton onPress={onClose} hitSlop={8} />}
         </View>
 
         {step === "pick" && (
@@ -401,6 +517,72 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               )}
             </View>
 
+            <Text style={styles.sectionLabel}>How to Tell Income From Expense</Text>
+            <View style={styles.chipRow}>
+              {TYPE_MODE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.mode}
+                  style={[styles.chip, typeMode === opt.mode && styles.chipActive]}
+                  onPress={() => setTypeMode(opt.mode)}
+                >
+                  <Text style={[styles.chipText, typeMode === opt.mode && styles.chipTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {typeMode === "column" && (
+              <View style={styles.mappingRow}>
+                <Text style={[styles.mappingLabel, { marginTop: 12 }]}>Type Column</Text>
+                <TouchableOpacity
+                  style={styles.mappingTrigger}
+                  onPress={() => setTypeColumnDropdownOpen((v) => !v)}
+                >
+                  <Text style={styles.mappingTriggerText}>
+                    {typeColumn >= 0 ? headers[typeColumn] : "Select a column"}
+                  </Text>
+                  <Ionicons
+                    name={typeColumnDropdownOpen ? "chevron-up" : "chevron-down"}
+                    size={14}
+                    color={Colors.textMuted}
+                  />
+                </TouchableOpacity>
+                {typeColumnDropdownOpen && (
+                  <ScrollView style={styles.dropdown} nestedScrollEnabled>
+                    {headers.map((header, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          setTypeColumn(index);
+                          setTypeColumnDropdownOpen(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownItemText}>{header}</Text>
+                        {typeColumn === index && <Ionicons name="checkmark" size={14} color={Colors.primary} />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                <Text style={[styles.mappingLabel, { marginTop: 12 }]}>
+                  If a value in that column isn't recognized, treat it as:
+                </Text>
+                <View style={styles.chipRow}>
+                  {(["expense", "income"] as MainType[]).map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[styles.chip, typeFallback === t && styles.chipActive]}
+                      onPress={() => setTypeFallback(t)}
+                    >
+                      <Text style={[styles.chipText, typeFallback === t && styles.chipTextActive]}>
+                        {t === "expense" ? "Expense" : "Income"}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <Text style={styles.sectionLabel}>Date Format Used in the CSV</Text>
             <View style={styles.chipRow}>
               {DATE_FORMAT_PRESETS.map((preset) => (
@@ -470,6 +652,17 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                     ? expenseCategories
                     : incomeCategories;
               const resolvedId = resolutionMap.get(item.key);
+              const isCreating = creatingKeys.has(item.key);
+              const isResolved = resolvedId !== undefined;
+              // The selected option (or a freshly created one, which is
+              // immediately selected) sorts to the front, right after the
+              // Create button, instead of wherever it happens to fall in the
+              // store's own order — cheaper than scrolling to find it, and
+              // cheaper to implement than actually reordering the store.
+              const orderedOptions = isResolved
+                ? [...options].sort((a, b) => (a.id === resolvedId ? -1 : b.id === resolvedId ? 1 : 0))
+                : options;
+
               return (
                 <View key={item.key} style={styles.reviewCard}>
                   <Text style={styles.reviewText}>
@@ -478,7 +671,25 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.chipRow}>
-                      {options.map((opt) => (
+                      <TouchableOpacity
+                        style={[styles.createChip, (isCreating || isResolved) && styles.createChipDisabled]}
+                        onPress={() => handleCreateNew(item)}
+                        disabled={isCreating || isResolved}
+                      >
+                        {isCreating ? (
+                          <ActivityIndicator size="small" color={Colors.textMuted} />
+                        ) : (
+                          <Ionicons
+                            name={isResolved ? "checkmark" : "add"}
+                            size={14}
+                            color={isResolved ? Colors.textMuted : Colors.primary}
+                          />
+                        )}
+                        {!isCreating && !isResolved && (
+                          <Text style={styles.createChipText}>Create "{item.text}"</Text>
+                        )}
+                      </TouchableOpacity>
+                      {orderedOptions.map((opt) => (
                         <TouchableOpacity
                           key={opt.id}
                           style={[styles.chip, resolvedId === opt.id && styles.chipActive]}
@@ -489,10 +700,6 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                           </Text>
                         </TouchableOpacity>
                       ))}
-                      <TouchableOpacity style={styles.createChip} onPress={() => handleCreateNew(item)}>
-                        <Ionicons name="add" size={14} color={Colors.primary} />
-                        <Text style={styles.createChipText}>Create "{item.text}"</Text>
-                      </TouchableOpacity>
                     </View>
                   </ScrollView>
                 </View>
@@ -527,15 +734,55 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                 <Text style={styles.sectionLabel}>
                   {failedRows.length} row{failedRows.length === 1 ? "" : "s"} will be skipped
                 </Text>
-                {failedRows.slice(0, 10).map((r) =>
+                <View style={styles.noticeBox}>
+                  <Ionicons name="warning-outline" size={18} color={Colors.warningText} />
+                  <Text style={styles.noticeText}>
+                    These transactions have missing or unrecognized values. Check them below —
+                    fill in anything that should have data, or leave them as they are and the
+                    app will just skip those rows.
+                  </Text>
+                </View>
+                {failedRows.slice(0, 25).map((r) =>
                   r.ok ? null : (
-                    <Text key={r.rowIndex} style={styles.failedRowText}>
-                      Row {r.rowIndex + 1}: {r.reason}
-                    </Text>
+                    <View key={r.rowIndex} style={styles.errorCard}>
+                      <Text style={styles.errorCardTitle}>
+                        Row {r.rowIndex + 1}{r.title ? ` — "${r.title}"` : " — (no title)"}
+                      </Text>
+                      {r.issues.map((issue) => {
+                        const editKey = `${r.rowIndex}:${issue.field}`;
+                        return (
+                          <View key={editKey} style={styles.errorCardIssue}>
+                            <Text style={styles.errorCardReason}>
+                              {FIELD_LABELS[issue.field]} column ("{issue.header}") —{" "}
+                              {issue.reason}
+                            </Text>
+                            <View style={styles.errorCardFixRow}>
+                              <TextInput
+                                style={styles.errorCardInput}
+                                value={editValues[editKey] ?? issue.rawValue}
+                                onChangeText={(text) =>
+                                  setEditValues((prev) => ({ ...prev, [editKey]: text }))
+                                }
+                                placeholder={`Enter a ${FIELD_LABELS[issue.field].toLowerCase()}`}
+                                placeholderTextColor={Colors.textMuted}
+                              />
+                              <TouchableOpacity
+                                style={styles.errorCardFixBtn}
+                                onPress={() =>
+                                  handleFixRow(r.rowIndex, issue, editValues[editKey] ?? issue.rawValue)
+                                }
+                              >
+                                <Text style={styles.errorCardFixBtnText}>Fix</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
                   ),
                 )}
-                {failedRows.length > 10 && (
-                  <Text style={styles.failedRowText}>…and {failedRows.length - 10} more</Text>
+                {failedRows.length > 25 && (
+                  <Text style={styles.failedRowText}>…and {failedRows.length - 25} more</Text>
                 )}
               </>
             )}
@@ -624,7 +871,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -641,14 +888,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   headerTitle: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.surfaceSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   scrollArea: { flex: 1 },
   body: { padding: 16, paddingBottom: 32 },
   centerBody: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
@@ -709,6 +948,7 @@ const styles = StyleSheet.create({
   createChip: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -716,6 +956,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary,
     borderStyle: "dashed",
+  },
+  // Shown once creating (in flight) or already resolved: shrinks to an
+  // icon-only pill so it's visibly not the "tap to create" affordance
+  // anymore, rather than staying full-size and inviting another tap.
+  createChipDisabled: {
+    minWidth: 32,
+    paddingHorizontal: 8,
+    borderColor: Colors.border,
+    borderStyle: "solid",
+    backgroundColor: Colors.surfaceSecondary,
   },
   createChipText: { fontSize: 12, color: Colors.primary, fontWeight: "500" },
   currencyToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
@@ -744,6 +994,47 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 20, fontWeight: "700", color: Colors.textPrimary },
   summaryCellLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   failedRowText: { fontSize: 12, color: Colors.expense, marginBottom: 4 },
+  noticeBox: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.warningBg,
+    borderWidth: 0.5,
+    borderColor: Colors.warningText + "40",
+    marginBottom: 14,
+  },
+  noticeText: { flex: 1, fontSize: 12, color: Colors.warningText, lineHeight: 18 },
+  errorCard: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    marginBottom: 10,
+    gap: 8,
+  },
+  errorCardTitle: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  errorCardIssue: { gap: 6 },
+  errorCardReason: { fontSize: 12, color: Colors.expense },
+  errorCardFixRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  errorCardInput: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    fontSize: 13,
+    color: Colors.textPrimary,
+  },
+  errorCardFixBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
+  errorCardFixBtnText: { fontSize: 12, fontWeight: "600", color: "#fff" },
   footer: {
     flexDirection: "row",
     gap: 12,
