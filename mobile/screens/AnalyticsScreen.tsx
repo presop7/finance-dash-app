@@ -2,21 +2,27 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  FlatList,
   View,
   Text,
   StyleSheet,
   StyleProp,
   TextStyle,
   TouchableOpacity,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
-import TransactionList from "../components/TransactionList";
+import {
+  TransactionRow,
+  TransactionEmptyState,
+  useCategoryDetailsMap,
+  getTransactionDetails,
+} from "../components/TransactionList";
 import TransactionFiltersModal from "./modals/TransactionFiltersModal";
+import type { CategoryTabType } from "./modals/CategoriesModal";
 import {
   TransactionFilters,
   MainTypeFilter,
@@ -35,11 +41,13 @@ export type AnalyticsInitialFilter = {
 type AnalyticsScreenProps = {
   initialFilter?: AnalyticsInitialFilter | null;
   onTransactionPress?: (transaction: Transaction) => void;
+  onHoldEditCategory?: (type: CategoryTabType, id: string) => void;
 };
 
 export default function AnalyticsScreen({
   initialFilter,
   onTransactionPress,
+  onHoldEditCategory,
 }: AnalyticsScreenProps) {
   const { transactions, settings } = useFinanceStore();
 
@@ -64,6 +72,7 @@ export default function AnalyticsScreen({
 
   const maxBar = Math.max(summary.income, summary.expense, 1);
   const activeFilterCount = countActiveFilters(filters);
+  const detailsById = useCategoryDetailsMap();
 
   // Bars grow from empty and amounts count up from 0 to the real value
   // whenever the summary changes (switching the Expense/Income/All tab,
@@ -145,88 +154,122 @@ export default function AnalyticsScreen({
         <Text style={styles.dateRangeLabel}>{DATE_RANGE_LABELS[filters.dateRangePreset]}</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <CollapsibleCard
-          title="Summary"
-          reorderable={false}
-          collapsed={summaryCollapsed}
-          onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
-        >
-          <View style={styles.summaryCard}>
-            <View style={styles.barRow}>
-              <View style={styles.barLabelRow}>
-                <View style={[styles.dot, { backgroundColor: Colors.income }]} />
-                <Text style={styles.barLabel}>Income</Text>
-                <CountUpAmount anim={incomeAmountAnim} currency={settings.currency} style={styles.barAmount} />
-              </View>
-              <View style={styles.barTrack}>
-                <Animated.View
-                  style={[
-                    styles.barFill,
-                    {
-                      width: incomeBarAnim.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ["0%", "100%"],
-                        extrapolate: "clamp",
-                      }),
-                      backgroundColor: Colors.income,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
+      {/* A real FlatList, not a ScrollView wrapping a .map() — Analytics can
+          show hundreds of transactions, and switching the Expense/Income/All
+          toggle swaps out virtually the whole displayed set each time (they're
+          mutually exclusive), so this needs to only ever mount what's
+          actually on screen rather than every matching row at once. The
+          summary card lives in ListHeaderComponent so it scrolls together
+          with the list, same as before. */}
+      <FlatList
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        data={filtered}
+        keyExtractor={(t) => t.id}
+        renderItem={({ item, index }) => (
+          <TransactionRow
+            transaction={item}
+            details={getTransactionDetails(detailsById, item)}
+            onPress={onTransactionPress}
+            isLast={index === filtered.length - 1}
+            style={[
+              styles.transactionRow,
+              index === 0 && styles.transactionRowFirst,
+              index === filtered.length - 1 && styles.transactionRowLast,
+            ]}
+          />
+        )}
+        ListEmptyComponent={TransactionEmptyState}
+        ListHeaderComponent={
+          <>
+            <CollapsibleCard
+              title="Summary"
+              reorderable={false}
+              collapsed={summaryCollapsed}
+              onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
+            >
+              <View style={styles.summaryCard}>
+                <View style={styles.barRow}>
+                  <View style={styles.barLabelRow}>
+                    <View style={[styles.dot, { backgroundColor: Colors.income }]} />
+                    <Text style={styles.barLabel}>Income</Text>
+                    <CountUpAmount anim={incomeAmountAnim} currency={settings.currency} style={styles.barAmount} />
+                  </View>
+                  <View style={styles.barTrack}>
+                    <Animated.View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: incomeBarAnim.interpolate({
+                            inputRange: [0, 100],
+                            outputRange: ["0%", "100%"],
+                            extrapolate: "clamp",
+                          }),
+                          backgroundColor: Colors.income,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
 
-            <View style={styles.barRow}>
-              <View style={styles.barLabelRow}>
-                <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
-                <Text style={styles.barLabel}>Expenses</Text>
-                <CountUpAmount anim={expenseAmountAnim} currency={settings.currency} style={styles.barAmount} />
+                <View style={styles.barRow}>
+                  <View style={styles.barLabelRow}>
+                    <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
+                    <Text style={styles.barLabel}>Expenses</Text>
+                    <CountUpAmount anim={expenseAmountAnim} currency={settings.currency} style={styles.barAmount} />
+                  </View>
+                  <View style={styles.barTrack}>
+                    <Animated.View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: expenseBarAnim.interpolate({
+                            inputRange: [0, 100],
+                            outputRange: ["0%", "100%"],
+                            extrapolate: "clamp",
+                          }),
+                          backgroundColor: Colors.expense,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.netRow}>
+                  <Text style={styles.netLabel}>Net</Text>
+                  <CountUpAmount
+                    anim={netAmountAnim}
+                    currency={settings.currency}
+                    style={styles.netAmount}
+                    negativeStyle={{ color: Colors.expense }}
+                    showSign
+                  />
+                </View>
               </View>
-              <View style={styles.barTrack}>
-                <Animated.View
-                  style={[
-                    styles.barFill,
-                    {
-                      width: expenseBarAnim.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ["0%", "100%"],
-                        extrapolate: "clamp",
-                      }),
-                      backgroundColor: Colors.expense,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
+            </CollapsibleCard>
 
-            <View style={styles.netRow}>
-              <Text style={styles.netLabel}>Net</Text>
-              <CountUpAmount
-                anim={netAmountAnim}
-                currency={settings.currency}
-                style={styles.netAmount}
-                negativeStyle={{ color: Colors.expense }}
-                showSign
-              />
-            </View>
-          </View>
-        </CollapsibleCard>
-
-        <View style={styles.transactionsSection}>
-          <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
-            All Transactions ({filtered.length})
-          </Text>
-          <TransactionList transactions={filtered} onTransactionPress={onTransactionPress} />
-        </View>
-
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+            <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
+              All Transactions ({filtered.length})
+            </Text>
+          </>
+        }
+        ListFooterComponent={<View style={styles.bottomPadding} />}
+        // Renders a small buffer beyond the viewport rather than everything
+        // matching the filter — this, plus removeClippedSubviews on
+        // Android, is what actually keeps switching Expense/Income/All fast
+        // even when it swaps out most of the list.
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews
+      />
 
       <TransactionFiltersModal
         visible={showFiltersModal}
         filters={filters}
         onApply={setFilters}
         onClose={() => setShowFiltersModal(false)}
+        onHoldEditCategory={onHoldEditCategory}
       />
     </View>
   );
@@ -339,14 +382,31 @@ const styles = StyleSheet.create({
   },
   netLabel: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
   netAmount: { fontSize: 16, fontWeight: "700", color: Colors.income },
-  transactionsSection: { marginTop: 16 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.4,
+    marginTop: 16,
     marginBottom: 8,
+  },
+  // Approximates the old single-card look (TransactionList's own container
+  // style) across individually-rendered FlatList rows: each gets the
+  // shared background/margin, only the first/last round their outer
+  // corners. The old shared drop-shadow across the whole card doesn't
+  // carry over cleanly to per-row rendering, so it's dropped here.
+  transactionRow: {
+    marginHorizontal: 16,
+    backgroundColor: Colors.surface,
+  },
+  transactionRowFirst: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  transactionRowLast: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   bottomPadding: { height: 20 },
 });

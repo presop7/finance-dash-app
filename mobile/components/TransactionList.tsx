@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { memo, useMemo } from "react";
+import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
+import { Category } from "../constants/categories";
 
 export type { Transaction };
 
@@ -11,132 +13,172 @@ type TransactionListProps = {
   onTransactionPress?: (transaction: Transaction) => void;
 };
 
+export type CategoryDetails = {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bg: string;
+  label: string;
+};
+
+const FALLBACK_DETAILS: Omit<CategoryDetails, "label"> = {
+  icon: "ellipsis-horizontal-outline",
+  color: Colors.textMuted,
+  bg: Colors.surfaceSecondary,
+};
+
+function toDetails(category: Category): CategoryDetails {
+  return {
+    icon: category.icon as keyof typeof Ionicons.glyphMap,
+    color: category.color ?? Colors.primary,
+    bg: category.color ? category.color + "22" : Colors.surfaceSecondary,
+    label: category.label,
+  };
+}
+
+// Exported so screens that need their own FlatList (Analytics, with
+// potentially hundreds of rows — see below) can share the same lookup and
+// row rendering instead of duplicating it.
+export function useCategoryDetailsMap(): Map<string, CategoryDetails> {
+  const { expenseCategories, incomeCategories } = useFinanceStore();
+  return useMemo(() => {
+    const map = new Map<string, CategoryDetails>();
+    for (const c of expenseCategories) map.set(`expense:${c.id}`, toDetails(c));
+    for (const c of incomeCategories) map.set(`income:${c.id}`, toDetails(c));
+    return map;
+  }, [expenseCategories, incomeCategories]);
+}
+
+export function getTransactionDetails(
+  detailsById: Map<string, CategoryDetails>,
+  transaction: Transaction,
+): CategoryDetails {
+  return (
+    detailsById.get(`${transaction.type}:${transaction.category}`) ?? {
+      ...FALLBACK_DETAILS,
+      label: transaction.category,
+    }
+  );
+}
+
+export function TransactionEmptyState() {
+  return (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
+      <Text style={styles.emptyText}>No transactions yet</Text>
+      <Text style={styles.emptySubtext}>
+        Tap the + button to add your first one
+      </Text>
+    </View>
+  );
+}
+
+// Plain, unvirtualized list — fine for a short list like Dashboard's handful
+// of recent transactions. A list that can run into the hundreds (Analytics)
+// needs a real FlatList instead so only visible rows ever mount; see
+// AnalyticsScreen, which uses TransactionRow/useCategoryDetailsMap directly
+// for that rather than this component.
 export default function TransactionList({
   transactions,
   onTransactionPress,
 }: TransactionListProps) {
-  const { expenseCategories, incomeCategories } = useFinanceStore();
-
-  // Look up category details from store
-  const getCategoryDetails = (
-    categoryId: string,
-    type: "income" | "expense",
-  ) => {
-    const categories =
-      type === "expense" ? expenseCategories : incomeCategories;
-    const found = categories.find((c) => c.id === categoryId);
-    // const date = new Date(transaction.date);
-
-    if (found) {
-      return {
-        icon: found.icon as keyof typeof Ionicons.glyphMap,
-        color: found.color ?? Colors.primary,
-        bg: found.color ? found.color + "22" : Colors.surfaceSecondary,
-        label: found.label,
-      };
-    }
-
-    // Fallback
-    return {
-      icon: "ellipsis-horizontal-outline" as keyof typeof Ionicons.glyphMap,
-      color: Colors.textMuted,
-      bg: Colors.surfaceSecondary,
-      label: categoryId,
-    };
-  };
+  const detailsById = useCategoryDetailsMap();
 
   if (transactions.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.emptyText}>No transactions yet</Text>
-        <Text style={styles.emptySubtext}>
-          Tap the + button to add your first one
-        </Text>
-      </View>
-    );
+    return <TransactionEmptyState />;
   }
 
   return (
     <View style={styles.container}>
-      {transactions.map((transaction) => {
-        const categoryDetails = getCategoryDetails(
-          transaction.category,
-          transaction.type,
-        );
-
-        // Format date
-        const date = new Date(transaction.date);
-        const formattedDate = date.toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-        });
-
-        return (
-          <TouchableOpacity
-            key={transaction.id}
-            style={styles.row}
-            onPress={() => onTransactionPress?.(transaction)}
-            activeOpacity={0.7}
-          >
-            {/* Category Icon */}
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: categoryDetails.bg },
-              ]}
-            >
-              <Ionicons
-                name={categoryDetails.icon}
-                size={18}
-                color={categoryDetails.color}
-              />
-            </View>
-
-            {/* Title and Category */}
-            <View style={styles.info}>
-              <Text style={styles.transactionTitle} numberOfLines={1}>
-                {transaction.title || categoryDetails.label}
-              </Text>
-              <Text style={styles.category}>
-                {categoryDetails.label} · {formattedDate}
-              </Text>
-              {transaction.isPending ? (
-                <View style={styles.noteHint}>
-                  <Ionicons name="time-outline" size={10} color={Colors.textMuted} />
-                  <Text style={styles.noteHintText}>Waiting to sync</Text>
-                </View>
-              ) : null}
-              {transaction.note ? (
-                <View style={styles.noteHint}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={10}
-                    color={Colors.textMuted}
-                  />
-                  <Text style={styles.noteHintText}>Open to read note</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* Amount */}
-            <Text
-              style={[
-                styles.amount,
-                transaction.type === "income"
-                  ? styles.incomeAmount
-                  : styles.expenseAmount,
-              ]}
-            >
-              {transaction.type === "income" ? "+" : "-"}
-              {transaction.amount.toFixed(2)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+      {transactions.map((transaction, index) => (
+        <TransactionRow
+          key={transaction.id}
+          transaction={transaction}
+          details={getTransactionDetails(detailsById, transaction)}
+          onPress={onTransactionPress}
+          isLast={index === transactions.length - 1}
+        />
+      ))}
     </View>
   );
 }
+
+// The list can run into the hundreds of rows, so each row needs to be able
+// to skip re-rendering when something unrelated elsewhere causes the list
+// itself to re-render — without this, every keystroke or store update
+// anywhere in the app re-renders every single row regardless of whether its
+// own data changed.
+export const TransactionRow = memo(function TransactionRow({
+  transaction,
+  details,
+  onPress,
+  isLast,
+  style,
+}: {
+  transaction: Transaction;
+  details: CategoryDetails;
+  onPress?: (transaction: Transaction) => void;
+  // Drops the divider line under the very last row of a card-styled list.
+  isLast?: boolean;
+  // Merged on top of the default row style — lets a caller building its own
+  // card look (e.g. rounding just the first/last row) override it directly.
+  style?: StyleProp<ViewStyle>;
+}) {
+  const date = new Date(transaction.date);
+  const formattedDate = date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+
+  return (
+    <TouchableOpacity
+      style={[styles.row, isLast && styles.rowLast, style]}
+      onPress={() => onPress?.(transaction)}
+      activeOpacity={0.7}
+    >
+      {/* Category Icon */}
+      <View style={[styles.iconContainer, { backgroundColor: details.bg }]}>
+        <Ionicons name={details.icon} size={18} color={details.color} />
+      </View>
+
+      {/* Title and Category */}
+      <View style={styles.info}>
+        <Text style={styles.transactionTitle} numberOfLines={1}>
+          {transaction.title || details.label}
+        </Text>
+        <Text style={styles.category}>
+          {details.label} · {formattedDate}
+        </Text>
+        {transaction.isPending ? (
+          <View style={styles.noteHint}>
+            <Ionicons name="time-outline" size={10} color={Colors.textMuted} />
+            <Text style={styles.noteHintText}>Waiting to sync</Text>
+          </View>
+        ) : null}
+        {transaction.note ? (
+          <View style={styles.noteHint}>
+            <Ionicons
+              name="document-text-outline"
+              size={10}
+              color={Colors.textMuted}
+            />
+            <Text style={styles.noteHintText}>Open to read note</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Amount */}
+      <Text
+        style={[
+          styles.amount,
+          transaction.type === "income" ? styles.incomeAmount : styles.expenseAmount,
+        ]}
+      >
+        {transaction.type === "income" ? "+" : "-"}
+        {transaction.amount.toFixed(2)}
+      </Text>
+    </TouchableOpacity>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -151,6 +193,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   iconContainer: {
     width: 36,
