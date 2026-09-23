@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useMemo, useRef } from "react";
 import { Pressable, Animated, StyleSheet, StyleProp, ViewStyle, LayoutChangeEvent } from "react-native";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 // Two independent phases, not one derived from the other: DELAY is how long
 // a press has to hold still before anything appears (so a normal tap never
@@ -43,6 +44,8 @@ export default function HoldPressable({
   holdFillMs = DEFAULT_FILL_MS,
   children,
 }: HoldPressableProps) {
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const holdAnim = useRef(new Animated.Value(0)).current;
   const fillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -109,7 +112,8 @@ export default function HoldPressable({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: {
     overflow: "hidden",
   },
@@ -120,4 +124,5 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 8,
   },
-});
+  });
+}

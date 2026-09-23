@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   View,
@@ -9,8 +9,10 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
 import { Category } from "../constants/categories";
+import { themedCategoryColor } from "../utils/color";
 import HoldPressable from "./HoldPressable";
 
 type CategoryPickerProps = {
@@ -35,6 +37,9 @@ export default function CategoryPicker({
   searchInputRef,
 }: CategoryPickerProps) {
   const [search, setSearch] = useState("");
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
   const trimmed = search.trim().toLowerCase();
   const filtered = trimmed
     ? categories.filter((c) => c.label.toLowerCase().includes(trimmed))
@@ -87,7 +92,7 @@ export default function CategoryPicker({
             const isSelected = category.id === selected;
             const colorKey = category.id as keyof typeof Colors.categories;
             const colors = Colors.categories[colorKey] ?? Colors.categories.other;
-            const iconColor = category.color ?? colors.icon;
+            const iconColor = themedCategoryColor(category.color, colors.icon, isDark);
             const bgColor = category.color ? category.color + "22" : colors.bg;
 
             return (
@@ -141,7 +146,8 @@ export default function CategoryPicker({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -191,4 +197,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
   },
-});
+  });
+}

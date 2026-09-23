@@ -15,7 +15,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { themedCategoryColor } from "../../utils/color";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
@@ -69,6 +71,9 @@ export default function CategoriesModal({
     deleteFundCategory,
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
 
   const [activeType, setActiveType] = useState<CategoryTabType>(initialType);
   // The edit/create form lives in its own modal (CategoryEditModal), stacked
@@ -516,7 +521,7 @@ export default function CategoriesModal({
                     <Ionicons
                       name={item.icon as keyof typeof Ionicons.glyphMap}
                       size={16}
-                      color={item.color ?? Colors.primary}
+                      color={themedCategoryColor(item.color, Colors.primary, isDark)}
                     />
                     <Text style={styles.categoryChipText}>{getLabel(item)}</Text>
                     <View style={[styles.countBadge, count === 0 && styles.countBadgeEmpty]}>
@@ -626,7 +631,8 @@ export default function CategoriesModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     position: "absolute",
@@ -798,4 +804,5 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   addNewText: { fontSize: 14, color: Colors.primary, fontWeight: "500" },
-});
+  });
+}

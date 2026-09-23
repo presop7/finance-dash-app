@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, View, Text, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import {
   TIMEFRAME_LABELS,
@@ -23,6 +24,8 @@ type BalanceCardProps = {
 
 export default function BalanceCard({ transactions, onNavigateToAnalytics }: BalanceCardProps) {
   const settings = useFinanceStore((s) => s.settings);
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [preset, setPreset] = useState<TimeframePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -106,7 +109,10 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
 
   return (
     <LinearGradient
-      colors={[Colors.primary, "#7383ac"]}
+      // Themed separately from Colors.primary (see heroGradientFrom/To) —
+      // muted/semi-transparent in dark mode so it doesn't pop so hard
+      // against a near-black page.
+      colors={[Colors.heroGradientFrom, Colors.heroGradientTo]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.card}
@@ -237,7 +243,8 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   card: {
     borderRadius: 16,
     padding: 20,
@@ -319,18 +326,19 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   expenseAmount: {
-    color: "#FF8A70",
+    color: Colors.expense,
   },
   colTrend: {
     fontSize: 11,
-    color: "#4ade80",
+    color: Colors.income,
   },
   expenseTrend: {
-    color: "#FF8A70",
+    color: Colors.expense,
   },
   separator: {
     width: 0.5,
     backgroundColor: "rgba(255,255,255,0.2)",
     marginHorizontal: 10,
   },
-});
+  });
+}

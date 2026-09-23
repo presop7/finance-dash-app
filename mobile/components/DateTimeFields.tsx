@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -20,6 +21,9 @@ export default function DateTimeFields({
 }: DateTimeFieldsProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const resolvedScheme = useResolvedScheme();
 
   const formatDate = (d: Date) =>
     d.toLocaleDateString("en-GB", {
@@ -68,6 +72,7 @@ export default function DateTimeFields({
           value={date}
           mode="date"
           display="default"
+          themeVariant={resolvedScheme}
           maximumDate={new Date()}
           onChange={(event, selectedDate) => {
             setShowDatePicker(false);
@@ -81,6 +86,7 @@ export default function DateTimeFields({
           value={date}
           mode="time"
           display="default"
+          themeVariant={resolvedScheme}
           onChange={(event, selectedTime) => {
             setShowTimePicker(false);
             if (selectedTime) onChange(selectedTime);
@@ -91,7 +97,8 @@ export default function DateTimeFields({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   dateTimeRow: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -118,4 +125,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textPrimary,
   },
-});
+  });
+}

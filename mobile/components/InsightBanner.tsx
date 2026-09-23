@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { getInsights } from "../utils/insights";
@@ -15,6 +16,8 @@ export default function InsightBanner({
   transactions,
   expenseCategories,
 }: InsightBannerProps) {
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const currency = useFinanceStore((s) => s.settings.currency);
 
   // Picked once per mount (app open) so it doesn't shuffle on every re-render.
@@ -40,11 +43,18 @@ export default function InsightBanner({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   banner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EEF2FF",
+    // Translucent tint of the accent color plus a solid (non-transparent)
+    // border of the same color — reads clearly as "highlighted" against
+    // either theme's surface, rather than a hardcoded pale card that only
+    // worked against a light background.
+    backgroundColor: Colors.primary + "1A",
+    borderWidth: 1,
+    borderColor: Colors.primary,
     borderRadius: 12,
     padding: 12,
     marginHorizontal: 16,
@@ -54,7 +64,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "#E0E7FF",
+    backgroundColor: Colors.primary + "22",
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
@@ -67,4 +77,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 16,
   },
-});
+  });
+}

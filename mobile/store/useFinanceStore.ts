@@ -53,6 +53,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dateFormat: "DD/MM/YYYY",
 };
 
+export type ThemePreference = "light" | "dark" | "system";
+
 export type AlertRuleType =
   | "lowBalance"
   | "balanceAbove"
@@ -156,6 +158,10 @@ type FinanceStore = {
   // --- local-only, persisted to AsyncStorage ---
   dashboardCardOrder: string[];
   dashboardCollapsedCards: Record<string, boolean>;
+  // Device preference, not account data — deliberately not part of Settings
+  // (which round-trips to the backend) or namespaced per-user below.
+  themePreference: ThemePreference;
+  setThemePreference: (pref: ThemePreference) => void;
   alertRules: AlertRule[];
   addAlertRule: (rule: Omit<AlertRule, "id">) => void;
   updateAlertRule: (id: string, changes: Partial<AlertRule>) => void;
@@ -168,7 +174,11 @@ type FinanceStore = {
 // Fields shared device-wide across every account signed in on this device.
 // Everything else that gets persisted is namespaced under the signed-in user,
 // so switching accounts never shows (or clobbers) another user's data.
-const DEVICE_FIELDS: readonly string[] = ["dashboardCardOrder", "dashboardCollapsedCards"];
+const DEVICE_FIELDS: readonly string[] = [
+  "dashboardCardOrder",
+  "dashboardCollapsedCards",
+  "themePreference",
+];
 
 type PersistedBlob = {
   device: Record<string, unknown>;
@@ -413,6 +423,7 @@ export const useFinanceStore = create<FinanceStore>()(
 
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
+      themePreference: "system",
       alertRules: DEFAULT_ALERT_RULES,
 
       hydrate: async () => {
@@ -791,6 +802,7 @@ export const useFinanceStore = create<FinanceStore>()(
           ),
         })),
 
+      setThemePreference: (pref) => set({ themePreference: pref }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
 
       toggleDashboardCard: (id) =>
@@ -811,6 +823,7 @@ export const useFinanceStore = create<FinanceStore>()(
         // device-global
         dashboardCardOrder: state.dashboardCardOrder,
         dashboardCollapsedCards: state.dashboardCollapsedCards,
+        themePreference: state.themePreference,
         // per-user
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,

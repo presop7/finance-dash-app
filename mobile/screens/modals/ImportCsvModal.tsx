@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors } from "../../hooks/useThemeColors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { CURRENCIES } from "../../constants/currencies";
 import { DateFormat, DATE_FORMAT_PRESETS, formatDate } from "../../utils/formatDateTime";
@@ -102,6 +103,8 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     addFundCategory,
     hydrate,
   } = useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const [step, setStep] = useState<Step>("pick");
   const [fileName, setFileName] = useState("");
@@ -876,7 +879,8 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.surface },
   header: {
     flexDirection: "row",
@@ -1067,4 +1071,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   secondaryBtnText: { fontSize: 14, fontWeight: "600", color: Colors.textPrimary },
-});
+  });
+}

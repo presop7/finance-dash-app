@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,9 +10,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAndDeleteTransaction } from "../../utils/transactionActions";
+import { themedCategoryColor } from "../../utils/color";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
 import ModalCloseButton from "../../components/ModalCloseButton";
@@ -30,6 +33,9 @@ export default function TransactionDetailModal({
   const { expenseCategories, incomeCategories, fundCategories, settings } =
     useFinanceStore();
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
 
   if (!transaction) return null;
 
@@ -39,6 +45,7 @@ export default function TransactionDetailModal({
   const fund = fundCategories.find((f) => f.id === transaction.fundCategory);
   const isExpense = transaction.type === "expense";
   const amountColor = isExpense ? Colors.expense : Colors.income;
+  const categoryColor = themedCategoryColor(category?.color, Colors.primary, isDark);
 
   const date = new Date(transaction.date);
   const formattedDate = formatDate(date, settings.dateFormat);
@@ -84,7 +91,7 @@ export default function TransactionDetailModal({
                     (category?.icon ?? "ellipsis-horizontal-outline") as keyof typeof Ionicons.glyphMap
                   }
                   size={26}
-                  color={category?.color ?? Colors.primary}
+                  color={categoryColor}
                 />
               </View>
               <Text style={[styles.amount, { color: amountColor }]}>
@@ -151,7 +158,8 @@ export default function TransactionDetailModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -292,4 +300,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
-});
+  });
+}

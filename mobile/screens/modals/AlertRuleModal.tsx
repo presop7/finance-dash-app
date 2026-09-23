@@ -10,11 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
@@ -65,6 +66,9 @@ export default function AlertRuleModal({
     deleteAlertRule,
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const resolvedScheme = useResolvedScheme();
 
   const [type, setType] = useState<AlertRuleType>("lowBalance");
   const [amount, setAmount] = useState("");
@@ -221,6 +225,7 @@ export default function AlertRuleModal({
                       value={time}
                       mode="time"
                       display="default"
+                      themeVariant={resolvedScheme}
                       onChange={(_event, selected) => {
                         setShowTimePicker(false);
                         if (selected) setTime(selected);
@@ -342,7 +347,8 @@ export default function AlertRuleModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     position: "absolute",
@@ -461,4 +467,5 @@ const styles = StyleSheet.create({
   saveBtn: { flex: 2, padding: 14, borderRadius: 12, alignItems: "center", backgroundColor: Colors.primary },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-});
+  });
+}

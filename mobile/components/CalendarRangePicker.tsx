@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type CalendarRangePickerProps = {
   start: Date | null;
@@ -33,6 +34,9 @@ export default function CalendarRangePicker({ start, end, onChange }: CalendarRa
   const initial = start ?? new Date();
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const days = getMonthGrid(viewYear, viewMonth);
   const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("en-GB", {
@@ -125,7 +129,8 @@ export default function CalendarRangePicker({ start, end, onChange }: CalendarRa
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   wrapper: {
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 12,
@@ -161,4 +166,5 @@ const styles = StyleSheet.create({
   dayText: { fontSize: 12, color: Colors.textPrimary },
   dayTextEndpoint: { color: "#fff", fontWeight: "600" },
   hint: { fontSize: 11, color: Colors.textMuted, marginTop: 8, textAlign: "center" },
-});
+  });
+}

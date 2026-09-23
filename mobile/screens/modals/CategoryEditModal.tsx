@@ -10,10 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { themedCategoryColor } from "../../utils/color";
 import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
 import ModalCloseButton from "../../components/ModalCloseButton";
@@ -90,12 +92,21 @@ export default function CategoryEditModal({
   onClose,
 }: CategoryEditModalProps) {
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
 
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] =
     useState<keyof typeof Ionicons.glyphMap>("cart-outline");
   const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0]);
   const [saving, setSaving] = useState(false);
+  // The swatch grid below always shows selectedColor as-stored (the actual
+  // choice), but everywhere it's rendered as an icon/text color, it's
+  // brightened for dark-mode legibility the same way an already-saved
+  // category's color is elsewhere — otherwise picking "dark blue" would
+  // preview as basically invisible against a dark background.
+  const displayColor = themedCategoryColor(selectedColor, Colors.primary, isDark);
 
   useEffect(() => {
     if (!visible) return;
@@ -178,7 +189,7 @@ export default function CategoryEditModal({
                       <Ionicons
                         name={icon}
                         size={22}
-                        color={selectedIcon === icon ? selectedColor : Colors.textMuted}
+                        color={selectedIcon === icon ? displayColor : Colors.textMuted}
                       />
                     </TouchableOpacity>
                   ))}
@@ -204,9 +215,9 @@ export default function CategoryEditModal({
                 <Text style={styles.formLabel}>Preview</Text>
                 <View style={styles.preview}>
                   <View style={[styles.previewIcon, { backgroundColor: selectedColor + "22" }]}>
-                    <Ionicons name={selectedIcon} size={24} color={selectedColor} />
+                    <Ionicons name={selectedIcon} size={24} color={displayColor} />
                   </View>
-                  <Text style={[styles.previewLabel, { color: selectedColor }]}>
+                  <Text style={[styles.previewLabel, { color: displayColor }]}>
                     {name || `${noun} Name`}
                   </Text>
                 </View>
@@ -239,7 +250,8 @@ export default function CategoryEditModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     position: "absolute",
@@ -370,4 +382,5 @@ const styles = StyleSheet.create({
   saveBtn: { flex: 2, padding: 14, borderRadius: 12, alignItems: "center", backgroundColor: Colors.primary },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-});
+  });
+}

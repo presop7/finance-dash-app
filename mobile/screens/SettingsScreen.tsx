@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
-import { useFinanceStore } from "../store/useFinanceStore";
+import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
@@ -17,8 +18,10 @@ type SettingsScreenProps = {
 };
 
 export default function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps) {
-  const { settings, updateSettings, pendingOps, transactions, isConnected, hydrate } = useFinanceStore();
+  const { settings, updateSettings, pendingOps, transactions, isConnected, hydrate, themePreference, setThemePreference } = useFinanceStore();
   const { session, signOut } = useAuthStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
   const [clearingTransactions, setClearingTransactions] = useState(false);
@@ -144,6 +147,36 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
           <Text style={styles.headerTitle}>Settings</Text>
+        </View>
+
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Appearance</Text>
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="contrast-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Theme</Text>
+            </View>
+            <View style={styles.segmented}>
+              {(["light", "dark", "system"] as ThemePreference[]).map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[styles.segment, themePreference === option && styles.segmentActive]}
+                  onPress={() => setThemePreference(option)}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      themePreference === option && styles.segmentTextActive,
+                    ]}
+                  >
+                    {option === "light" ? "Light" : option === "dark" ? "Dark" : "System"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>General</Text>
@@ -412,7 +445,8 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   header: { paddingTop: 60, paddingBottom: 16 },
   headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
@@ -479,4 +513,5 @@ const styles = StyleSheet.create({
   dropdownItemText: { fontSize: 12, color: Colors.textSecondary },
   dropdownItemTextActive: { color: Colors.primary, fontWeight: "600" },
   bottomPadding: { height: 20 },
-});
+  });
+}

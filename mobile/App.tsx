@@ -1,5 +1,6 @@
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import {
   SafeAreaProvider,
@@ -32,7 +33,8 @@ import AddTransactionModal from "./screens/modals/AddTransactionModal";
 import FABButton from "./components/FABButton";
 
 // Constants
-import { Colors } from "./constants/colors";
+import { ColorsType } from "./constants/colors";
+import { useThemeColors, useResolvedScheme } from "./hooks/useThemeColors";
 
 // Category Management Modal
 import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesModal";
@@ -41,6 +43,7 @@ import ImportCsvModal from "./screens/modals/ImportCsvModal";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
+import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 
 // Explanation dialog for the offline / failed-sync status bar
 import { alertAsync } from "./utils/confirm";
@@ -87,7 +90,7 @@ const NAV_ITEMS: {
   },
   {
     name: "Alerts",
-    label: "Alerts",
+    label: "Reminders",
     icon: "notifications-outline",
     activeIcon: "notifications",
   },
@@ -100,8 +103,13 @@ const NAV_ITEMS: {
 ];
 
 export default function App() {
+  const resolvedScheme = useResolvedScheme();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* "light"/"dark" here names the icon color, not the app theme — light
+          icons read against our dark theme's surfaces, dark icons against
+          light's. */}
+      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
       <SafeAreaProvider>
         <NavigationContainer>
           <RootNavigator />
@@ -114,6 +122,8 @@ export default function App() {
 function RootNavigator() {
   const { session, initializing } = useAuthStore();
   const { status, syncError, persistHydrated, hydrate, reset } = useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   // Keyed on the user id rather than the session object: Supabase hands back a
   // new session object on every token refresh, and re-running hydrate() then
@@ -193,6 +203,8 @@ function SyncIndicator() {
   const isConnected = useFinanceStore((s) => s.isConnected);
   const pendingCount = useFinanceStore((s) => s.pendingOps.length);
   const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   if (!isConnected) {
     return (
@@ -279,6 +291,8 @@ function CustomTabBar({
   onAddPress,
 }: BottomTabBarProps & { onAddPress: () => void }) {
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const renderItem = (index: number) => {
     const route = state.routes[index];
@@ -357,6 +371,8 @@ function AppContent() {
     null,
   );
   const { addTransaction } = useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   // Stable reference (empty deps, setters are stable) for the same reason
   // setSelectedTransaction is passed directly below — a fresh arrow function
@@ -369,6 +385,7 @@ function AppContent() {
   }, []);
 
   useAlertsMonitor();
+  useDailyReminderSync();
 
   return (
     <View style={styles.container}>
@@ -502,102 +519,104 @@ function AppContent() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 32,
-  },
-  errorText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-  },
-  retryBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  syncBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.surfaceSecondary,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
-  },
-  syncBarWarning: {
-    backgroundColor: Colors.warningBg,
-    borderTopColor: Colors.warningText + "40",
-    paddingVertical: 7,
-  },
-  syncBarError: {
-    backgroundColor: Colors.errorBg,
-    borderTopColor: Colors.errorText + "40",
-    paddingVertical: 7,
-  },
-  syncText: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    textAlign: "center",
-  },
-  syncTextWarning: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.warningText,
-  },
-  syncTextError: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.errorText,
-  },
-  bottomNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.border,
-    paddingBottom: 8,
-    paddingTop: 6,
-    paddingHorizontal: 8,
-  },
-  navSide: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  navCenter: {
-    width: 80,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navItem: {
-    alignItems: "center",
-    gap: 2,
-    paddingHorizontal: 8,
-  },
-  navLabel: {
-    fontSize: 9,
-    color: Colors.textMuted,
-  },
-  navLabelActive: {
-    color: Colors.primary,
-    fontWeight: "500",
-  },
-});
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.surface,
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      backgroundColor: Colors.surface,
+      paddingHorizontal: 32,
+    },
+    errorText: {
+      fontSize: 13,
+      color: Colors.textSecondary,
+      textAlign: "center",
+    },
+    retryBtn: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: Colors.primary,
+    },
+    retryBtnText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: "#fff",
+    },
+    syncBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 4,
+      paddingHorizontal: 16,
+      backgroundColor: Colors.surfaceSecondary,
+      borderTopWidth: 0.5,
+      borderTopColor: Colors.border,
+    },
+    syncBarWarning: {
+      backgroundColor: Colors.warningBg,
+      borderTopColor: Colors.warningText + "40",
+      paddingVertical: 7,
+    },
+    syncBarError: {
+      backgroundColor: Colors.errorBg,
+      borderTopColor: Colors.errorText + "40",
+      paddingVertical: 7,
+    },
+    syncText: {
+      fontSize: 10,
+      color: Colors.textMuted,
+      textAlign: "center",
+    },
+    syncTextWarning: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: Colors.warningText,
+    },
+    syncTextError: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: Colors.errorText,
+    },
+    bottomNav: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: Colors.surface,
+      borderTopWidth: 0.5,
+      borderTopColor: Colors.border,
+      paddingBottom: 8,
+      paddingTop: 6,
+      paddingHorizontal: 8,
+    },
+    navSide: {
+      flex: 1,
+      flexDirection: "row",
+      justifyContent: "space-around",
+    },
+    navCenter: {
+      width: 80,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    navItem: {
+      alignItems: "center",
+      gap: 2,
+      paddingHorizontal: 8,
+    },
+    navLabel: {
+      fontSize: 9,
+      color: Colors.textMuted,
+    },
+    navLabelActive: {
+      color: Colors.primary,
+      fontWeight: "500",
+    },
+  });
+}

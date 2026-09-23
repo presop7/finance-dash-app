@@ -8,7 +8,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { TransactionRow, CategoryDetails, Transaction } from "./TransactionList";
 import { confirmAndDeleteTransaction } from "../utils/transactionActions";
 
@@ -106,6 +106,7 @@ export default function SwipeableTransactionRow({
   onEdit,
 }: SwipeableTransactionRowProps) {
   const swipeableRef = useRef<SwipeableMethods>(null);
+  const Colors = useThemeColors();
 
   const handleDelete = async () => {
     swipeableRef.current?.close();

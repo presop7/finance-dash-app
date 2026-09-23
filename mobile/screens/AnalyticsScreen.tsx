@@ -20,7 +20,8 @@ import {
   runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
@@ -72,6 +73,21 @@ export default function AnalyticsScreen({
   onOpenCategoryPicker,
 }: AnalyticsScreenProps) {
   const { transactions, settings } = useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  // Same referential-stability reasoning as before these were theme-aware
+  // module-scope constants: recomputed only when styles itself changes
+  // (i.e. on an actual theme switch), not on every render, so they don't
+  // defeat TransactionRow's React.memo the way a fresh array literal built
+  // inline in renderItem would.
+  const rowStyles = useMemo(
+    () => ({
+      first: [styles.transactionRow, styles.transactionRowFirst],
+      last: [styles.transactionRow, styles.transactionRowLast],
+      middle: styles.transactionRow,
+    }),
+    [styles],
+  );
 
   const [mainType, setMainType] = useState<MainTypeFilter>(initialFilter?.mainType ?? "all");
   const [filters, setFilters] = useState<TransactionFilters>({
@@ -623,7 +639,7 @@ export default function AnalyticsScreen({
         renderItem={({ item, index }) => {
           const isFirst = index === 0;
           const isLast = index === filtered.length - 1;
-          const rowStyle = isFirst ? ROW_STYLE_FIRST : isLast ? ROW_STYLE_LAST : ROW_STYLE_MIDDLE;
+          const rowStyle = isFirst ? rowStyles.first : isLast ? rowStyles.last : rowStyles.middle;
           // Select mode swaps to a plain, swipe-less row entirely (same
           // component-swap CategoriesModal's own chips use between normal
           // and select mode) rather than just toggling props on one row
@@ -661,7 +677,7 @@ export default function AnalyticsScreen({
               // neighbors) becomes visible as its own isolated shape the
               // moment it detaches from them mid-swipe. Plain, unrounded
               // corners avoid that "corner just appeared" look entirely.
-              style={ROW_STYLE_MIDDLE}
+              style={rowStyles.middle}
             />
           );
         }}
@@ -800,7 +816,8 @@ function CountUpAmount({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   header: {
     paddingTop: 60,
@@ -938,22 +955,21 @@ const styles = StyleSheet.create({
   transactionRow: {
     marginHorizontal: 16,
     backgroundColor: Colors.surface,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: Colors.border,
   },
   transactionRowFirst: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    borderTopWidth: 1,
   },
   transactionRowLast: {
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
+    borderBottomWidth: 1,
   },
   bottomPadding: { height: 20 },
-});
+  });
+}
 
-// Precomputed once at module scope rather than as a fresh array literal per
-// row per render — same reference every time, so it doesn't itself defeat
-// TransactionRow's React.memo the way a `[styles.a, cond && styles.b]`
-// built inline in renderItem would.
-const ROW_STYLE_FIRST = [styles.transactionRow, styles.transactionRowFirst];
-const ROW_STYLE_LAST = [styles.transactionRow, styles.transactionRowLast];
-const ROW_STYLE_MIDDLE = styles.transactionRow;

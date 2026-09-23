@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { themedCategoryColor } from "../../utils/color";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { confirmUnsavedChanges } from "../../utils/confirm";
 import CalendarRangePicker from "../../components/CalendarRangePicker";
@@ -49,6 +51,9 @@ export default function TransactionFiltersModal({
   const { fundCategories, expenseCategories, incomeCategories, settings } =
     useFinanceStore();
   const insets = useSafeAreaInsets();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
 
   const [draft, setDraft] = useState<TransactionFilters>(filters);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
@@ -235,7 +240,9 @@ export default function TransactionFiltersModal({
                             <Ionicons
                               name={fund.icon as keyof typeof Ionicons.glyphMap}
                               size={14}
-                              color={active ? "#fff" : fund.color}
+                              color={
+                                active ? "#fff" : themedCategoryColor(fund.color, Colors.primary, isDark)
+                              }
                             />
                             <Text
                               style={[
@@ -288,7 +295,9 @@ export default function TransactionFiltersModal({
                               name={cat.icon}
                               size={14}
                               color={
-                                active ? "#fff" : (cat.color ?? Colors.expense)
+                                active
+                                  ? "#fff"
+                                  : themedCategoryColor(cat.color, Colors.expense, isDark)
                               }
                             />
                             <Text
@@ -340,7 +349,9 @@ export default function TransactionFiltersModal({
                               name={cat.icon}
                               size={14}
                               color={
-                                active ? "#fff" : (cat.color ?? Colors.income)
+                                active
+                                  ? "#fff"
+                                  : themedCategoryColor(cat.color, Colors.income, isDark)
                               }
                             />
                             <Text
@@ -391,7 +402,8 @@ export default function TransactionFiltersModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   // justifyContent: "flex-end" (not position:"absolute"/bottom:0 on the sheet
   // itself) so Yoga measures the sheet's content height and places it in one
   // pass — pinning the sheet's bottom edge first and letting its height
@@ -509,4 +521,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   applyBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
-});
+  });
+}

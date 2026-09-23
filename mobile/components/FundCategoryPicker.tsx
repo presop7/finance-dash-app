@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Animated,
   View,
@@ -9,7 +9,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FundCategory } from "../constants/fundCategories";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { themedCategoryColor } from "../utils/color";
 import HoldPressable from "./HoldPressable";
 
 type FundCategoryPickerProps = {
@@ -34,6 +36,9 @@ export default function FundCategoryPicker({
   // manager after picking one there, which could be scrolled off-screen.
   const scrollRef = useRef<ScrollView>(null);
   const itemOffsetsRef = useRef(new Map<string, number>());
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
 
   useEffect(() => {
     const x = itemOffsetsRef.current.get(selected);
@@ -51,6 +56,7 @@ export default function FundCategoryPicker({
     >
       {fundCategories.map((item) => {
         const isSelected = item.id === selected;
+        const iconColor = themedCategoryColor(item.color, Colors.primary, isDark);
 
         return (
           <HoldPressable
@@ -69,7 +75,7 @@ export default function FundCategoryPicker({
                     { backgroundColor: item.color + "22" },
                     isSelected && {
                       borderWidth: 2,
-                      borderColor: item.color,
+                      borderColor: iconColor,
                     },
                   ]}
                 >
@@ -82,7 +88,7 @@ export default function FundCategoryPicker({
                   <Ionicons
                     name={item.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
-                    color={item.color}
+                    color={iconColor}
                   />
                 </View>
 
@@ -90,7 +96,7 @@ export default function FundCategoryPicker({
                 <Text
                   style={[
                     styles.label,
-                    isSelected && { color: item.color, fontWeight: "600" },
+                    isSelected && { color: iconColor, fontWeight: "600" },
                   ]}
                 >
                   {item.name}
@@ -112,7 +118,8 @@ export default function FundCategoryPicker({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     gap: 12,
@@ -152,4 +159,5 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textMuted,
   },
-});
+  });
+}

@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { Transaction } from "../store/useFinanceStore";
 import SwipeableTransactionRow from "./SwipeableTransactionRow";
@@ -27,6 +29,8 @@ export default function SwipeableTransactionList({
   onTransactionPress,
   onEdit,
 }: SwipeableTransactionListProps) {
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const detailsById = useCategoryDetailsMap();
 
   if (transactions.length === 0) {
@@ -49,10 +53,13 @@ export default function SwipeableTransactionList({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: {
     marginHorizontal: 16,
     backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: 16,
     // Clips each row (including its revealed action panel) to the card's
     // own rounded corners — without this, swiping the first/last row would
@@ -61,4 +68,5 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...GlobalStyles.shadow,
   },
-});
+  });
+}

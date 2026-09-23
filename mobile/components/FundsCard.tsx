@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { FundCategory } from "../constants/fundCategories";
 import { daysAgo, percentageChange } from "../utils/dateRanges";
 import { formatCurrency } from "../utils/currency";
+import { themedCategoryColor } from "../utils/color";
 import HoldPressable from "./HoldPressable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 
@@ -24,6 +26,9 @@ export default function FundsCard({
   fundCategories,
   onNavigateToAnalytics,
 }: FundsCardProps) {
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const isDark = useResolvedScheme() === "dark";
   const currency = useFinanceStore((s) => s.settings.currency);
   const funds = useMemo(() => {
     const thirtyDaysAgo = daysAgo(30);
@@ -78,13 +83,13 @@ export default function FundsCard({
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: fund.color + "22" },
+                  { backgroundColor: fund.color + "22", borderColor: fund.color + "80" },
                 ]}
               >
                 <Ionicons
                   name={fund.icon as keyof typeof Ionicons.glyphMap}
                   size={20}
-                  color={fund.color}
+                  color={themedCategoryColor(fund.color, Colors.primary, isDark)}
                 />
               </View>
 
@@ -119,7 +124,8 @@ export default function FundsCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   wrapper: {},
   scrollContent: {
     paddingHorizontal: 16,
@@ -128,6 +134,8 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: 16,
     padding: 14,
     marginVertical: 4,
@@ -136,6 +144,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
@@ -160,4 +169,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
   },
-});
+  });
+}

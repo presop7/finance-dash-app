@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { useEffect, useRef, useState, ReactNode } from "react";
-import { Colors } from "../constants/colors";
+import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type BorderPressButtonProps = {
   onPress?: () => void;
@@ -30,6 +31,8 @@ export default function BorderPressButton({
   children,
 }: BorderPressButtonProps) {
   const [pressed, setPressed] = useState(false);
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const pressStartRef = useRef(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -63,9 +66,11 @@ export default function BorderPressButton({
   );
 }
 
-const styles = StyleSheet.create({
-  pressedBorder: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-});
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
+    pressedBorder: {
+      borderWidth: 2,
+      borderColor: Colors.primary,
+    },
+  });
+}

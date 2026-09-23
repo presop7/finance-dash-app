@@ -12,10 +12,11 @@ import {
   ActivityIndicator,
   InputAccessoryView,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+import { ColorsType } from "../../constants/colors";
+import { useThemeColors } from "../../hooks/useThemeColors";
 import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
 import DateTimeFields from "../../components/DateTimeFields";
@@ -58,6 +59,8 @@ export default function AddTransactionModal({
 }: AddTransactionModalProps) {
   const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings } =
     useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const isEditing = Boolean(editTransaction);
   const insets = useSafeAreaInsets();
@@ -553,7 +556,8 @@ export default function AddTransactionModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -779,4 +783,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fff",
   },
-});
+  });
+}

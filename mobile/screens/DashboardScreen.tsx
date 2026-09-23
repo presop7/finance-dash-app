@@ -1,5 +1,5 @@
+import { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import BalanceCard from "../components/BalanceCard";
 import TransactionList from "../components/SwipeableTransactionList";
@@ -9,7 +9,8 @@ import FundsCard from "../components/FundsCard";
 import DashboardCardList, {
   DashboardCardDef,
 } from "../components/DashboardCardList";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 
@@ -36,6 +37,8 @@ export default function DashboardScreen({
     setDashboardCardOrder,
     toggleDashboardCard,
   } = useFinanceStore();
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   // Show only the last 5 added transactions on the dashboard.
   const recentTransactions = transactions.slice(0, 5);
@@ -89,8 +92,6 @@ export default function DashboardScreen({
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
-
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -120,28 +121,30 @@ export default function DashboardScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 16,
-  },
-  greeting: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: Colors.textPrimary,
-  },
-  bottomPadding: {
-    height: 20,
-  },
-});
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.surface,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    header: {
+      paddingTop: 60,
+      paddingBottom: 16,
+    },
+    greeting: {
+      fontSize: 13,
+      color: Colors.textMuted,
+    },
+    name: {
+      fontSize: 22,
+      fontWeight: "600",
+      color: Colors.textPrimary,
+    },
+    bottomPadding: {
+      height: 20,
+    },
+  });
+}

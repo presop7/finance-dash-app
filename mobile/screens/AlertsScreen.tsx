@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../store/useFinanceStore";
 import { formatCurrency } from "../utils/currency";
@@ -31,6 +32,9 @@ export default function AlertsScreen() {
     toggleAlertRule,
     deleteAlertRule,
   } = useFinanceStore();
+
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
 
   const [permissionGranted, setPermissionGranted] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -192,7 +196,8 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   header: {
     flexDirection: "row",
@@ -263,4 +268,5 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: "center", paddingVertical: 32 },
   emptyText: { fontSize: 13, color: Colors.textMuted, marginTop: 10 },
   bottomPadding: { height: 20 },
-});
+  });
+}

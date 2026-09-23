@@ -1,7 +1,8 @@
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { forwardRef } from "react";
-import { Colors } from "../constants/colors";
+import { forwardRef, useMemo } from "react";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type FABButtonProps = {
   onPress: () => void;
@@ -13,6 +14,8 @@ export type FABButtonRef = {
 
 const FABButton = forwardRef<FABButtonRef, FABButtonProps>(
   ({ onPress }, ref) => {
+    const Colors = useThemeColors();
+    const styles = useMemo(() => createStyles(Colors), [Colors]);
     return (
       <View style={styles.container}>
         <TouchableOpacity
@@ -29,7 +32,8 @@ const FABButton = forwardRef<FABButtonRef, FABButtonProps>(
 
 export default FABButton;
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
@@ -44,8 +48,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1002,
     elevation: 1002,
-    // Colors.primary (#1D2B4F) at 40% — the shadow* props this replaces were
+    // Colors.primary at 40% — the shadow* props this replaces were
     // deprecated in React Native 0.86.
-    boxShadow: "0px 4px 8px rgba(29, 43, 79, 0.4)",
+    boxShadow: `0px 4px 8px ${Colors.primary}66`,
   },
-});
+  });
+}

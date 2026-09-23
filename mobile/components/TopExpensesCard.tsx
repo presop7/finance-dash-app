@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "../constants/colors";
+import { ColorsType } from "../constants/colors";
+import { useThemeColors } from "../hooks/useThemeColors";
 import { Transaction } from "../store/useFinanceStore";
 import { getTopExpenses } from "../utils/insights";
 import TransactionList from "./SwipeableTransactionList";
@@ -37,6 +38,8 @@ export default function TopExpensesCard({
   onTransactionPress,
   onEditTransaction,
 }: TopExpensesCardProps) {
+  const Colors = useThemeColors();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [range, setRange] = useState<RangePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -105,7 +108,8 @@ export default function TopExpensesCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(Colors: ColorsType) {
+  return StyleSheet.create({
   wrapper: {},
   rangePill: {
     flexDirection: "row",
@@ -162,4 +166,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
   },
-});
+  });
+}
