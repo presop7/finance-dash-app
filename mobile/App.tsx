@@ -416,6 +416,11 @@ function AppContent() {
                 setCategoryInitialEditId(id);
                 setCategoriesModal(type);
               }}
+              onEditTransaction={handleEditTransaction}
+              onOpenCategoryPicker={(type, onPicked) => {
+                setCategoryPickHandler(() => onPicked);
+                setCategoriesModal(type);
+              }}
             />
           )}
         </Tab.Screen>
