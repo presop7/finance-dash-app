@@ -62,3 +62,35 @@ export async function sendLocalNotification(title: string, body: string) {
     trigger: null,
   });
 }
+
+// Daily reminders are OS-scheduled (unlike the other alert types, which are
+// only evaluated reactively while the app's JS is running — see
+// evaluateAlerts) so they still fire at the set time even if the app hasn't
+// been opened that day. Keyed by the alert rule's own id as the
+// notification identifier, so re-saving a rule (new time) or toggling it
+// off can address the exact notification to replace/cancel instead of
+// stacking up duplicates.
+export async function scheduleDailyReminder(
+  id: string,
+  hour: number,
+  minute: number,
+  title: string,
+  body: string,
+) {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+  const granted = await hasNotificationPermission();
+  if (!granted) return;
+  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+  await Notifications.scheduleNotificationAsync({
+    identifier: id,
+    content: { title, body },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+  });
+}
+
+export async function cancelDailyReminder(id: string) {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+  await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+}

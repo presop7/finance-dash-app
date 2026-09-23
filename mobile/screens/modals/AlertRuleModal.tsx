@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
@@ -24,6 +25,7 @@ const TYPE_LABELS: Record<AlertRuleType, string> = {
   monthlyExpenseOver: "Monthly Expenses Over",
   monthlyIncomeOver: "Monthly Income Over",
   categoryAmount: "Category Amount",
+  dailyReminder: "Daily Transaction Reminder",
 };
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
@@ -32,6 +34,7 @@ const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   monthlyExpenseOver: "cash-outline",
   monthlyIncomeOver: "wallet-outline",
   categoryAmount: "pricetag-outline",
+  dailyReminder: "alarm-outline",
 };
 
 const ALL_TYPES: AlertRuleType[] = [
@@ -40,6 +43,7 @@ const ALL_TYPES: AlertRuleType[] = [
   "monthlyExpenseOver",
   "monthlyIncomeOver",
   "categoryAmount",
+  "dailyReminder",
 ];
 
 type AlertRuleModalProps = {
@@ -66,6 +70,14 @@ export default function AlertRuleModal({
   const [amount, setAmount] = useState("");
   const [categoryType, setCategoryType] = useState<"expense" | "income">("expense");
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  // Held as a Date purely so DateTimePicker (mode="time") can drive it —
+  // only the hour/minute components are ever read out of it.
+  const [time, setTime] = useState(() => {
+    const d = new Date();
+    d.setHours(20, 0, 0, 0);
+    return d;
+  });
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -74,17 +86,44 @@ export default function AlertRuleModal({
       setAmount(editingRule.amount.toString());
       setCategoryType(editingRule.categoryType ?? "expense");
       setCategoryId(editingRule.categoryId ?? null);
+      if (editingRule.hour !== undefined && editingRule.minute !== undefined) {
+        const d = new Date();
+        d.setHours(editingRule.hour, editingRule.minute, 0, 0);
+        setTime(d);
+      }
     } else {
       setType("lowBalance");
       setAmount("");
       setCategoryType("expense");
       setCategoryId(null);
+      const d = new Date();
+      d.setHours(20, 0, 0, 0);
+      setTime(d);
     }
   }, [visible, editingRule]);
 
   const categories = categoryType === "expense" ? expenseCategories : incomeCategories;
 
   const handleSave = () => {
+    if (type === "dailyReminder") {
+      const changes = {
+        type,
+        amount: 0,
+        categoryId: undefined,
+        categoryType: undefined,
+        hour: time.getHours(),
+        minute: time.getMinutes(),
+        enabled: editingRule?.enabled ?? true,
+      };
+      if (editingRule) {
+        updateAlertRule(editingRule.id, changes);
+      } else {
+        addAlertRule(changes);
+      }
+      onClose();
+      return;
+    }
+
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) return;
     if (type === "categoryAmount" && !categoryId) return;
@@ -94,6 +133,8 @@ export default function AlertRuleModal({
       amount: numericAmount,
       categoryId: type === "categoryAmount" ? categoryId ?? undefined : undefined,
       categoryType: type === "categoryAmount" ? categoryType : undefined,
+      hour: undefined,
+      minute: undefined,
       enabled: editingRule?.enabled ?? true,
     };
 
@@ -107,7 +148,7 @@ export default function AlertRuleModal({
 
   const handleDelete = async () => {
     if (!editingRule) return;
-    const ok = await confirmAsync("Delete Alert", "Delete this alert rule?");
+    const ok = await confirmAsync("Delete Reminder", "Delete this reminder?");
     if (!ok) return;
     deleteAlertRule(editingRule.id);
     onClose();
@@ -115,9 +156,11 @@ export default function AlertRuleModal({
 
   const numericAmount = parseFloat(amount);
   const canSave =
-    !isNaN(numericAmount) &&
-    numericAmount > 0 &&
-    (type !== "categoryAmount" || Boolean(categoryId));
+    type === "dailyReminder"
+      ? true
+      : !isNaN(numericAmount) &&
+        numericAmount > 0 &&
+        (type !== "categoryAmount" || Boolean(categoryId));
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -135,13 +178,13 @@ export default function AlertRuleModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>{editingRule ? "Edit Alert" : "Add Alert"}</Text>
+            <Text style={styles.title}>{editingRule ? "Edit Reminder" : "Add Reminder"}</Text>
             <ModalCloseButton onPress={onClose} />
           </View>
 
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             <View style={styles.body}>
-              <Text style={styles.formLabel}>Alert Type</Text>
+              <Text style={styles.formLabel}>Reminder Type</Text>
               <View style={styles.typeGrid}>
                 {ALL_TYPES.map((t) => (
                   <TouchableOpacity
@@ -161,18 +204,46 @@ export default function AlertRuleModal({
                 ))}
               </View>
 
-              <Text style={styles.formLabel}>Amount</Text>
-              <View style={styles.fieldContainer}>
-                <Ionicons name="pricetag-outline" size={16} color={Colors.textMuted} />
-                <TextInput
-                  style={styles.fieldInput}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.textMuted}
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="decimal-pad"
-                />
-              </View>
+              {type === "dailyReminder" ? (
+                <>
+                  <Text style={styles.formLabel}>Reminder Time</Text>
+                  <TouchableOpacity
+                    style={styles.fieldContainer}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                    <Text style={styles.fieldInput}>
+                      {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    </Text>
+                  </TouchableOpacity>
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={time}
+                      mode="time"
+                      display="default"
+                      onChange={(_event, selected) => {
+                        setShowTimePicker(false);
+                        if (selected) setTime(selected);
+                      }}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.formLabel}>Amount</Text>
+                  <View style={styles.fieldContainer}>
+                    <Ionicons name="pricetag-outline" size={16} color={Colors.textMuted} />
+                    <TextInput
+                      style={styles.fieldInput}
+                      placeholder="0.00"
+                      placeholderTextColor={Colors.textMuted}
+                      value={amount}
+                      onChangeText={setAmount}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </>
+              )}
 
               {type === "categoryAmount" && (
                 <>
@@ -259,7 +330,7 @@ export default function AlertRuleModal({
                   onPress={handleSave}
                   disabled={!canSave}
                 >
-                  <Text style={styles.saveBtnText}>{editingRule ? "Save Changes" : "Add Alert"}</Text>
+                  <Text style={styles.saveBtnText}>{editingRule ? "Save Changes" : "Add Reminder"}</Text>
                 </TouchableOpacity>
               </View>
             </View>

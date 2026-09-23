@@ -19,6 +19,7 @@ const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   monthlyExpenseOver: "cash-outline",
   monthlyIncomeOver: "wallet-outline",
   categoryAmount: "pricetag-outline",
+  dailyReminder: "alarm-outline",
 };
 
 export default function AlertsScreen() {
@@ -60,6 +61,13 @@ export default function AlertsScreen() {
         const label = categories.find((c) => c.id === rule.categoryId)?.label ?? "Category";
         return `Notify when ${label} exceeds ${amount} this month`;
       }
+      case "dailyReminder": {
+        if (rule.hour === undefined || rule.minute === undefined) return "Daily at a set time";
+        const d = new Date();
+        d.setHours(rule.hour, rule.minute, 0, 0);
+        const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        return `Remind me to add a transaction every day at ${time}`;
+      }
     }
   };
 
@@ -75,11 +83,13 @@ export default function AlertsScreen() {
         return "Monthly Income Over";
       case "categoryAmount":
         return "Category Amount";
+      case "dailyReminder":
+        return "Daily Transaction Reminder";
     }
   };
 
   const handleDelete = async (rule: AlertRule) => {
-    const ok = await confirmAsync("Delete Alert", "Delete this alert rule?");
+    const ok = await confirmAsync("Delete Reminder", "Delete this reminder?");
     if (!ok) return;
     deleteAlertRule(rule.id);
   };
@@ -88,7 +98,7 @@ export default function AlertsScreen() {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
-          <Text style={styles.headerTitle}>Alerts</Text>
+          <Text style={styles.headerTitle}>Reminders</Text>
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => {
@@ -97,7 +107,7 @@ export default function AlertsScreen() {
             }}
           >
             <Ionicons name="add" size={16} color="#fff" />
-            <Text style={styles.addBtnText}>Add Rule</Text>
+            <Text style={styles.addBtnText}>Add Reminder</Text>
           </TouchableOpacity>
         </View>
 
@@ -105,8 +115,8 @@ export default function AlertsScreen() {
           <View style={[styles.banner, GlobalStyles.screenPadding]}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
-              Alerts still track your spending here, but device notifications aren't
-              available in Expo Go — they need a development build.
+              Reminders still track your spending here, but device notifications
+              aren't available in Expo Go — they need a development build.
             </Text>
           </View>
         ) : (
@@ -114,7 +124,7 @@ export default function AlertsScreen() {
             <View style={[styles.banner, GlobalStyles.screenPadding]}>
               <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
               <Text style={styles.bannerText}>
-                Enable notifications to get alerts about your finances
+                Enable notifications to get reminders about your finances
               </Text>
               <TouchableOpacity style={styles.enableBtn} onPress={handleEnable}>
                 <Text style={styles.enableBtnText}>Enable</Text>
@@ -123,13 +133,13 @@ export default function AlertsScreen() {
           )
         )}
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Alert Rules</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Reminders</Text>
 
         <View style={styles.list}>
           {alertRules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>No alert rules yet</Text>
+              <Text style={styles.emptyText}>No reminders set yet</Text>
             </View>
           ) : (
             alertRules.map((rule) => (

@@ -123,6 +123,13 @@ export function evaluateAlerts(
         }
         break;
       }
+      case "dailyReminder":
+        // Time-based, not state-based — OS-scheduled directly (see
+        // scheduleDailyReminder/useDailyReminderSync) rather than evaluated
+        // here, since this effect only ever runs while the app's JS is
+        // actually executing and couldn't fire a reminder on its own at an
+        // arbitrary time of day with the app closed.
+        break;
     }
   }
 

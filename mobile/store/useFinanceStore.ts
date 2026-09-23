@@ -58,14 +58,20 @@ export type AlertRuleType =
   | "balanceAbove"
   | "monthlyExpenseOver"
   | "monthlyIncomeOver"
-  | "categoryAmount";
+  | "categoryAmount"
+  | "dailyReminder";
 
 export type AlertRule = {
   id: string;
   type: AlertRuleType;
+  // Unused for "dailyReminder" (set to 0) — that type is time-based, not
+  // amount-based, and is OS-scheduled off hour/minute instead of evaluated
+  // reactively like the other types (see evaluateAlerts/useAlertsMonitor).
   amount: number;
   categoryId?: string;
   categoryType?: "expense" | "income";
+  hour?: number;
+  minute?: number;
   enabled: boolean;
   lastTriggeredKey?: string;
 };
@@ -73,6 +79,14 @@ export type AlertRule = {
 export const DEFAULT_ALERT_RULES: AlertRule[] = [
   { id: "default_low_balance", type: "lowBalance", amount: 500, enabled: true },
   { id: "default_monthly_expense", type: "monthlyExpenseOver", amount: 500, enabled: true },
+  {
+    id: "default_daily_reminder",
+    type: "dailyReminder",
+    amount: 0,
+    hour: 20,
+    minute: 0,
+    enabled: true,
+  },
 ];
 
 // "refreshing" = showing cached data while a background hydrate is in flight.
