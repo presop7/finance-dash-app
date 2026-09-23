@@ -73,9 +73,14 @@ function SwipeActionPanel({
   );
 }
 
-// Revolut-style swipe actions on an Analytics transaction row: swiping right
-// reveals delete (underneath, on the left — that's renderLeftActions),
-// swiping left reveals edit (renderRightActions). Neither is tappable —
+// Revolut-style swipe actions on an Analytics transaction row: swiping left
+// triggers delete (shown with the trash icon, renderLeftActions), swiping
+// right triggers edit (pencil icon, renderRightActions) — matches the
+// common swipe-left-to-delete convention (iOS Mail, etc). Note the panel
+// shown under a given swipe and the handler wired to that swipe's
+// direction in onSwipeableWillOpen below are set independently — verified
+// on-device rather than assumed from RNGH's docs, since the two didn't
+// actually line up the way the docs suggest. Neither panel is tappable —
 // only completing the swipe triggers the action.
 //
 // This is built on Swipeable's own leftThreshold/rightThreshold +
@@ -135,8 +140,8 @@ export default function SwipeableTransactionRow({
       // playing out) keeps the trigger feeling immediate instead of
       // noticeably settling open first.
       onSwipeableWillOpen={(direction) => {
-        if (direction === "left") handleDelete();
-        else handleEdit();
+        if (direction === "left") handleEdit();
+        else handleDelete();
       }}
     >
       {/* Forces the sliding content onto its own hardware layer on Android —
