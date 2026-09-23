@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import {
   Animated,
   View,
@@ -20,6 +20,11 @@ type CategoryPickerProps = {
   // Holding a chip opens it for editing in the category manager, instead of
   // needing to go there via "+New" and find it again.
   onHoldEdit: (id: string) => void;
+  // Lets a caller (the transaction form) focus the search box
+  // programmatically — e.g. chaining the title/amount fields' keyboard
+  // "next" action into it, so filling out a new transaction doesn't need
+  // switching to the touchscreen between fields.
+  searchInputRef?: RefObject<TextInput | null>;
 };
 
 export default function CategoryPicker({
@@ -27,6 +32,7 @@ export default function CategoryPicker({
   selected,
   onSelect,
   onHoldEdit,
+  searchInputRef,
 }: CategoryPickerProps) {
   const [search, setSearch] = useState("");
   const trimmed = search.trim().toLowerCase();
@@ -54,6 +60,7 @@ export default function CategoryPicker({
       <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
         <TextInput
+          ref={searchInputRef}
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}

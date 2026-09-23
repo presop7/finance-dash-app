@@ -10,8 +10,9 @@ import {
   Platform,
   Pressable,
   ActivityIndicator,
+  InputAccessoryView,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
@@ -70,6 +71,14 @@ export default function AddTransactionModal({
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date());
   const [saving, setSaving] = useState(false);
+
+  // Chains title -> amount -> category search on the keyboard's own
+  // next/enter key, so filling out the mandatory fields for a new
+  // transaction doesn't need switching to the touchscreen between each one.
+  const titleInputRef = useRef<TextInput>(null);
+  const amountInputRef = useRef<TextInput>(null);
+  const categorySearchRef = useRef<TextInput>(null);
+  const AMOUNT_ACCESSORY_ID = "amountAccessory";
 
   const isExpense = type === "expense";
   const activeColor = isExpense ? Colors.expense : Colors.income;
@@ -207,6 +216,15 @@ export default function AddTransactionModal({
       animationType="slide"
       transparent={true}
       onRequestClose={handleClose}
+      // New transaction only — editing pre-fills the form instead, where
+      // jumping straight to focusing the title would just be in the way. A
+      // short delay after the modal reports "shown" lets its own slide-in
+      // settle before the keyboard starts animating in on top of it.
+      onShow={() => {
+        if (!editTransaction) {
+          setTimeout(() => titleInputRef.current?.focus(), 300);
+        }
+      }}
     >
       <View style={styles.root}>
         {/* Background overlay — closes numpad or modal */}
@@ -309,12 +327,16 @@ export default function AddTransactionModal({
                 color={Colors.textMuted}
               />
               <TextInput
+                ref={titleInputRef}
                 style={styles.fieldInput}
                 placeholder="Transaction title"
                 placeholderTextColor={Colors.textMuted}
                 value={title}
                 onChangeText={setTitle}
                 onFocus={() => setShowNumpad(false)}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => amountInputRef.current?.focus()}
               />
             </View>
 
@@ -336,6 +358,7 @@ export default function AddTransactionModal({
                 </Text>
               ) : null}
               <TextInput
+                ref={amountInputRef}
                 style={[
                   styles.amountFieldText,
                   { color: amount ? activeColor : Colors.textMuted },
@@ -350,6 +373,15 @@ export default function AddTransactionModal({
                   setAmount(cleaned);
                 }}
                 onFocus={() => setShowNumpad(false)}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => categorySearchRef.current?.focus()}
+                // decimal-pad has no return key on iOS at all, so
+                // onSubmitEditing above never fires there — this attaches a
+                // "Next" bar above the keyboard as the equivalent affordance.
+                // Android's decimal-pad does show a usable enter/next key,
+                // so onSubmitEditing alone covers it there.
+                inputAccessoryViewID={Platform.OS === "ios" ? AMOUNT_ACCESSORY_ID : undefined}
               />
               {amount ? <Text style={styles.amountSuffix}>{settings.currency}</Text> : null}
               {amount ? (
@@ -369,6 +401,16 @@ export default function AddTransactionModal({
                 />
               </TouchableOpacity>
             </View>
+
+            {Platform.OS === "ios" && (
+              <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
+                <View style={styles.accessoryBar}>
+                  <TouchableOpacity onPress={() => categorySearchRef.current?.focus()}>
+                    <Text style={[styles.accessoryNextText, { color: activeColor }]}>Next</Text>
+                  </TouchableOpacity>
+                </View>
+              </InputAccessoryView>
+            )}
 
             {/* Numpad — only shown when amount field is tapped */}
             {showNumpad && (
@@ -419,6 +461,7 @@ export default function AddTransactionModal({
               selected={selectedCategory}
               onSelect={setSelectedCategory}
               onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
+              searchInputRef={categorySearchRef}
             />
 
             {/* Fund Category */}
@@ -513,6 +556,19 @@ export default function AddTransactionModal({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  accessoryBar: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.surfaceSecondary,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  accessoryNextText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   overlay: {
     position: "absolute",
