@@ -22,6 +22,7 @@ import {
   DATE_RANGE_PRESETS,
   DATE_RANGE_LABELS,
   DEFAULT_FILTERS,
+  getDateRangeLabel,
 } from "../../utils/filterTransactions";
 
 type TransactionFiltersModalProps = {
@@ -32,6 +33,9 @@ type TransactionFiltersModalProps = {
   // Holding a chip opens it for editing in the category manager instead of
   // toggling it, same gesture as everywhere else chips are held in the app.
   onHoldEditCategory?: (type: CategoryTabType, id: string) => void;
+  // Opens straight into the date-range dropdown instead of the plain list —
+  // used when the Analytics header's own date-range label is tapped.
+  initialDateDropdownOpen?: boolean;
 };
 
 export default function TransactionFiltersModal({
@@ -40,8 +44,9 @@ export default function TransactionFiltersModal({
   onApply,
   onClose,
   onHoldEditCategory,
+  initialDateDropdownOpen,
 }: TransactionFiltersModalProps) {
-  const { fundCategories, expenseCategories, incomeCategories } =
+  const { fundCategories, expenseCategories, incomeCategories, settings } =
     useFinanceStore();
   const insets = useSafeAreaInsets();
 
@@ -57,9 +62,10 @@ export default function TransactionFiltersModal({
   useEffect(() => {
     if (visible) {
       setDraft(filters);
-      setDateDropdownOpen(false);
+      setDateDropdownOpen(Boolean(initialDateDropdownOpen));
       setReady(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, filters]);
 
   const handleModalShow = () => {
@@ -141,7 +147,7 @@ export default function TransactionFiltersModal({
                 onPress={() => setDateDropdownOpen((v) => !v)}
               >
                 <Text style={styles.dateDropdownText}>
-                  {DATE_RANGE_LABELS[draft.dateRangePreset]}
+                  {getDateRangeLabel(draft, settings.dateFormat)}
                 </Text>
                 <Ionicons
                   name={dateDropdownOpen ? "chevron-up" : "chevron-down"}

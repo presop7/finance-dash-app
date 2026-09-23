@@ -1,8 +1,10 @@
 import { Transaction } from "../store/useFinanceStore";
 import { isWithinRange } from "./dateRanges";
+import { formatDate, DateFormat } from "./formatDateTime";
 
 export type DateRangePreset =
   | "thisMonth"
+  | "last30Days"
   | "lastMonth"
   | "3m"
   | "6m"
@@ -12,16 +14,18 @@ export type DateRangePreset =
 
 export const DATE_RANGE_LABELS: Record<DateRangePreset, string> = {
   thisMonth: "This Month",
+  last30Days: "Last 30 Days",
   lastMonth: "Last Month",
   "3m": "3 Months",
   "6m": "6 Months",
   thisYear: "This Year",
   all: "All Time",
-  custom: "Custom",
+  custom: "Custom date range",
 };
 
 export const DATE_RANGE_PRESETS: DateRangePreset[] = [
   "thisMonth",
+  "last30Days",
   "lastMonth",
   "3m",
   "6m",
@@ -29,6 +33,17 @@ export const DATE_RANGE_PRESETS: DateRangePreset[] = [
   "all",
   "custom",
 ];
+
+// The dropdown trigger and the Analytics header both want to show the
+// resolved custom range ("12 Jan 2026 - 20 Feb 2026") once one's picked,
+// instead of just the static "Custom date range" placeholder — every other
+// preset already says what it means, custom shouldn't be the odd one out.
+export function getDateRangeLabel(filters: TransactionFilters, dateFormat: DateFormat): string {
+  if (filters.dateRangePreset === "custom" && filters.customStart && filters.customEnd) {
+    return `${formatDate(filters.customStart, dateFormat)} - ${formatDate(filters.customEnd, dateFormat)}`;
+  }
+  return DATE_RANGE_LABELS[filters.dateRangePreset];
+}
 
 export type TransactionFilters = {
   dateRangePreset: DateRangePreset;
@@ -57,6 +72,8 @@ export function getDateBounds(
   switch (filters.dateRangePreset) {
     case "thisMonth":
       return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+    case "last30Days":
+      return { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30), end: now };
     case "lastMonth":
       return {
         start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
