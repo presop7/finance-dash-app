@@ -2,7 +2,7 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import BalanceCard from "../components/BalanceCard";
-import TransactionList from "../components/TransactionList";
+import TransactionList from "../components/SwipeableTransactionList";
 import InsightBanner from "../components/InsightBanner";
 import TopExpensesCard from "../components/TopExpensesCard";
 import FundsCard from "../components/FundsCard";
@@ -15,11 +15,16 @@ import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 
 type DashboardScreenProps = {
   onTransactionPress: (transaction: Transaction) => void;
+  // Swipe-left-to-edit target for the recent-transactions/top-expenses
+  // rows — same "open AddTransactionModal in edit mode" transition the
+  // detail modal's own Edit button triggers.
+  onEditTransaction?: (transaction: Transaction) => void;
   onNavigateToAnalytics: (filter: AnalyticsInitialFilter) => void;
 };
 
 export default function DashboardScreen({
   onTransactionPress,
+  onEditTransaction,
   onNavigateToAnalytics,
 }: DashboardScreenProps) {
   const {
@@ -53,6 +58,7 @@ export default function DashboardScreen({
         <TopExpensesCard
           transactions={transactions}
           onTransactionPress={onTransactionPress}
+          onEditTransaction={onEditTransaction}
         />
       ),
     },
@@ -75,6 +81,7 @@ export default function DashboardScreen({
         <TransactionList
           transactions={recentTransactions}
           onTransactionPress={onTransactionPress}
+          onEdit={onEditTransaction}
         />
       ),
     },

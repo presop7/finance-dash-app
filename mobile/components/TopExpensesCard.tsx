@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
 import { Transaction } from "../store/useFinanceStore";
 import { getTopExpenses } from "../utils/insights";
-import TransactionList from "./TransactionList";
+import TransactionList from "./SwipeableTransactionList";
 
 type RangePreset = "7d" | "30d" | "90d" | "365d" | "all";
 
@@ -29,11 +29,13 @@ const RANGE_PRESETS: RangePreset[] = ["7d", "30d", "90d", "365d", "all"];
 type TopExpensesCardProps = {
   transactions: Transaction[];
   onTransactionPress?: (transaction: Transaction) => void;
+  onEditTransaction?: (transaction: Transaction) => void;
 };
 
 export default function TopExpensesCard({
   transactions,
   onTransactionPress,
+  onEditTransaction,
 }: TopExpensesCardProps) {
   const [range, setRange] = useState<RangePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -92,6 +94,7 @@ export default function TopExpensesCard({
         <TransactionList
           transactions={topExpenses}
           onTransactionPress={onTransactionPress}
+          onEdit={onEditTransaction}
         />
       ) : (
         <View style={styles.emptyContainer}>

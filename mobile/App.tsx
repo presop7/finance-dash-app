@@ -1,5 +1,5 @@
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   SafeAreaProvider,
@@ -358,6 +358,16 @@ function AppContent() {
   );
   const { addTransaction } = useFinanceStore();
 
+  // Stable reference (empty deps, setters are stable) for the same reason
+  // setSelectedTransaction is passed directly below — a fresh arrow function
+  // here on every AppContent render would defeat SwipeableTransactionRow's
+  // row-level React.memo everywhere it's used (Dashboard's recent list, Top
+  // Expenses, and Analytics), same class of bug fixed for onPress earlier.
+  const handleEditTransaction = useCallback((transaction: Transaction) => {
+    setEditTransaction(transaction);
+    setShowTransaction(true);
+  }, []);
+
   useAlertsMonitor();
 
   return (
@@ -387,6 +397,7 @@ function AppContent() {
               // defeat TransactionList's row-level React.memo every time,
               // since useState's setter is otherwise referentially stable.
               onTransactionPress={setSelectedTransaction}
+              onEditTransaction={handleEditTransaction}
               onNavigateToAnalytics={(filter) => navigation.navigate("Analytics", { filter })}
             />
           )}

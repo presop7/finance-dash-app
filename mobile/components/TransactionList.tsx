@@ -2,16 +2,10 @@ import { memo, useMemo } from "react";
 import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../constants/colors";
-import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 
 export type { Transaction };
-
-type TransactionListProps = {
-  transactions: Transaction[];
-  onTransactionPress?: (transaction: Transaction) => void;
-};
 
 export type CategoryDetails = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -72,36 +66,6 @@ export function TransactionEmptyState() {
   );
 }
 
-// Plain, unvirtualized list — fine for a short list like Dashboard's handful
-// of recent transactions. A list that can run into the hundreds (Analytics)
-// needs a real FlatList instead so only visible rows ever mount; see
-// AnalyticsScreen, which uses TransactionRow/useCategoryDetailsMap directly
-// for that rather than this component.
-export default function TransactionList({
-  transactions,
-  onTransactionPress,
-}: TransactionListProps) {
-  const detailsById = useCategoryDetailsMap();
-
-  if (transactions.length === 0) {
-    return <TransactionEmptyState />;
-  }
-
-  return (
-    <View style={styles.container}>
-      {transactions.map((transaction, index) => (
-        <TransactionRow
-          key={transaction.id}
-          transaction={transaction}
-          details={getTransactionDetails(detailsById, transaction)}
-          onPress={onTransactionPress}
-          isLast={index === transactions.length - 1}
-        />
-      ))}
-    </View>
-  );
-}
-
 // The list can run into the hundreds of rows, so each row needs to be able
 // to skip re-rendering when something unrelated elsewhere causes the list
 // itself to re-render — without this, every keystroke or store update
@@ -111,17 +75,27 @@ export const TransactionRow = memo(function TransactionRow({
   transaction,
   details,
   onPress,
+  onLongPress,
   isLast,
   style,
+  selectMode,
+  selected,
 }: {
   transaction: Transaction;
   details: CategoryDetails;
   onPress?: (transaction: Transaction) => void;
+  // Analytics' own multi-select — a long press enters select mode (see
+  // SwipeableTransactionRow), a plain TouchableOpacity already supports this
+  // natively without needing a separate hold-gesture component.
+  onLongPress?: () => void;
   // Drops the divider line under the very last row of a card-styled list.
   isLast?: boolean;
   // Merged on top of the default row style — lets a caller building its own
   // card look (e.g. rounding just the first/last row) override it directly.
   style?: StyleProp<ViewStyle>;
+  // Both optional — only Analytics' select mode passes these.
+  selectMode?: boolean;
+  selected?: boolean;
 }) {
   const date = new Date(transaction.date);
   const formattedDate = date.toLocaleDateString("en-GB", {
@@ -133,8 +107,18 @@ export const TransactionRow = memo(function TransactionRow({
     <TouchableOpacity
       style={[styles.row, isLast && styles.rowLast, style]}
       onPress={() => onPress?.(transaction)}
+      onLongPress={onLongPress}
       activeOpacity={0.7}
     >
+      {selectMode && (
+        <Ionicons
+          name={selected ? "checkmark-circle" : "ellipse-outline"}
+          size={20}
+          color={selected ? Colors.primary : Colors.textMuted}
+          style={styles.selectIcon}
+        />
+      )}
+
       {/* Category Icon */}
       <View style={[styles.iconContainer, { backgroundColor: details.bg }]}>
         <Ionicons name={details.icon} size={18} color={details.color} />
@@ -181,18 +165,15 @@ export const TransactionRow = memo(function TransactionRow({
 });
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    ...GlobalStyles.shadow,
-  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
+  },
+  selectIcon: {
+    marginRight: 10,
   },
   rowLast: {
     borderBottomWidth: 0,

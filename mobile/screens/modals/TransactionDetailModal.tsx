@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
-import { confirmAsync, alertAsync } from "../../utils/confirm";
+import { confirmAndDeleteTransaction } from "../../utils/transactionActions";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
 import ModalCloseButton from "../../components/ModalCloseButton";
@@ -27,7 +27,7 @@ export default function TransactionDetailModal({
   onClose,
   onEdit,
 }: TransactionDetailModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories, deleteTransaction, settings } =
+  const { expenseCategories, incomeCategories, fundCategories, settings } =
     useFinanceStore();
   const insets = useSafeAreaInsets();
 
@@ -45,20 +45,8 @@ export default function TransactionDetailModal({
   const formattedTime = formatTime(date, settings.timeFormat);
 
   const handleDelete = async () => {
-    const ok = await confirmAsync(
-      "Delete Transaction",
-      `Delete "${transaction.title || category?.label || "this transaction"}"? This can't be undone.`,
-    );
-    if (!ok) return;
-    try {
-      await deleteTransaction(transaction.id);
-      onClose();
-    } catch (err) {
-      await alertAsync(
-        "Couldn't delete transaction",
-        err instanceof Error ? err.message : "Something went wrong.",
-      );
-    }
+    const deleted = await confirmAndDeleteTransaction(transaction, category?.label);
+    if (deleted) onClose();
   };
 
   return (
