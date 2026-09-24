@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -36,7 +36,7 @@ export default function DateTimeFields({
   onInteract,
 }: DateTimeFieldsProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const [dateText, setDateText] = useState(formatDateText(date));
   const [timeText, setTimeText] = useState(formatTimeText(date));
   const [showCalendar, setShowCalendar] = useState(false);

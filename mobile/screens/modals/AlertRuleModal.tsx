@@ -10,12 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
@@ -67,7 +67,7 @@ export default function AlertRuleModal({
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const resolvedScheme = useResolvedScheme();
 
   const [type, setType] = useState<AlertRuleType>("lowBalance");

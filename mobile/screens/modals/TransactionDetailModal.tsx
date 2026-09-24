@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   View,
   Text,
@@ -11,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAndDeleteTransaction } from "../../utils/transactionActions";
 import { themedCategoryColor } from "../../utils/color";
@@ -34,7 +33,7 @@ export default function TransactionDetailModal({
     useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
   if (!transaction) return null;

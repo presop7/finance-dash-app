@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Animated, LayoutChangeEvent, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import CollapsibleCard from "./CollapsibleCard";
 
 export type DashboardCardDef = {
@@ -32,7 +32,7 @@ export default function DashboardCardList({
   const [reorderMode, setReorderMode] = useState(false);
   const [draftOrder, setDraftOrder] = useState(order);
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   // Layout props (margin/padding/border/radius) can only ever animate on
   // the JS thread, forcing a native relayout every single frame — even

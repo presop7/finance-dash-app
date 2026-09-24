@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { themedCategoryColor } from "../../utils/color";
+import { useDeferredReady } from "../../hooks/useDeferredReady";
+import { PillRowsSkeleton } from "../../components/Skeleton";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { confirmUnsavedChanges } from "../../utils/confirm";
 import CalendarRangePicker from "../../components/CalendarRangePicker";
@@ -52,30 +54,27 @@ export default function TransactionFiltersModal({
     useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
   const [draft, setDraft] = useState<TransactionFilters>(filters);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
-  // The sheet still slides in for a beat after the native Modal reports
-  // "shown" — a tap that lands on a chip mid-slide lands on a target that's
-  // still moving, so it hits nothing and reads back as the whole sheet
-  // "jumping". Ignore touches until that entrance animation has actually
-  // settled instead of accepting taps the moment the dialog appears.
-  const [ready, setReady] = useState(false);
+  // Serves two purposes off one signal. (1) The sheet is still sliding in
+  // for a beat after opening — a tap landing on a chip mid-slide hits a
+  // moving target and reads back as the whole sheet "jumping", so touches
+  // are ignored until the entrance has settled (see the glass pane below).
+  // (2) The chip sections are the expensive part to mount, so they're
+  // swapped in for a skeleton until that same moment, keeping the slide-in
+  // itself smooth instead of skipped.
+  const ready = useDeferredReady(visible, 400);
 
   useEffect(() => {
     if (visible) {
       setDraft(filters);
       setDateDropdownOpen(Boolean(initialDateDropdownOpen));
-      setReady(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, filters]);
-
-  const handleModalShow = () => {
-    setTimeout(() => setReady(true), 300);
-  };
 
   const toggleId = (list: string[], id: string): string[] =>
     list.includes(id) ? list.filter((i) => i !== id) : [...list, id];
@@ -123,7 +122,6 @@ export default function TransactionFiltersModal({
       animationType="slide"
       transparent
       onRequestClose={handleRequestClose}
-      onShow={handleModalShow}
     >
       <View style={styles.root}>
         <Pressable style={styles.overlay} onPress={handleRequestClose} />
@@ -214,6 +212,7 @@ export default function TransactionFiltersModal({
               )}
 
               <Text style={styles.sectionLabel}>Fund Location</Text>
+              {ready ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(fundCategories).map((row, rowIndex) => (
@@ -259,8 +258,12 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              ) : (
+                <PillRowsSkeleton perRow={3} />
+              )}
 
               <Text style={styles.sectionLabel}>Expense Categories</Text>
+              {ready ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(expenseCategories).map((row, rowIndex) => (
@@ -315,8 +318,12 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              ) : (
+                <PillRowsSkeleton />
+              )}
 
               <Text style={styles.sectionLabel}>Income Categories</Text>
+              {ready ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(incomeCategories).map((row, rowIndex) => (
@@ -369,6 +376,9 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              ) : (
+                <PillRowsSkeleton perRow={3} />
+              )}
             </View>
           </ScrollView>
 

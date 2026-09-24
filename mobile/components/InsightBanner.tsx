@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { getInsights } from "../utils/insights";
@@ -17,7 +17,7 @@ export default function InsightBanner({
   expenseCategories,
 }: InsightBannerProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const currency = useFinanceStore((s) => s.settings.currency);
 
   // Picked once per mount (app open) so it doesn't shuffle on every re-render.

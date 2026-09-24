@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
@@ -68,22 +68,28 @@ export function getTransactionDetails(
   detailsById: Map<string, CategoryDetails>,
   transaction: Transaction,
 ): CategoryDetails {
-  return (
-    detailsById.get(`${transaction.type}:${transaction.category}`) ?? {
-      ...(detailsById.get(FALLBACK_KEY) ?? {
-        icon: "ellipsis-horizontal-outline",
-        color: "#9CA3AF",
-        bg: "#F3F4F6",
-        border: "#E5E7EB",
-      }),
-      label: transaction.category,
-    }
-  );
+  const key = `${transaction.type}:${transaction.category}`;
+  const existing = detailsById.get(key);
+  if (existing) return existing;
+  // Cached back into the map (which is itself memoized per theme) so an
+  // uncategorized transaction gets the same object on every call — a fresh
+  // one each time would defeat the row-level memo for exactly those rows.
+  const built: CategoryDetails = {
+    ...(detailsById.get(FALLBACK_KEY) ?? {
+      icon: "ellipsis-horizontal-outline",
+      color: "#9CA3AF",
+      bg: "#F3F4F6",
+      border: "#E5E7EB",
+    }),
+    label: transaction.category,
+  };
+  detailsById.set(key, built);
+  return built;
 }
 
 export function TransactionEmptyState() {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   return (
     <View style={styles.emptyContainer}>
       <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
@@ -127,7 +133,7 @@ export const TransactionRow = memo(function TransactionRow({
   selected?: boolean;
 }) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const date = new Date(transaction.date);
   const formattedDate = date.toLocaleDateString("en-GB", {
     day: "numeric",

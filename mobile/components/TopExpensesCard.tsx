@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { Transaction } from "../store/useFinanceStore";
 import { getTopExpenses } from "../utils/insights";
 import TransactionList from "./SwipeableTransactionList";
@@ -39,7 +39,7 @@ export default function TopExpensesCard({
   onEditTransaction,
 }: TopExpensesCardProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const [range, setRange] = useState<RangePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 

@@ -12,11 +12,13 @@ import {
   ActivityIndicator,
   InputAccessoryView,
 } from "react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors } from "../../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
+import { useDeferredReady } from "../../hooks/useDeferredReady";
+import { CategoryPickerSkeleton, ChipRowSkeleton } from "../../components/Skeleton";
 import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
 import DateTimeFields from "../../components/DateTimeFields";
@@ -60,7 +62,7 @@ export default function AddTransactionModal({
   const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings } =
     useFinanceStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   const isEditing = Boolean(editTransaction);
   const insets = useSafeAreaInsets();
@@ -78,7 +80,21 @@ export default function AddTransactionModal({
   // Chains title -> amount -> category search on the keyboard's own
   // next/enter key, so filling out the mandatory fields for a new
   // transaction doesn't need switching to the touchscreen between each one.
+  // The category/fund chip rows are by far the most expensive part of this
+  // modal to mount — the light shell (header, type toggle, title, amount,
+  // Save) renders immediately so the slide-in stays smooth, and the chips
+  // mount once it's settled, with skeletons standing in meanwhile.
+  const ready = useDeferredReady(visible);
   const titleInputRef = useRef<TextInput>(null);
+
+  // New transaction only — editing pre-fills the form instead, where jumping
+  // straight to focusing the title would just be in the way. Waits for the
+  // chips to mount first so the keyboard's own animation doesn't collide
+  // with that heavier work.
+  useEffect(() => {
+    if (ready && !editTransaction) titleInputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
   const amountInputRef = useRef<TextInput>(null);
   const categorySearchRef = useRef<TextInput>(null);
   const AMOUNT_ACCESSORY_ID = "amountAccessory";
@@ -219,15 +235,6 @@ export default function AddTransactionModal({
       animationType="slide"
       transparent={true}
       onRequestClose={handleClose}
-      // New transaction only — editing pre-fills the form instead, where
-      // jumping straight to focusing the title would just be in the way. A
-      // short delay after the modal reports "shown" lets its own slide-in
-      // settle before the keyboard starts animating in on top of it.
-      onShow={() => {
-        if (!editTransaction) {
-          setTimeout(() => titleInputRef.current?.focus(), 300);
-        }
-      }}
     >
       <View style={styles.root}>
         {/* Background overlay — closes numpad or modal */}
@@ -459,13 +466,17 @@ export default function AddTransactionModal({
               </TouchableOpacity>
             </View>
 
-            <CategoryPicker
-              categories={categories}
-              selected={selectedCategory}
-              onSelect={setSelectedCategory}
-              onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
-              searchInputRef={categorySearchRef}
-            />
+            {ready ? (
+              <CategoryPicker
+                categories={categories}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+                onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
+                searchInputRef={categorySearchRef}
+              />
+            ) : (
+              <CategoryPickerSkeleton />
+            )}
 
             {/* Fund Category */}
             <View style={styles.sectionHeader}>
@@ -479,13 +490,17 @@ export default function AddTransactionModal({
               </TouchableOpacity>
             </View>
 
-            <FundCategoryPicker
-              fundCategories={fundCategories}
-              selected={selectedFundCategory}
-              onSelect={setSelectedFundCategory}
-              onAdd={() => onOpenManageFundCategories(setSelectedFundCategory)}
-              onHoldEdit={(id) => onOpenManageFundCategories(setSelectedFundCategory, id)}
-            />
+            {ready ? (
+              <FundCategoryPicker
+                fundCategories={fundCategories}
+                selected={selectedFundCategory}
+                onSelect={setSelectedFundCategory}
+                onAdd={() => onOpenManageFundCategories(setSelectedFundCategory)}
+                onHoldEdit={(id) => onOpenManageFundCategories(setSelectedFundCategory, id)}
+              />
+            ) : (
+              <ChipRowSkeleton count={4} />
+            )}
 
             {/* Date and Time — native tap-to-open pickers on iOS/Android,
                 typeable fields + custom calendar/time popovers on web

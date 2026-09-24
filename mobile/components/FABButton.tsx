@@ -1,8 +1,8 @@
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { forwardRef, useMemo } from "react";
+import { forwardRef } from "react";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
 type FABButtonProps = {
   onPress: () => void;
@@ -15,7 +15,7 @@ export type FABButtonRef = {
 const FABButton = forwardRef<FABButtonRef, FABButtonProps>(
   ({ onPress }, ref) => {
     const Colors = useThemeColors();
-    const styles = useMemo(() => createStyles(Colors), [Colors]);
+    const styles = getThemedStyles(createStyles, Colors);
     return (
       <View style={styles.container}>
         <TouchableOpacity

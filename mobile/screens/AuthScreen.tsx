@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useAuthStore } from "../store/useAuthStore";
 
 type Mode = "sign-in" | "sign-up";
@@ -26,7 +26,7 @@ const WIDE_SCREEN_BREAKPOINT = 768;
 export default function AuthScreen() {
   const { signIn, signUp, error, clearError } = useAuthStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const { width } = useWindowDimensions();
   const isWideScreen = width >= WIDE_SCREEN_BREAKPOINT;
   const [mode, setMode] = useState<Mode>("sign-in");

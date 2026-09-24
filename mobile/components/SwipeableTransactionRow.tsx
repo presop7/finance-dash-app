@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { StyleSheet, StyleProp, ViewStyle, View } from "react-native";
 import Swipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
@@ -20,8 +20,12 @@ type SwipeableTransactionRowProps = {
   onPress?: (transaction: Transaction) => void;
   // Enters multi-select — only ever rendered outside select mode (Analytics
   // swaps to a plain TransactionRow once select mode is on), so there's no
-  // "disable swipe while selecting" case to handle here.
-  onLongPress?: () => void;
+  // "disable swipe while selecting" case to handle here. Takes the id
+  // rather than being a per-row closure so a single stable callback can be
+  // shared by every row — a fresh closure per row per render defeats the
+  // memo below, and this row (gesture handler + Reanimated) is expensive to
+  // re-render for nothing.
+  onLongPress?: (id: string) => void;
   // Swipe-left target — the same "open AddTransactionModal in edit mode"
   // transition TransactionDetailModal's own Edit button already triggers.
   onEdit?: (transaction: Transaction) => void;
@@ -45,7 +49,7 @@ const FULL_SWIPE_DISTANCE = ACTION_WIDTH + 20;
 // called from the render-prop, like the old Animated.Value version did) is
 // required here — useAnimatedStyle is a hook, so it needs an actual
 // component to live in.
-function SwipeActionPanel({
+function ActiveSwipeActionPanel({
   color,
   icon,
   progress,
@@ -73,6 +77,29 @@ function SwipeActionPanel({
   );
 }
 
+// Every row mounts two of these (left and right), but a given row is almost
+// never actually swiped — and the full panel (icon glyph, two animated-style
+// worklet mappers, animated views) is by far the heaviest part of mounting a
+// row, paid for every row in a list that's re-mounted wholesale on each
+// filter switch. So until the row's first drag starts, a bare colored box of
+// the same size stands in (Swipeable needs the panel's width up front to
+// know how far it can be dragged); the real one takes over as the drag
+// begins.
+function SwipeActionPanel({
+  active,
+  color,
+  icon,
+  progress,
+}: {
+  active: boolean;
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  progress: SharedValue<number>;
+}) {
+  if (!active) return <View style={[styles.action, { backgroundColor: color }]} />;
+  return <ActiveSwipeActionPanel color={color} icon={icon} progress={progress} />;
+}
+
 // Revolut-style swipe actions on an Analytics transaction row: swiping left
 // triggers delete (shown with the trash icon, renderLeftActions), swiping
 // right triggers edit (pencil icon, renderRightActions) — matches the
@@ -96,7 +123,7 @@ function SwipeActionPanel({
 // Reanimated version of Swipeable (migrated to get off the deprecated
 // classic one, and to let the Analytics multi-select auto-scroll be driven
 // by the same reanimated dependency for smoother scrolling).
-export default function SwipeableTransactionRow({
+function SwipeableTransactionRow({
   transaction,
   details,
   isLast,
@@ -107,6 +134,10 @@ export default function SwipeableTransactionRow({
 }: SwipeableTransactionRowProps) {
   const swipeableRef = useRef<SwipeableMethods>(null);
   const Colors = useThemeColors();
+  const handleLongPress = useCallback(
+    () => onLongPress?.(transaction.id),
+    [onLongPress, transaction.id],
+  );
 
   const handleDelete = async () => {
     swipeableRef.current?.close();
@@ -118,12 +149,26 @@ export default function SwipeableTransactionRow({
     onEdit?.(transaction);
   };
 
+  // Flips once, on this row's first drag, and stays — see SwipeActionPanel.
+  const [panelsActive, setPanelsActive] = useState(false);
+  const activatePanels = useCallback(() => setPanelsActive(true), []);
+
   const renderLeftActions = (progress: SharedValue<number>) => (
-    <SwipeActionPanel color={Colors.expense} icon="trash-outline" progress={progress} />
+    <SwipeActionPanel
+      active={panelsActive}
+      color={Colors.expense}
+      icon="trash-outline"
+      progress={progress}
+    />
   );
 
   const renderRightActions = (progress: SharedValue<number>) => (
-    <SwipeActionPanel color={Colors.primary} icon="create-outline" progress={progress} />
+    <SwipeActionPanel
+      active={panelsActive}
+      color={Colors.primary}
+      icon="create-outline"
+      progress={progress}
+    />
   );
 
   return (
@@ -131,6 +176,7 @@ export default function SwipeableTransactionRow({
       ref={swipeableRef}
       renderLeftActions={renderLeftActions}
       renderRightActions={renderRightActions}
+      onSwipeableOpenStartDrag={activatePanels}
       // Below this, releasing always springs back closed — nothing settles
       // "open" short of a genuine full swipe.
       leftThreshold={FULL_SWIPE_DISTANCE}
@@ -154,7 +200,7 @@ export default function SwipeableTransactionRow({
           transaction={transaction}
           details={details}
           onPress={onPress}
-          onLongPress={onLongPress}
+          onLongPress={onLongPress ? handleLongPress : undefined}
           isLast={isLast}
           style={style}
         />
@@ -162,6 +208,12 @@ export default function SwipeableTransactionRow({
     </Swipeable>
   );
 }
+
+// Every prop is a stable reference from its callers (store objects, shared
+// callbacks, module-level styles), so the default shallow comparison is what
+// lets an unrelated Analytics state change (filter toggle, opening the
+// filters modal) skip re-rendering every mounted swipe row.
+export default memo(SwipeableTransactionRow);
 
 const styles = StyleSheet.create({
   action: {

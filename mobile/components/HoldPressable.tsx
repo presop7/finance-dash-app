@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useMemo, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Pressable, Animated, StyleSheet, StyleProp, ViewStyle, LayoutChangeEvent } from "react-native";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
 // Two independent phases, not one derived from the other: DELAY is how long
 // a press has to hold still before anything appears (so a normal tap never
@@ -45,8 +45,11 @@ export default function HoldPressable({
   children,
 }: HoldPressableProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
-  const holdAnim = useRef(new Animated.Value(0)).current;
+  const styles = getThemedStyles(createStyles, Colors);
+  // Lazy initializer — `useRef(new Animated.Value(0))` constructs (and
+  // throws away) a fresh Animated.Value on every render; with a screenful of
+  // these chips that's pure waste.
+  const [holdAnim] = useState(() => new Animated.Value(0));
   const fillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearFillTimer = () => {

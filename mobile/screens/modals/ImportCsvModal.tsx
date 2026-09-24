@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors } from "../../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { CURRENCIES } from "../../constants/currencies";
 import { DateFormat, DATE_FORMAT_PRESETS, formatDate } from "../../utils/formatDateTime";
@@ -104,7 +104,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     hydrate,
   } = useFinanceStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   const [step, setStep] = useState<Step>("pick");
   const [fileName, setFileName] = useState("");

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -11,7 +11,7 @@ import DashboardCardList, {
   DashboardCardDef,
 } from "../components/DashboardCardList";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { getGreeting, nameFromEmail } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
@@ -25,7 +25,7 @@ type DashboardScreenProps = {
   onNavigateToAnalytics: (filter: AnalyticsInitialFilter) => void;
 };
 
-export default function DashboardScreen({
+function DashboardScreen({
   onTransactionPress,
   onEditTransaction,
   onNavigateToAnalytics,
@@ -42,7 +42,7 @@ export default function DashboardScreen({
   } = useFinanceStore();
   const session = useAuthStore((s) => s.session);
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const displayName = displayNameOverride || nameFromEmail(session?.user.email) || "there";
   const greeting = getGreeting();
 
@@ -154,3 +154,7 @@ function createStyles(Colors: ColorsType) {
     },
   });
 }
+
+// Screens are memoized so opening a modal (which changes App-level state)
+// doesn't re-render them — App passes only stable props (see AppContent).
+export default memo(DashboardScreen);

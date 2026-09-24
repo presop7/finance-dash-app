@@ -16,8 +16,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { themedCategoryColor } from "../../utils/color";
+import { useDeferredReady } from "../../hooks/useDeferredReady";
+import { useStagedCount } from "../../hooks/useStagedCount";
+import { ChipGridSkeleton } from "../../components/Skeleton";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
@@ -72,8 +75,9 @@ export default function CategoriesModal({
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
+  const ready = useDeferredReady(visible);
 
   const [activeType, setActiveType] = useState<CategoryTabType>(initialType);
   // The edit/create form lives in its own modal (CategoryEditModal), stacked
@@ -127,6 +131,10 @@ export default function CategoriesModal({
   const filteredItems = trimmedSearch
     ? items.filter((item) => getLabel(item).toLowerCase().includes(trimmedSearch))
     : items;
+
+  // First screenful of chips right away, the rest a beat later — see
+  // useStagedCount. Restarts on every open via `ready`.
+  const visibleCount = useStagedCount(filteredItems.length, 14, ready);
 
   // How many transactions reference each category/fund — the empty ones
   // (0) are exactly the duplicates worth finding and clearing out.
@@ -503,10 +511,14 @@ export default function CategoriesModal({
               style={styles.categoriesGrid}
               {...(selectMode ? panResponder.panHandlers : {})}
             >
-              {filteredItems.length === 0 && (
+              {/* The chips are the expensive part of opening this modal —
+                  mounting them alongside the slide-in gets that animation
+                  skipped, so they wait for a skeleton to hold the space. */}
+              {!ready && <ChipGridSkeleton />}
+              {ready && filteredItems.length === 0 && (
                 <Text style={styles.emptySearchText}>No matches for "{search.trim()}"</Text>
               )}
-              {filteredItems.map((item) => {
+              {ready && filteredItems.slice(0, visibleCount).map((item) => {
                 const count = countsById.get(item.id) ?? 0;
                 const isSelected = selectedIds.has(item.id);
                 const iconAndLabel = (

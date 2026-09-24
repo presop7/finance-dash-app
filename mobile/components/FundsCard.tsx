@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { FundCategory } from "../constants/fundCategories";
@@ -27,7 +27,7 @@ export default function FundsCard({
   onNavigateToAnalytics,
 }: FundsCardProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
   const currency = useFinanceStore((s) => s.settings.currency);
   const funds = useMemo(() => {

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../store/useFinanceStore";
 import { formatCurrency } from "../utils/currency";
@@ -34,7 +34,7 @@ export default function AlertsScreen() {
   } = useFinanceStore();
 
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   const [permissionGranted, setPermissionGranted] = useState(true);
   const [showModal, setShowModal] = useState(false);

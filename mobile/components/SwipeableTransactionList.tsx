@@ -1,7 +1,6 @@
-import { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { Transaction } from "../store/useFinanceStore";
 import SwipeableTransactionRow from "./SwipeableTransactionRow";
@@ -30,7 +29,7 @@ export default function SwipeableTransactionList({
   onEdit,
 }: SwipeableTransactionListProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const detailsById = useCategoryDetailsMap();
 
   if (transactions.length === 0) {

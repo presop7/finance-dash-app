@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import {
   Animated,
   View,
@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
+import { useStagedCount } from "../hooks/useStagedCount";
 import HoldPressable from "./HoldPressable";
 
 type CategoryPickerProps = {
@@ -38,12 +39,15 @@ export default function CategoryPicker({
 }: CategoryPickerProps) {
   const [search, setSearch] = useState("");
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
   const trimmed = search.trim().toLowerCase();
   const filtered = trimmed
     ? categories.filter((c) => c.label.toLowerCase().includes(trimmed))
     : categories;
+  // Only ~5 chips fit on screen at once — mount the first batch immediately
+  // and the rest a beat later rather than all of them in one heavy pass.
+  const visibleCount = useStagedCount(filtered.length, 8);
 
   // Jumps the strip to the selected chip whenever the selection changes
   // from outside a direct tap here — e.g. returning from the category
@@ -88,7 +92,7 @@ export default function CategoryPicker({
         {filtered.length === 0 ? (
           <Text style={styles.emptyText}>No categories match "{search.trim()}"</Text>
         ) : (
-          filtered.map((category) => {
+          filtered.slice(0, visibleCount).map((category) => {
             const isSelected = category.id === selected;
             const colorKey = category.id as keyof typeof Colors.categories;
             const colors = Colors.categories[colorKey] ?? Colors.categories.other;

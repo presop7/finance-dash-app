@@ -1,8 +1,8 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode } from "react";
 import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import HoldPressable from "./HoldPressable";
 import BorderPressButton from "./BorderPressButton";
 
@@ -49,7 +49,7 @@ export default function CollapsibleCard({
   children,
 }: CollapsibleCardProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const scale = reorderProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
   const collapseBtnOpacity = reorderProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
 

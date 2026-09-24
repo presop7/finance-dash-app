@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -22,7 +22,7 @@ export default function DateTimeFields({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const resolvedScheme = useResolvedScheme();
 
   const formatDate = (d: Date) =>

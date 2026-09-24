@@ -1,5 +1,5 @@
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -8,7 +8,7 @@ import {
 } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { enableScreens } from "react-native-screens";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import {
   createBottomTabNavigator,
   SceneStyleInterpolators,
@@ -34,7 +34,7 @@ import FABButton from "./components/FABButton";
 
 // Constants
 import { ColorsType } from "./constants/colors";
-import { useThemeColors, useResolvedScheme } from "./hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, ThemeProvider, getThemedStyles } from "./hooks/useThemeColors";
 
 // Category Management Modal
 import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesModal";
@@ -63,6 +63,15 @@ export type TabParamList = {
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
+
+// Lets the Dashboard jump to Analytics through a module-level function
+// (stable forever) instead of a closure over the render-prop's `navigation`,
+// which would be a fresh function every render and force the memo'd
+// DashboardScreen to re-render each time.
+const navigationRef = createNavigationContainerRef<TabParamList>();
+function navigateToAnalytics(filter: AnalyticsInitialFilter) {
+  if (navigationRef.isReady()) navigationRef.navigate("Analytics", { filter });
+}
 
 // 250ms crossfade, as opposed to the library's 150ms default.
 const FADE_TRANSITION_SPEC = {
@@ -102,19 +111,25 @@ const NAV_ITEMS: {
   },
 ];
 
-export default function App() {
+// A child of ThemeProvider (App itself can't read the context it provides).
+// "light"/"dark" here names the icon color, not the app theme — light icons
+// read against our dark theme's surfaces, dark icons against light's.
+function ThemedStatusBar() {
   const resolvedScheme = useResolvedScheme();
+  return <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />;
+}
+
+export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* "light"/"dark" here names the icon color, not the app theme — light
-          icons read against our dark theme's surfaces, dark icons against
-          light's. */}
-      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <ThemeProvider>
+        <ThemedStatusBar />
+        <SafeAreaProvider>
+          <NavigationContainer ref={navigationRef}>
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
@@ -123,7 +138,7 @@ function RootNavigator() {
   const { session, initializing } = useAuthStore();
   const { status, syncError, persistHydrated, hydrate, reset } = useFinanceStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   // Keyed on the user id rather than the session object: Supabase hands back a
   // new session object on every token refresh, and re-running hydrate() then
@@ -204,7 +219,7 @@ function SyncIndicator() {
   const pendingCount = useFinanceStore((s) => s.pendingOps.length);
   const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   if (!isConnected) {
     return (
@@ -292,7 +307,7 @@ function CustomTabBar({
 }: BottomTabBarProps & { onAddPress: () => void }) {
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   const renderItem = (index: number) => {
     const route = state.routes[index];
@@ -372,7 +387,7 @@ function AppContent() {
   );
   const { addTransaction } = useFinanceStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
 
   // Stable reference (empty deps, setters are stable) for the same reason
   // setSelectedTransaction is passed directly below — a fresh arrow function
@@ -383,6 +398,27 @@ function AppContent() {
     setEditTransaction(transaction);
     setShowTransaction(true);
   }, []);
+
+  // Same reasoning as handleEditTransaction, for the rest of the props the
+  // tab screens take: opening any modal from a tab changes AppContent's own
+  // state, which re-runs this render — a fresh inline closure per render
+  // made every screen's props "change" each time, so all three tab screens
+  // (Analytics with its hundreds of rows included) re-rendered just to
+  // open a modal that has nothing to do with them. The screens are React.memo'd,
+  // and these stable references are what let that actually skip.
+  const handleHoldEditCategory = useCallback((type: CategoryTabType, id: string) => {
+    setCategoryInitialEditId(id);
+    setCategoriesModal(type);
+  }, []);
+  const handleOpenCategoryPicker = useCallback(
+    (type: CategoryTabType, onPicked: (id: string) => void) => {
+      setCategoryPickHandler(() => onPicked);
+      setCategoriesModal(type);
+    },
+    [],
+  );
+  const handleOpenCategories = useCallback((type: CategoryTabType) => setCategoriesModal(type), []);
+  const handleOpenImport = useCallback(() => setShowImportCsv(true), []);
 
   useAlertsMonitor();
   useDailyReminderSync();
@@ -406,7 +442,7 @@ function AppContent() {
         }}
       >
         <Tab.Screen name="Dashboard">
-          {({ navigation }) => (
+          {() => (
             <DashboardScreen
               // setSelectedTransaction directly, not a wrapping arrow — a
               // fresh closure here on every AppContent render (e.g. from
@@ -415,7 +451,7 @@ function AppContent() {
               // since useState's setter is otherwise referentially stable.
               onTransactionPress={setSelectedTransaction}
               onEditTransaction={handleEditTransaction}
-              onNavigateToAnalytics={(filter) => navigation.navigate("Analytics", { filter })}
+              onNavigateToAnalytics={navigateToAnalytics}
             />
           )}
         </Tab.Screen>
@@ -429,15 +465,9 @@ function AppContent() {
             <AnalyticsScreen
               initialFilter={route.params?.filter ?? null}
               onTransactionPress={setSelectedTransaction}
-              onHoldEditCategory={(type, id) => {
-                setCategoryInitialEditId(id);
-                setCategoriesModal(type);
-              }}
+              onHoldEditCategory={handleHoldEditCategory}
               onEditTransaction={handleEditTransaction}
-              onOpenCategoryPicker={(type, onPicked) => {
-                setCategoryPickHandler(() => onPicked);
-                setCategoriesModal(type);
-              }}
+              onOpenCategoryPicker={handleOpenCategoryPicker}
             />
           )}
         </Tab.Screen>
@@ -445,8 +475,8 @@ function AppContent() {
         <Tab.Screen name="Settings">
           {() => (
             <SettingsScreen
-              onOpenCategories={(type) => setCategoriesModal(type)}
-              onOpenImport={() => setShowImportCsv(true)}
+              onOpenCategories={handleOpenCategories}
+              onOpenImport={handleOpenImport}
             />
           )}
         </Tab.Screen>

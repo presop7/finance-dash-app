@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -18,7 +18,7 @@ type SettingsScreenProps = {
   onOpenImport: () => void;
 };
 
-export default function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps) {
+function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps) {
   const {
     settings,
     updateSettings,
@@ -33,7 +33,7 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
   } = useFinanceStore();
   const { session, signOut } = useAuthStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
   const [clearingTransactions, setClearingTransactions] = useState(false);
@@ -552,3 +552,7 @@ function createStyles(Colors: ColorsType) {
   bottomPadding: { height: 20 },
   });
 }
+
+// Screens are memoized so opening a modal (which changes App-level state)
+// doesn't re-render them — App passes only stable props (see AppContent).
+export default memo(SettingsScreen);

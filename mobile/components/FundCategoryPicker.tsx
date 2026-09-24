@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   View,
@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { FundCategory } from "../constants/fundCategories";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors, useResolvedScheme } from "../hooks/useThemeColors";
+import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { themedCategoryColor } from "../utils/color";
 import HoldPressable from "./HoldPressable";
 
@@ -37,7 +37,7 @@ export default function FundCategoryPicker({
   const scrollRef = useRef<ScrollView>(null);
   const itemOffsetsRef = useRef(new Map<string, number>());
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
   useEffect(() => {

@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
 type ModalCloseButtonProps = {
   onPress: () => void;
@@ -33,7 +33,7 @@ const MIN_VISIBLE_MS = 140;
 
 export default function ModalCloseButton({ onPress, style, hitSlop }: ModalCloseButtonProps) {
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const [pressed, setPressed] = useState(false);
   const pressStartRef = useRef(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

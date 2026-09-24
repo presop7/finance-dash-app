@@ -3,7 +3,7 @@ import { Animated, View, Text, StyleSheet, TouchableOpacity, Pressable } from "r
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import {
   TIMEFRAME_LABELS,
@@ -25,7 +25,7 @@ type BalanceCardProps = {
 export default function BalanceCard({ transactions, onNavigateToAnalytics }: BalanceCardProps) {
   const settings = useFinanceStore((s) => s.settings);
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   const [preset, setPreset] = useState<TimeframePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
