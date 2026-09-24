@@ -11,6 +11,7 @@ import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { nameFromEmail } from "../utils/greeting";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { financeApi } from "../services/financeApi";
+import FeedbackModal from "./modals/FeedbackModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
@@ -38,6 +39,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
   const [clearingTransactions, setClearingTransactions] = useState(false);
   const [creatingTestCategories, setCreatingTestCategories] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
@@ -459,6 +461,23 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>About</Text>
         <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setShowFeedback(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowIcon}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Send Feedback</Text>
+              <Text style={styles.rowSubtitle}>Report a problem or suggest an idea</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
@@ -472,6 +491,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      <FeedbackModal visible={showFeedback} onClose={() => setShowFeedback(false)} />
     </View>
   );
 }

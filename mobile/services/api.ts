@@ -14,6 +14,9 @@ export class ApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // A FormData body needs its Content-Type left unset so fetch can add the
+  // multipart boundary itself — forcing application/json would break it.
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -25,7 +28,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${session.access_token}`,
       ...options.headers,
     },
@@ -52,4 +55,5 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
+  postForm: <T>(path: string, body: FormData) => apiFetch<T>(path, { method: "POST", body }),
 };

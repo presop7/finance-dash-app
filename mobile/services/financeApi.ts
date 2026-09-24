@@ -120,4 +120,8 @@ export const financeApi = {
   updateTransaction: (id: string, body: ApiTransactionUpdate) =>
     api.patch<ApiTransaction>(`/transactions/${id}`, body),
   deleteTransaction: (id: string) => api.delete<void>(`/transactions/${id}`),
+
+  // Multipart: title/description/app_info as fields, each picture as an
+  // `attachments` part. The backend emails it to the developer.
+  sendFeedback: (form: FormData) => api.postForm<void>("/feedback", form),
 };
