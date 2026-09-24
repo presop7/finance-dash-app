@@ -162,6 +162,11 @@ type FinanceStore = {
   // (which round-trips to the backend) or namespaced per-user below.
   themePreference: ThemePreference;
   setThemePreference: (pref: ThemePreference) => void;
+  // Overrides the email-derived dashboard greeting name. Device-only for
+  // now to save on backend/DB work — TODO: move into Settings (synced) if
+  // cross-device consistency turns out to matter.
+  displayNameOverride: string | null;
+  setDisplayNameOverride: (name: string | null) => void;
   alertRules: AlertRule[];
   addAlertRule: (rule: Omit<AlertRule, "id">) => void;
   updateAlertRule: (id: string, changes: Partial<AlertRule>) => void;
@@ -178,6 +183,7 @@ const DEVICE_FIELDS: readonly string[] = [
   "dashboardCardOrder",
   "dashboardCollapsedCards",
   "themePreference",
+  "displayNameOverride",
 ];
 
 type PersistedBlob = {
@@ -424,6 +430,7 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
       themePreference: "system",
+      displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
 
       hydrate: async () => {
@@ -803,6 +810,7 @@ export const useFinanceStore = create<FinanceStore>()(
         })),
 
       setThemePreference: (pref) => set({ themePreference: pref }),
+      setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
 
       toggleDashboardCard: (id) =>
@@ -824,6 +832,7 @@ export const useFinanceStore = create<FinanceStore>()(
         dashboardCardOrder: state.dashboardCardOrder,
         dashboardCollapsedCards: state.dashboardCollapsedCards,
         themePreference: state.themePreference,
+        displayNameOverride: state.displayNameOverride,
         // per-user
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,

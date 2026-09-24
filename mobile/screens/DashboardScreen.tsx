@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
+import { useAuthStore } from "../store/useAuthStore";
 import BalanceCard from "../components/BalanceCard";
 import TransactionList from "../components/SwipeableTransactionList";
 import InsightBanner from "../components/InsightBanner";
@@ -12,6 +13,7 @@ import DashboardCardList, {
 import { ColorsType } from "../constants/colors";
 import { useThemeColors } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
+import { getGreeting, nameFromEmail } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 
 type DashboardScreenProps = {
@@ -36,9 +38,13 @@ export default function DashboardScreen({
     dashboardCollapsedCards,
     setDashboardCardOrder,
     toggleDashboardCard,
+    displayNameOverride,
   } = useFinanceStore();
+  const session = useAuthStore((s) => s.session);
   const Colors = useThemeColors();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const displayName = displayNameOverride || nameFromEmail(session?.user.email) || "there";
+  const greeting = getGreeting();
 
   // Show only the last 5 added transactions on the dashboard.
   const recentTransactions = transactions.slice(0, 5);
@@ -98,8 +104,8 @@ export default function DashboardScreen({
       >
         {/* Header */}
         <View style={[styles.header, GlobalStyles.screenPadding]}>
-          <Text style={styles.greeting}>Good morning,</Text>
-          <Text style={styles.name}>Alexander 👋</Text>
+          <Text style={styles.greeting}>{greeting.text}</Text>
+          <Text style={styles.name}>{displayName} {greeting.emoji}</Text>
         </View>
 
         {/* Balance Card — always pinned at the top, not collapsible/draggable */}

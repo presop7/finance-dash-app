@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors } from "../hooks/useThemeColors";
@@ -8,6 +8,7 @@ import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
+import { nameFromEmail } from "../utils/greeting";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { financeApi } from "../services/financeApi";
 import type { CategoryTabType } from "./modals/CategoriesModal";
@@ -18,7 +19,18 @@ type SettingsScreenProps = {
 };
 
 export default function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps) {
-  const { settings, updateSettings, pendingOps, transactions, isConnected, hydrate, themePreference, setThemePreference } = useFinanceStore();
+  const {
+    settings,
+    updateSettings,
+    pendingOps,
+    transactions,
+    isConnected,
+    hydrate,
+    themePreference,
+    setThemePreference,
+    displayNameOverride,
+    setDisplayNameOverride,
+  } = useFinanceStore();
   const { session, signOut } = useAuthStore();
   const Colors = useThemeColors();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
@@ -181,6 +193,25 @@ export default function SettingsScreen({ onOpenCategories, onOpenImport }: Setti
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>General</Text>
         <View style={styles.card}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="person-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Display Name</Text>
+              <Text style={styles.rowSubtitle}>Used for the dashboard greeting</Text>
+            </View>
+            <TextInput
+              style={styles.nameInput}
+              value={displayNameOverride ?? ""}
+              onChangeText={(text) => setDisplayNameOverride(text.trim() ? text : null)}
+              placeholder={nameFromEmail(session?.user.email) ?? "Name"}
+              placeholderTextColor={Colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity
             style={styles.row}
             onPress={() => setCurrencyOpen((v) => !v)}
@@ -483,6 +514,12 @@ function createStyles(Colors: ColorsType) {
   rowInfo: { flex: 1 },
   rowTitle: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary },
   rowSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  nameInput: {
+    fontSize: 13,
+    color: Colors.textPrimary,
+    textAlign: "right",
+    minWidth: 100,
+  },
   segmented: {
     flexDirection: "row",
     backgroundColor: Colors.surfaceSecondary,
