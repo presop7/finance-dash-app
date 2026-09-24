@@ -30,6 +30,7 @@ import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
 import SlidingToggle from "../components/SlidingToggle";
+import StaggeredRow from "../components/StaggeredRow";
 // Frame-time probe for the type-toggle sequence — disabled to keep the
 // console quiet, but kept wired up: to re-enable, uncomment this import and
 // the `usePerfProbe()` line below, and delete the two no-op stand-ins right
@@ -134,6 +135,9 @@ function AnalyticsScreen({
   // stutter. `listBusy` covers that batch-mounting stretch.
   const [showAll, setShowAll] = useState(true);
   const [listBusy, setListBusy] = useState(false);
+  // Steady state: the full data is in and the post-switch mounting has
+  // finished — the list can be tuned for scrolling (see the FlatList props).
+  const listReady = showAll && !listBusy;
   // False from a tap until the summary animation has started — i.e. until
   // the new rows are on screen. The toggle's chasing border is tied to this
   // rather than to the whole batch-mounting stretch after it: Reanimated
@@ -632,7 +636,7 @@ function AnalyticsScreen({
         setListBusy(false);
       },
       10,
-      2000,
+      800,
     );
   }, [listBusy]);
 
@@ -791,21 +795,25 @@ function AnalyticsScreen({
             );
           }
           return (
-            <SwipeableTransactionRow
-              transaction={item}
-              details={getTransactionDetails(detailsById, item)}
-              onPress={onTransactionPress}
-              onLongPress={enterSelectMode}
-              onEdit={onEditTransaction}
-              isLast={isLast}
-              // Not the first/last-rounded rowStyle here — Swipeable wraps
-              // each row individually, so a row's own rounded corner (only
-              // ever visible before because it sits flush against its
-              // neighbors) becomes visible as its own isolated shape the
-              // moment it detaches from them mid-swipe. Plain, unrounded
-              // corners avoid that "corner just appeared" look entirely.
-              style={rowStyles.middle}
-            />
+            // Mounts as a cheap skeleton and swaps to the real swipe row a
+            // couple of rows per frame — see StaggeredRow.
+            <StaggeredRow rowStyle={rowStyles.middle}>
+              <SwipeableTransactionRow
+                transaction={item}
+                details={getTransactionDetails(detailsById, item)}
+                onPress={onTransactionPress}
+                onLongPress={enterSelectMode}
+                onEdit={onEditTransaction}
+                isLast={isLast}
+                // Not the first/last-rounded rowStyle here — Swipeable wraps
+                // each row individually, so a row's own rounded corner (only
+                // ever visible before because it sits flush against its
+                // neighbors) becomes visible as its own isolated shape the
+                // moment it detaches from them mid-swipe. Plain, unrounded
+                // corners avoid that "corner just appeared" look entirely.
+                style={rowStyles.middle}
+              />
+            </StaggeredRow>
           );
         }}
         ListEmptyComponent={TransactionEmptyState}
@@ -884,15 +892,19 @@ function AnalyticsScreen({
           </>
         }
         ListFooterComponent={<View style={styles.bottomPadding} />}
-        // Renders a small buffer beyond the viewport rather than everything
-        // matching the filter — this, plus removeClippedSubviews on
-        // Android, is what actually keeps switching Expense/Income/All fast
-        // even when it swaps out most of the list.
-        initialNumToRender={10}
-        maxToRenderPerBatch={4}
-        updateCellsBatchingPeriod={60}
-        windowSize={5}
-        removeClippedSubviews
+        // Two regimes. Right after a type/filter switch (`!listReady`) the
+        // window and batches are deliberately small, so the rows mounting
+        // behind the summary animation are short commits. Otherwise these
+        // are the values the list had when it was known to scroll well
+        // (multi-select commit eda9b7a) — small batches / a small window
+        // can't keep up with a fast scroll and leave blank space. Rows
+        // themselves mount as cheap skeletons (StaggeredRow), which is what
+        // makes generous values affordable now.
+        initialNumToRender={listReady ? 15 : 10}
+        maxToRenderPerBatch={listReady ? 10 : 4}
+        updateCellsBatchingPeriod={listReady ? 50 : 60}
+        windowSize={listReady ? 7 : 5}
+        removeClippedSubviews={listReady}
       />
       </View>
       </GestureDetector>

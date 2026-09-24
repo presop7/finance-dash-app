@@ -195,7 +195,13 @@ function SwipeableTransactionRow({
           without it, the Animated-driven translateX here can composite with
           a sub-pixel offset against the action panel's background, showing
           as a 1px sliver of that color along one edge while dragging. */}
-      <View renderToHardwareTextureAndroid collapsable={false}>
+      {/* The hardware layer only matters once this row is actually being
+          swiped (the seam it fixes is only visible mid-drag), so it turns on
+          with the same first-drag flag as the action panels — giving every
+          row its own GPU layer at mount cost real time when a fast scroll
+          mounts a batch of them, and a freshly mounted layer can paint blank
+          for a moment. */}
+      <View renderToHardwareTextureAndroid={panelsActive} collapsable={false}>
         <TransactionRow
           transaction={transaction}
           details={details}

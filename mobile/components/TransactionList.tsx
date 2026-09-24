@@ -9,6 +9,11 @@ import { themedCategoryColor } from "../utils/color";
 
 export type { Transaction };
 
+// Same output as toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+// ("10 Sept", "28 Aug") without constructing an Intl formatter — which is
+// slow enough on Hermes to matter when a list mounts a batch of rows at once.
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+
 export type CategoryDetails = {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -135,10 +140,7 @@ export const TransactionRow = memo(function TransactionRow({
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const date = new Date(transaction.date);
-  const formattedDate = date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  });
+  const formattedDate = `${date.getDate()} ${SHORT_MONTHS[date.getMonth()]}`;
 
   return (
     <TouchableOpacity
