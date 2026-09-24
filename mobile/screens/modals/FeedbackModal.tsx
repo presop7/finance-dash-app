@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
@@ -117,8 +118,18 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
       form.append("description", description.trim());
       form.append("app_info", `${Platform.OS} ${Platform.Version}`);
       for (const picture of pictures) {
-        // React Native's FormData takes this {uri, name, type} shape for files.
-        form.append("attachments", picture as unknown as Blob);
+        // Not React Native's classic {uri, name, type} file part: this app's
+        // fetch is Expo's, whose multipart encoder rejects those ("Unsupported
+        // FormDataPart implementation") and only accepts strings, Blobs, or a
+        // File-like object exposing bytes() — with name/type used for the
+        // part's headers. So the picture's bytes are read from disk here.
+        const file = new File(picture.uri);
+        const part = {
+          name: picture.name,
+          type: picture.type,
+          bytes: async () => new Uint8Array(await file.arrayBuffer()),
+        };
+        form.append("attachments", part as unknown as Blob);
       }
       await financeApi.sendFeedback(form);
       await alertAsync("Thanks!", "Your report was sent — we'll take a look.");
