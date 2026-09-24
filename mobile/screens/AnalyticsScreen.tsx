@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Alert,
-  Animated,
-  Easing,
   FlatList,
   View,
   Text,
@@ -10,21 +8,35 @@ import {
   StyleProp,
   TextStyle,
   TouchableOpacity,
+  ViewStyle,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import {
+import Animated, {
+  Easing,
+  SharedValue,
   useSharedValue,
+  useAnimatedReaction,
   useAnimatedRef,
+  useAnimatedStyle,
   useFrameCallback,
   scrollTo,
   runOnJS,
+  withTiming,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
-import { useThemeColors } from "../hooks/useThemeColors";
+import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
+import SlidingToggle from "../components/SlidingToggle";
+// Frame-time probe for the type-toggle sequence — disabled to keep the
+// console quiet, but kept wired up: to re-enable, uncomment this import and
+// the `usePerfProbe()` line below, and delete the two no-op stand-ins right
+// after it. It logs one `[perf] ...` summary line per toggle (UI-thread vs
+// JS-thread frame gaps, plus the phase marks below).
+// import { usePerfProbe } from "../utils/perfProbe";
+import { waitForJsIdle } from "../utils/jsIdle";
 import {
   TransactionRow,
   TransactionEmptyState,
@@ -42,9 +54,22 @@ import {
   countActiveFilters,
   getDateRangeLabel,
 } from "../utils/filterTransactions";
-import { formatCurrency } from "../utils/currency";
+import { getCurrency } from "../constants/currencies";
 import { financeApi } from "../services/financeApi";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+
+// Stand-in for the perf probe's begin/mark while it's disabled (see above).
+const noopProbe = (_name?: string) => {};
+
+// Roughly a screenful of rows below the header — enough that the first
+// commit after a filter change looks complete while the rest streams in.
+const FIRST_SLICE_ROWS = 6;
+
+const MAIN_TYPE_OPTIONS: { key: MainTypeFilter; label: string }[] = [
+  { key: "expense", label: "Expenses" },
+  { key: "income", label: "Income" },
+  { key: "all", label: "All" },
+];
 
 export type AnalyticsInitialFilter = {
   mainType?: MainTypeFilter;
@@ -65,7 +90,7 @@ type AnalyticsScreenProps = {
   onOpenCategoryPicker?: (type: CategoryTabType, onPicked: (id: string) => void) => void;
 };
 
-export default function AnalyticsScreen({
+function AnalyticsScreen({
   initialFilter,
   onTransactionPress,
   onHoldEditCategory,
@@ -74,7 +99,7 @@ export default function AnalyticsScreen({
 }: AnalyticsScreenProps) {
   const { transactions, settings } = useFinanceStore();
   const Colors = useThemeColors();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const styles = getThemedStyles(createStyles, Colors);
   // Same referential-stability reasoning as before these were theme-aware
   // module-scope constants: recomputed only when styles itself changes
   // (i.e. on an actual theme switch), not on every render, so they don't
@@ -90,6 +115,57 @@ export default function AnalyticsScreen({
   );
 
   const [mainType, setMainType] = useState<MainTypeFilter>(initialFilter?.mainType ?? "all");
+  // Two-step on purpose: `toggleType` updates instantly so the toggle slides
+  // right away, while the expensive part — re-filtering and re-rendering the
+  // whole transaction list off `mainType` — is a React transition: it renders
+  // at low priority in slices instead of blocking the UI, and `isTypePending`
+  // is true exactly while it's still working (what drives the toggle's
+  // "loading" border).
+  const [toggleType, setToggleType] = useState<MainTypeFilter>(mainType);
+  const [isTypePending, startTypeTransition] = useTransition();
+  // When the list's data is swapped wholesale, FlatList synchronously mounts
+  // every row still inside its previous render window in a single commit —
+  // its batching (maxToRenderPerBatch) only applies when a list *grows*.
+  // That one big commit was the remaining freeze. So the list is first fed
+  // just a screenful (`showAll` false), and the full data is released only
+  // after the summary animation has played (see the effects below): the
+  // rest of the rows mounting in batches keeps the JS thread busy for most
+  // of a second, and doing that *during* the animation is what made it
+  // stutter. `listBusy` covers that batch-mounting stretch.
+  const [showAll, setShowAll] = useState(true);
+  const [listBusy, setListBusy] = useState(false);
+  // False from a tap until the summary animation has started — i.e. until
+  // the new rows are on screen. The toggle's chasing border is tied to this
+  // rather than to the whole batch-mounting stretch after it: Reanimated
+  // holds its animated-prop commits back while React is committing (and on
+  // Android, synchronous UI-prop updates are off by default), so a border
+  // kept running through those heavy commits could only advance in steps.
+  const [animStarted, setAnimStarted] = useState(true);
+  // Drives the summary card's fill/count-up (0 -> 1). Reset to 0 right at
+  // the tap — before any React work — rather than in an effect after the new
+  // list commits: that commit is heavy, and until it finished the UI thread
+  // kept painting the new layout with the *old* fill/number for a few
+  // frames before jumping to 0.
+  const summaryProgress = useSharedValue(0);
+  // const { begin: probeBegin, mark: probeMark } = usePerfProbe();
+  const probeBegin = noopProbe;
+  const probeMark = noopProbe;
+  const toggleTypeRef = useRef(toggleType);
+  toggleTypeRef.current = toggleType;
+  const handleTypeChange = useCallback((type: MainTypeFilter) => {
+    // Re-tapping the current type changes nothing, so nothing would restart
+    // the animation that the reset below stops — skip it entirely.
+    if (type === toggleTypeRef.current) return;
+    probeBegin();
+    probeMark("tap");
+    summaryProgress.value = 0;
+    setAnimStarted(false);
+    setToggleType(type);
+    startTypeTransition(() => {
+      setMainType(type);
+      setShowAll(false);
+    });
+  }, []);
   const [filters, setFilters] = useState<TransactionFilters>({
     ...DEFAULT_FILTERS,
     fundIds: initialFilter?.fundIds ?? [],
@@ -375,6 +451,18 @@ export default function AnalyticsScreen({
     () => applyFilters(transactions, filters, mainType),
     [transactions, filters, mainType],
   );
+  // What the FlatList actually gets — see showAll above. `filtered` (the full
+  // set) still drives the summary, counts and each row's first/last styling.
+  const listData = useMemo(
+    () => (showAll ? filtered : filtered.slice(0, FIRST_SLICE_ROWS)),
+    [showAll, filtered],
+  );
+  const handleApplyFilters = useCallback((next: TransactionFilters) => {
+    summaryProgress.value = 0;
+    setAnimStarted(false);
+    setFilters(next);
+    setShowAll(false);
+  }, []);
 
   // Deliberately bypasses the store's deleteTransaction/updateTransaction
   // (each does its own full refetch per call) in favor of calling financeApi
@@ -467,44 +555,95 @@ export default function AnalyticsScreen({
   // Bars grow from empty and amounts count up from 0 to the real value
   // whenever the summary changes (switching the Expense/Income/All tab,
   // applying filters, etc.), instead of snapping straight to the new
-  // numbers. JS-driven (width and arbitrary number values aren't eligible
-  // for the native driver). The bar widths are cheap — Animated mutates the
-  // native view directly each tick without going through React — but the
-  // count-up numbers used to drive this via addListener -> setState *here*,
-  // which re-rendered the whole screen (TransactionList included) on every
-  // tick; that's what was choppy. CountUpAmount below owns its own listener
-  // and state so those re-renders stay scoped to just the number text.
-  const incomeBarAnim = useRef(new Animated.Value(0)).current;
-  const expenseBarAnim = useRef(new Animated.Value(0)).current;
-  const incomeAmountAnim = useRef(new Animated.Value(0)).current;
-  const expenseAmountAnim = useRef(new Animated.Value(0)).current;
-  const netAmountAnim = useRef(new Animated.Value(0)).current;
+  // numbers. This used to be a JS-driven Animated.timing per value — which
+  // meant every frame needed the JS thread, the very thread that's busy
+  // rendering the freshly-filtered list at that moment, so it dropped to a
+  // handful of frames. Now the targets are shared values and a single
+  // Reanimated timing (0 -> 1) scales all of them, so the whole animation
+  // runs on the UI thread and can't be starved by list work.
+  const incomeTarget = useSharedValue(0);
+  const expenseTarget = useSharedValue(0);
+  const netTarget = useSharedValue(0);
+  const incomePctTarget = useSharedValue(0);
+  const expensePctTarget = useSharedValue(0);
+  const currencyCode = getCurrency(settings.currency).code;
 
   useEffect(() => {
-    const incomePct = (summary.income / maxBar) * 100;
-    const expensePct = (summary.expense / maxBar) * 100;
-
-    [incomeBarAnim, expenseBarAnim, incomeAmountAnim, expenseAmountAnim, netAmountAnim].forEach((a) =>
-      a.setValue(0),
-    );
-    Animated.parallel(
-      [
-        [incomeBarAnim, incomePct],
-        [expenseBarAnim, expensePct],
-        [incomeAmountAnim, summary.income],
-        [expenseAmountAnim, summary.expense],
-        [netAmountAnim, summary.net],
-      ].map(([anim, toValue]) =>
-        Animated.timing(anim as Animated.Value, {
-          toValue: toValue as number,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-      ),
-    ).start();
+    incomeTarget.value = summary.income;
+    expenseTarget.value = summary.expense;
+    netTarget.value = summary.net;
+    incomePctTarget.value = (summary.income / maxBar) * 100;
+    expensePctTarget.value = (summary.expense / maxBar) * 100;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summary.income, summary.expense, summary.net, maxBar]);
+
+  // Sequencing, from what was measured on-device (the JS thread stayed
+  // stalled for most of a second while FlatList mounted the remaining rows in
+  // batches, and the count-up rides on JS): show the first rows, play the
+  // summary animation while the JS thread is genuinely quiet (only a
+  // screenful has been committed), and only THEN release the rest of the
+  // list to mount. Waiting for the mount to finish first — the previous
+  // approach — just delayed the animation by that whole stretch.
+  const summaryKey = `${summary.income}|${summary.expense}|${summary.net}|${maxBar}|${mainType}`;
+  const summaryKeyRef = useRef(summaryKey);
+  summaryKeyRef.current = summaryKey;
+  const lastAnimatedKey = useRef<string | null>(null);
+
+  const animateSummary = useCallback(() => {
+    lastAnimatedKey.current = summaryKeyRef.current;
+    probeMark("animStart");
+    setAnimStarted(true);
+    summaryProgress.value = 0;
+    summaryProgress.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) });
+    setTimeout(() => probeMark("animEnd"), 500);
+  }, []);
+
+  // Phase 1: the first rows are in (transition committed, full data not yet
+  // released) -> wait for quiet -> animate -> release the rest afterward.
+  useEffect(() => {
+    if (isTypePending || showAll) return;
+    probeMark("firstRowsIn");
+    let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancelIdle = waitForJsIdle(
+      () => {
+        animateSummary();
+        releaseTimer = setTimeout(() => {
+          probeMark("releaseRest");
+          setListBusy(true);
+          setShowAll(true);
+        }, 540);
+      },
+      6,
+      1200,
+    );
+    return () => {
+      cancelIdle();
+      if (releaseTimer) clearTimeout(releaseTimer);
+    };
+  }, [isTypePending, showAll, animateSummary]);
+
+  // Phase 2: the rest of the rows are mounting in batches — the toggle's
+  // border keeps chasing until the JS thread has actually gone quiet again.
+  useEffect(() => {
+    if (!listBusy) return;
+    return waitForJsIdle(
+      () => {
+        probeMark("listQuiet");
+        setListBusy(false);
+      },
+      10,
+      2000,
+    );
+  }, [listBusy]);
+
+  // Any other reason the summary changes (a transaction added/edited, initial
+  // mount) — outside a toggle cycle — animates once things are quiet, unless
+  // this exact summary was already animated by phase 1.
+  useEffect(() => {
+    if (isTypePending || !showAll || listBusy) return;
+    if (lastAnimatedKey.current === summaryKey) return;
+    return waitForJsIdle(animateSummary, 10, 1800);
+  }, [isTypePending, showAll, listBusy, summaryKey, animateSummary]);
 
   return (
     <View style={styles.container}>
@@ -522,24 +661,12 @@ export default function AnalyticsScreen({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.mainTypeRow}>
-          {(["expense", "income", "all"] as MainTypeFilter[]).map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[styles.mainTypeOption, mainType === type && styles.mainTypeOptionActive]}
-              onPress={() => setMainType(type)}
-            >
-              <Text
-                style={[
-                  styles.mainTypeText,
-                  mainType === type && styles.mainTypeTextActive,
-                ]}
-              >
-                {type === "expense" ? "Expenses" : type === "income" ? "Income" : "All"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <SlidingToggle
+          options={MAIN_TYPE_OPTIONS}
+          value={toggleType}
+          onChange={handleTypeChange}
+          loading={isTypePending || (!showAll && !animStarted)}
+        />
 
         <TouchableOpacity
           style={styles.dateRangeRow}
@@ -634,7 +761,7 @@ export default function AnalyticsScreen({
           maxScrollOffset.value = Math.max(0, contentHeight - (bottom - top));
         }}
         scrollEventThrottle={32}
-        data={filtered}
+        data={listData}
         keyExtractor={(t) => t.id}
         renderItem={({ item, index }) => {
           const isFirst = index === 0;
@@ -668,7 +795,7 @@ export default function AnalyticsScreen({
               transaction={item}
               details={getTransactionDetails(detailsById, item)}
               onPress={onTransactionPress}
-              onLongPress={() => enterSelectMode(item.id)}
+              onLongPress={enterSelectMode}
               onEdit={onEditTransaction}
               isLast={isLast}
               // Not the first/last-rounded rowStyle here — Swipeable wraps
@@ -691,59 +818,60 @@ export default function AnalyticsScreen({
               onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
             >
               <View style={styles.summaryCard}>
+                {/* Under a single-type filter the other type's bar would just
+                    sit empty — hidden instead. */}
+                {mainType !== "expense" && (
                 <View style={styles.barRow}>
                   <View style={styles.barLabelRow}>
                     <View style={[styles.dot, { backgroundColor: Colors.income }]} />
                     <Text style={styles.barLabel}>Income</Text>
-                    <CountUpAmount anim={incomeAmountAnim} currency={settings.currency} style={styles.barAmount} />
-                  </View>
-                  <View style={styles.barTrack}>
-                    <Animated.View
-                      style={[
-                        styles.barFill,
-                        {
-                          width: incomeBarAnim.interpolate({
-                            inputRange: [0, 100],
-                            outputRange: ["0%", "100%"],
-                            extrapolate: "clamp",
-                          }),
-                          backgroundColor: Colors.income,
-                        },
-                      ]}
+                    <CountUpAmount
+                      target={incomeTarget}
+                      progress={summaryProgress}
+                      currencyCode={currencyCode}
+                      style={styles.barAmount}
                     />
                   </View>
+                  <SummaryBar
+                    pctTarget={incomePctTarget}
+                    progress={summaryProgress}
+                    trackStyle={styles.barTrack}
+                    fillStyle={[styles.barFill, { backgroundColor: Colors.income }]}
+                  />
                 </View>
+                )}
 
+                {mainType !== "income" && (
                 <View style={styles.barRow}>
                   <View style={styles.barLabelRow}>
                     <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
                     <Text style={styles.barLabel}>Expenses</Text>
-                    <CountUpAmount anim={expenseAmountAnim} currency={settings.currency} style={styles.barAmount} />
-                  </View>
-                  <View style={styles.barTrack}>
-                    <Animated.View
-                      style={[
-                        styles.barFill,
-                        {
-                          width: expenseBarAnim.interpolate({
-                            inputRange: [0, 100],
-                            outputRange: ["0%", "100%"],
-                            extrapolate: "clamp",
-                          }),
-                          backgroundColor: Colors.expense,
-                        },
-                      ]}
+                    <CountUpAmount
+                      target={expenseTarget}
+                      progress={summaryProgress}
+                      currencyCode={currencyCode}
+                      style={styles.barAmount}
                     />
                   </View>
+                  <SummaryBar
+                    pctTarget={expensePctTarget}
+                    progress={summaryProgress}
+                    trackStyle={styles.barTrack}
+                    fillStyle={[styles.barFill, { backgroundColor: Colors.expense }]}
+                  />
                 </View>
+                )}
 
                 <View style={styles.netRow}>
-                  <Text style={styles.netLabel}>Net</Text>
+                  <Text style={styles.netLabel}>
+                    {mainType === "expense" ? "Expenses" : mainType === "income" ? "Incomes" : "Net"}
+                  </Text>
                   <CountUpAmount
-                    anim={netAmountAnim}
-                    currency={settings.currency}
+                    target={netTarget}
+                    progress={summaryProgress}
+                    currencyCode={currencyCode}
                     style={styles.netAmount}
-                    negativeStyle={{ color: Colors.expense }}
+                    negativeColor={Colors.expense}
                     showSign
                   />
                 </View>
@@ -760,9 +888,10 @@ export default function AnalyticsScreen({
         // matching the filter — this, plus removeClippedSubviews on
         // Android, is what actually keeps switching Expense/Income/All fast
         // even when it swaps out most of the list.
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
-        windowSize={7}
+        initialNumToRender={10}
+        maxToRenderPerBatch={4}
+        updateCellsBatchingPeriod={60}
+        windowSize={5}
         removeClippedSubviews
       />
       </View>
@@ -771,7 +900,7 @@ export default function AnalyticsScreen({
       <TransactionFiltersModal
         visible={showFiltersModal}
         filters={filters}
-        onApply={setFilters}
+        onApply={handleApplyFilters}
         onClose={() => {
           setShowFiltersModal(false);
           setOpenToDateDropdown(false);
@@ -783,35 +912,80 @@ export default function AnalyticsScreen({
   );
 }
 
-// Owns its own listener + state for the count-up animation, so the re-render
-// each tick produces is scoped to just this Text rather than the whole
-// screen (which is what made the animation choppy when the parent held that
-// state instead — every tick re-rendered AnalyticsScreen, TransactionList
-// included).
+// The fill is always full width and *slides* in from the left inside its
+// clipped track, driven by the shared 0 -> 1 progress. A translate is one of
+// the few props Reanimated applies straight to the native view on the UI
+// thread, with no shadow-tree commit — animating `width` instead (what this
+// used to do) needs a layout commit every frame, which queues behind the JS
+// thread's own commits and is what made the fill look like a few frames.
+// The track's rounded, clipped ends keep it looking like a normal bar.
+function SummaryBar({
+  pctTarget,
+  progress,
+  trackStyle,
+  fillStyle,
+}: {
+  pctTarget: SharedValue<number>;
+  progress: SharedValue<number>;
+  trackStyle: StyleProp<ViewStyle>;
+  fillStyle: StyleProp<ViewStyle>;
+}) {
+  const trackWidth = useSharedValue(0);
+  const slideStyle = useAnimatedStyle(() => {
+    const fraction = Math.min(100, Math.max(0, pctTarget.value * progress.value)) / 100;
+    return {
+      // Hidden until the track has been measured, so it can't flash full.
+      opacity: trackWidth.value > 0 ? 1 : 0,
+      transform: [{ translateX: (fraction - 1) * trackWidth.value }],
+    };
+  });
+  return (
+    <View
+      style={trackStyle}
+      onLayout={(e) => {
+        trackWidth.value = e.nativeEvent.layout.width;
+      }}
+    >
+      <Animated.View style={[fillStyle, { width: "100%" }, slideStyle]} />
+    </View>
+  );
+}
+
+// The count-up reads the shared 0 -> 1 progress (and the target) and pushes
+// each new value into plain React state, in this one small component. The
+// number itself can't be a transform, so its per-frame update has to be a
+// real commit either way — doing it from the JS thread (which is idle by
+// the time the animation starts, see the phase effects above) keeps those commits off
+// the UI thread, where they used to starve the transform-only animations
+// (the fill, the toggle) that share it.
 function CountUpAmount({
-  anim,
-  currency,
+  target,
+  progress,
+  currencyCode,
   style,
-  negativeStyle,
+  negativeColor,
   showSign,
 }: {
-  anim: Animated.Value;
-  currency: string;
+  target: SharedValue<number>;
+  progress: SharedValue<number>;
+  currencyCode: string;
   style?: StyleProp<TextStyle>;
-  negativeStyle?: StyleProp<TextStyle>;
+  negativeColor?: string;
   showSign?: boolean;
 }) {
   const [value, setValue] = useState(0);
 
-  useEffect(() => {
-    const id = anim.addListener(({ value }) => setValue(value));
-    return () => anim.removeListener(id);
-  }, [anim]);
+  useAnimatedReaction(
+    () => Math.round(target.value * progress.value * 100),
+    (cents, previous) => {
+      if (cents !== previous) runOnJS(setValue)(cents / 100);
+    },
+  );
 
   return (
-    <Text style={[style, negativeStyle && value < 0 && negativeStyle]}>
+    <Text style={[style, negativeColor && value < 0 ? { color: negativeColor } : null]}>
       {showSign && value >= 0 ? "+" : ""}
-      {formatCurrency(value, currency)}
+      {value.toFixed(2)} {currencyCode}
     </Text>
   );
 }
@@ -844,23 +1018,6 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.primary + "40",
   },
   filterBtnText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
-  mainTypeRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignSelf: "center",
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 20,
-    padding: 3,
-    marginBottom: 8,
-  },
-  mainTypeOption: {
-    paddingHorizontal: 18,
-    paddingVertical: 7,
-    borderRadius: 18,
-  },
-  mainTypeOptionActive: { backgroundColor: Colors.primary },
-  mainTypeText: { fontSize: 12, fontWeight: "600", color: Colors.textMuted },
-  mainTypeTextActive: { color: "#fff" },
   dateRangeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -973,3 +1130,6 @@ function createStyles(Colors: ColorsType) {
   });
 }
 
+// Screens are memoized so opening a modal (which changes App-level state)
+// doesn't re-render them — App passes only stable props (see AppContent).
+export default memo(AnalyticsScreen);
