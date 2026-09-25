@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   Pressable,
   Modal,
@@ -59,6 +60,9 @@ export default function TransactionFiltersModal({
 
   const [draft, setDraft] = useState<TransactionFilters>(filters);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  const [fundSearch, setFundSearch] = useState("");
+  const [expenseSearch, setExpenseSearch] = useState("");
+  const [incomeSearch, setIncomeSearch] = useState("");
   // Serves two purposes off one signal. (1) The sheet is still sliding in
   // for a beat after opening — a tap landing on a chip mid-slide hits a
   // moving target and reads back as the whole sheet "jumping", so touches
@@ -72,9 +76,33 @@ export default function TransactionFiltersModal({
     if (visible) {
       setDraft(filters);
       setDateDropdownOpen(Boolean(initialDateDropdownOpen));
+      setFundSearch("");
+      setExpenseSearch("");
+      setIncomeSearch("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, filters]);
+
+  const matches = (name: string, query: string) =>
+    name.toLowerCase().includes(query.trim().toLowerCase());
+  const filteredFunds = useMemo(
+    () => (fundSearch.trim() ? fundCategories.filter((f) => matches(f.name, fundSearch)) : fundCategories),
+    [fundCategories, fundSearch],
+  );
+  const filteredExpenseCategories = useMemo(
+    () =>
+      expenseSearch.trim()
+        ? expenseCategories.filter((c) => matches(c.label, expenseSearch))
+        : expenseCategories,
+    [expenseCategories, expenseSearch],
+  );
+  const filteredIncomeCategories = useMemo(
+    () =>
+      incomeSearch.trim()
+        ? incomeCategories.filter((c) => matches(c.label, incomeSearch))
+        : incomeCategories,
+    [incomeCategories, incomeSearch],
+  );
 
   const toggleId = (list: string[], id: string): string[] =>
     list.includes(id) ? list.filter((i) => i !== id) : [...list, id];
@@ -213,9 +241,28 @@ export default function TransactionFiltersModal({
 
               <Text style={styles.sectionLabel}>Fund Location</Text>
               {ready ? (
+              <>
+              <View style={styles.searchBox}>
+                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={fundSearch}
+                  onChangeText={setFundSearch}
+                  placeholder="Search funds"
+                  placeholderTextColor={Colors.textMuted}
+                />
+                {fundSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setFundSearch("")} hitSlop={8}>
+                    <Ionicons name="close-circle" size={14} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {filteredFunds.length === 0 ? (
+                <Text style={styles.emptySearchText}>No matching funds.</Text>
+              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
-                  {splitIntoRows(fundCategories).map((row, rowIndex) => (
+                  {splitIntoRows(filteredFunds).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
                       {row.map((fund) => {
                         const active = draft.fundIds.includes(fund.id);
@@ -258,15 +305,36 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              )}
+              </>
               ) : (
                 <PillRowsSkeleton perRow={3} />
               )}
 
               <Text style={styles.sectionLabel}>Expense Categories</Text>
               {ready ? (
+              <>
+              <View style={styles.searchBox}>
+                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={expenseSearch}
+                  onChangeText={setExpenseSearch}
+                  placeholder="Search expense categories"
+                  placeholderTextColor={Colors.textMuted}
+                />
+                {expenseSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setExpenseSearch("")} hitSlop={8}>
+                    <Ionicons name="close-circle" size={14} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {filteredExpenseCategories.length === 0 ? (
+                <Text style={styles.emptySearchText}>No matching categories.</Text>
+              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
-                  {splitIntoRows(expenseCategories).map((row, rowIndex) => (
+                  {splitIntoRows(filteredExpenseCategories).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
                       {row.map((cat) => {
                         const active = draft.expenseCategoryIds.includes(
@@ -318,15 +386,36 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              )}
+              </>
               ) : (
                 <PillRowsSkeleton />
               )}
 
               <Text style={styles.sectionLabel}>Income Categories</Text>
               {ready ? (
+              <>
+              <View style={styles.searchBox}>
+                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={incomeSearch}
+                  onChangeText={setIncomeSearch}
+                  placeholder="Search income categories"
+                  placeholderTextColor={Colors.textMuted}
+                />
+                {incomeSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setIncomeSearch("")} hitSlop={8}>
+                    <Ionicons name="close-circle" size={14} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {filteredIncomeCategories.length === 0 ? (
+                <Text style={styles.emptySearchText}>No matching categories.</Text>
+              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
-                  {splitIntoRows(incomeCategories).map((row, rowIndex) => (
+                  {splitIntoRows(filteredIncomeCategories).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
                       {row.map((cat) => {
                         const active = draft.incomeCategoryIds.includes(cat.id);
@@ -376,6 +465,8 @@ export default function TransactionFiltersModal({
                   ))}
                 </View>
               </ScrollView>
+              )}
+              </>
               ) : (
                 <PillRowsSkeleton perRow={3} />
               )}
@@ -497,6 +588,24 @@ function createStyles(Colors: ColorsType) {
   dropdownItemActive: { backgroundColor: Colors.primary + "10" },
   dropdownItemText: { fontSize: 12, color: Colors.textSecondary },
   dropdownItemTextActive: { color: Colors.primary, fontWeight: "600" },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: Colors.surfaceSecondary,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: Colors.textPrimary, padding: 0 },
+  emptySearchText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    paddingVertical: 8,
+  },
   chipRows: {
     flexDirection: "column",
   },
