@@ -8,7 +8,7 @@ const IS_DEV = process.env.APP_VARIANT === "development";
 
 module.exports = {
   expo: {
-    name: IS_DEV ? "Finance Dash Dev" : "mobile",
+    name: IS_DEV ? "Dev Fi-Track" : "Fi-Track",
     slug: "mobile",
     version: "1.0.0",
     orientation: "portrait",
@@ -22,7 +22,7 @@ module.exports = {
       package: IS_DEV ? "com.presop7.financedash.dev" : "com.presop7.financedash",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#17181c",
       },
       predictiveBackGestureEnabled: false,
     },
@@ -38,7 +38,7 @@ module.exports = {
         {
           image: "./assets/splash-icon.png",
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#17181c",
         },
       ],
     ],
