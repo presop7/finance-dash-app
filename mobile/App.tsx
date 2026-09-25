@@ -48,6 +48,14 @@ import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 // Explanation dialog for the offline / failed-sync status bar
 import { alertAsync } from "./utils/confirm";
 
+// TEMPORARY diagnostic (see utils/perfWatchdog.ts) — started once at module
+// load, before anything else mounts, so the earliest app-startup work is
+// covered too. Not __DEV__-gated (see that file for why) — flip its own
+// ENABLED flag to false, or delete this import, once this pass is done.
+import { startPerfWatchdog } from "./utils/perfWatchdog";
+import PerfOverlay from "./components/PerfOverlay";
+startPerfWatchdog();
+
 // react-native-screens' native screen containers, used under the hood by the
 // tab navigator below — this is what makes tab switches use real native
 // transitions instead of hand-rolled JS animation over mounted React trees
@@ -129,6 +137,8 @@ export default function App() {
             <RootNavigator />
           </NavigationContainer>
         </SafeAreaProvider>
+        {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. */}
+        <PerfOverlay />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { useFrameCallback, useSharedValue } from "react-native-reanimated";
+import { pushLog } from "./perfLogSink";
 
 // TEMPORARY diagnostic — remove once the Analytics toggle animation
 // jank is understood. Measures frame gaps on both threads during a window
@@ -56,11 +57,11 @@ export function usePerfProbe(windowMs = 2500) {
       uiCallback.setActive(false);
       running.current = false;
       const fmt = (n: number) => Math.round(n);
-      console.log(
-        `[perf] ${windowMs}ms window | UI thread: frames=${uiFrames.value} maxGap=${fmt(uiMax.value)}ms >25ms=${uiSlow.value} >40ms=${uiVerySlow.value} | JS thread: frames=${frames} maxGap=${fmt(max)}ms >25ms=${slow} >40ms=${verySlow} | marks: ${marks.current
-          .map(([name, at]) => `${name}@${at}ms`)
-          .join(", ")}`,
-      );
+      const msg = `[perf] ${windowMs}ms window | UI: frames=${uiFrames.value} max=${fmt(uiMax.value)}ms >25=${uiSlow.value} >40=${uiVerySlow.value} | JS: frames=${frames} max=${fmt(max)}ms >25=${slow} >40=${verySlow} | marks: ${marks.current
+        .map(([name, at]) => `${name}@${at}ms`)
+        .join(", ")}`;
+      console.log(msg);
+      pushLog(msg);
     };
     requestAnimationFrame(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps

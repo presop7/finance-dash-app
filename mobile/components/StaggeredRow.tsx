@@ -3,6 +3,14 @@ import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { SkeletonBlock } from "./Skeleton";
+// TEMPORARY diagnostic (see utils/perfWatchdog.ts) — this queue is a prime
+// suspect for stalls that outlast any tagged interaction by a long margin
+// (e.g. releasing the full 283-row "All" list keeps this popping 2 rows a
+// frame — 140+ frames, over 2s — long after a toggle tap itself finished).
+// Tags only the idle->active and active->idle edges, not every pump, so it
+// doesn't spam.
+import { perfTag } from "../utils/perfWatchdog";
+import { pushLog } from "../utils/perfLogSink";
 
 // Upgrades happen a couple of rows per frame from one shared queue, rather
 // than every row upgrading in the same commit the moment it mounts — that's
@@ -14,14 +22,28 @@ import { SkeletonBlock } from "./Skeleton";
 const ROWS_PER_FRAME = 2;
 const queue: Array<() => void> = [];
 let pumping = false;
+let queueActive = false;
 
 function pump() {
   pumping = false;
   for (let i = 0; i < ROWS_PER_FRAME && queue.length > 0; i++) queue.shift()!();
-  if (queue.length > 0) schedule();
+  if (queue.length > 0) {
+    schedule();
+  } else if (queueActive) {
+    queueActive = false;
+    const msg = "[perf] StaggeredRow queue drained";
+    perfTag("staggered-queue-drained");
+    pushLog(msg);
+  }
 }
 
 function schedule() {
+  if (!queueActive) {
+    queueActive = true;
+    const msg = `[perf] StaggeredRow queue started (${queue.length} queued)`;
+    perfTag(`staggered-queue-start(${queue.length})`);
+    pushLog(msg);
+  }
   if (pumping) return;
   pumping = true;
   requestAnimationFrame(pump);
