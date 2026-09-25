@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Alert,
   FlatList,
@@ -31,12 +31,18 @@ import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
 import SlidingToggle from "../components/SlidingToggle";
 import StaggeredRow from "../components/StaggeredRow";
-// Frame-time probe for the type-toggle sequence — disabled to keep the
-// console quiet, but kept wired up: to re-enable, uncomment this import and
-// the `usePerfProbe()` line below, and delete the two no-op stand-ins right
-// after it. It logs one `[perf] ...` summary line per toggle (UI-thread vs
-// JS-thread frame gaps, plus the phase marks below).
-// import { usePerfProbe } from "../utils/perfProbe";
+import Carousel from "../components/Carousel";
+import CategoryPieChart from "../components/CategoryPieChart";
+import CategoryBarChart from "../components/CategoryBarChart";
+import { useCategoryBreakdown } from "../hooks/useCategoryBreakdown";
+// TEMPORARY diagnostics for the current performance pass — see
+// utils/perfProbe.ts (a windowed frame-gap report per interaction) and
+// utils/perfWatchdog.ts (an always-on freeze catcher). Both are __DEV__-only
+// no-ops in a production build via their own internal checks, except
+// usePerfProbe's frame callback itself, which is why it's still behind this
+// explicit toggle rather than left permanently on.
+import { usePerfProbe } from "../utils/perfProbe";
+import { perfTag } from "../utils/perfWatchdog";
 import { waitForJsIdle } from "../utils/jsIdle";
 import {
   TransactionRow,
@@ -59,9 +65,6 @@ import { getCurrency } from "../constants/currencies";
 import { financeApi } from "../services/financeApi";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 
-// Stand-in for the perf probe's begin/mark while it's disabled (see above).
-const noopProbe = (_name?: string) => {};
-
 // Roughly a screenful of rows below the header — enough that the first
 // commit after a filter change looks complete while the rest streams in.
 const FIRST_SLICE_ROWS = 6;
@@ -71,6 +74,9 @@ const MAIN_TYPE_OPTIONS: { key: MainTypeFilter; label: string }[] = [
   { key: "income", label: "Income" },
   { key: "all", label: "All" },
 ];
+
+// Indexed by the Summary card's carousel page (0 = totals bars, 1 = pie).
+const SUMMARY_CARD_TITLES = ["Summary", "Category Breakdown", "Category Breakdown"];
 
 export type AnalyticsInitialFilter = {
   mainType?: MainTypeFilter;
@@ -151,15 +157,14 @@ function AnalyticsScreen({
   // kept painting the new layout with the *old* fill/number for a few
   // frames before jumping to 0.
   const summaryProgress = useSharedValue(0);
-  // const { begin: probeBegin, mark: probeMark } = usePerfProbe();
-  const probeBegin = noopProbe;
-  const probeMark = noopProbe;
+  const { begin: probeBegin, mark: probeMark } = usePerfProbe();
   const toggleTypeRef = useRef(toggleType);
   toggleTypeRef.current = toggleType;
   const handleTypeChange = useCallback((type: MainTypeFilter) => {
     // Re-tapping the current type changes nothing, so nothing would restart
     // the animation that the reset below stops — skip it entirely.
     if (type === toggleTypeRef.current) return;
+    perfTag(`toggle->${type}`);
     probeBegin();
     probeMark("tap");
     summaryProgress.value = 0;
@@ -180,6 +185,11 @@ function AnalyticsScreen({
   // that dropdown instead of the plain list.
   const [openToDateDropdown, setOpenToDateDropdown] = useState(false);
   const [summaryCollapsed, setSummaryCollapsed] = useState(false);
+  // Which page of the Summary card's carousel is showing — swapped into the
+  // card's own title (see SUMMARY_CARD_TITLES) so it reads "Category
+  // Breakdown" while the pie is up rather than staying "Summary" for a page
+  // that isn't one anymore.
+  const [summaryPage, setSummaryPage] = useState(0);
 
   // Long-press a row to enter multi-select (mirrors CategoriesModal's own
   // hold-to-select pattern); the held row is auto-selected.
@@ -461,11 +471,91 @@ function AnalyticsScreen({
     () => (showAll ? filtered : filtered.slice(0, FIRST_SLICE_ROWS)),
     [showAll, filtered],
   );
-  const handleApplyFilters = useCallback((next: TransactionFilters) => {
+  // A category filter only ever matches one type (expense categories and
+  // income categories are separate lists) — so filtering to just one, with
+  // nothing picked from the other, unambiguously means "show that type".
+  // Left as `null` when both/neither are set, so an existing All/Expense/
+  // Income choice isn't second-guessed for a genuinely mixed filter.
+  const impliedTypeFor = (f: TransactionFilters): MainTypeFilter | null => {
+    const hasExpense = f.expenseCategoryIds.length > 0;
+    const hasIncome = f.incomeCategoryIds.length > 0;
+    if (hasExpense && !hasIncome) return "expense";
+    if (hasIncome && !hasExpense) return "income";
+    return null;
+  };
+
+  // Shared by both the Filters modal's Apply and holding a pie wedge (see
+  // handleHoldWedgeCategory) — applies new filters, and switches the
+  // Expense/Income/All toggle to match when the filter itself implies one
+  // (see impliedTypeFor), going through the same toggle transition
+  // handleTypeChange uses so it doesn't skip the list's own settle sequence.
+  const applyFiltersAndSyncType = useCallback((next: TransactionFilters, tag: string) => {
+    perfTag(tag);
+    probeBegin();
+    probeMark(tag);
     summaryProgress.value = 0;
     setAnimStarted(false);
     setFilters(next);
-    setShowAll(false);
+    const impliedType = impliedTypeFor(next);
+    if (impliedType && impliedType !== toggleTypeRef.current) {
+      setToggleType(impliedType);
+      startTypeTransition(() => {
+        setMainType(impliedType);
+        setShowAll(false);
+      });
+    } else {
+      setShowAll(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleApplyFilters = useCallback(
+    (next: TransactionFilters) => applyFiltersAndSyncType(next, "filters-modal-apply"),
+    [applyFiltersAndSyncType],
+  );
+
+  // Holding a wedge on the Summary card's pie filters the list down to just
+  // that category — and, per the same rule above, switches the toggle to
+  // that category's own type so the other type doesn't stay mixed in.
+  const handleHoldWedgeCategory = useCallback(
+    (key: string) => {
+      const sep = key.indexOf(":");
+      const kind = key.slice(0, sep) as "expense" | "income";
+      const id = key.slice(sep + 1);
+      applyFiltersAndSyncType(
+        {
+          ...filters,
+          expenseCategoryIds: kind === "expense" ? [id] : [],
+          incomeCategoryIds: kind === "income" ? [id] : [],
+        },
+        "wedge-hold-filter",
+      );
+    },
+    [applyFiltersAndSyncType, filters],
+  );
+
+  // A one-tap undo for the wedge-hold shortcut above, so narrowing down to
+  // one category (which also switched the toggle) doesn't require opening
+  // the filters sheet just to back out again. Unlike applyFiltersAndSyncType,
+  // this always puts the toggle back on "All" rather than only nudging it
+  // when a filter implies one — resetting should mean "start over", not
+  // "whatever All/Expense/Income happens to fit the (now-cleared) filters".
+  const handleQuickResetFilters = useCallback(() => {
+    perfTag("quick-reset-filters");
+    probeBegin();
+    probeMark("quick-reset-filters");
+    summaryProgress.value = 0;
+    setAnimStarted(false);
+    setFilters(DEFAULT_FILTERS);
+    if (toggleTypeRef.current !== "all") {
+      setToggleType("all");
+      startTypeTransition(() => {
+        setMainType("all");
+        setShowAll(false);
+      });
+    } else {
+      setShowAll(false);
+    }
   }, []);
 
   // Deliberately bypasses the store's deleteTransaction/updateTransaction
@@ -555,6 +645,32 @@ function AnalyticsScreen({
   const maxBar = Math.max(summary.income, summary.expense, 1);
   const activeFilterCount = countActiveFilters(filters);
   const detailsById = useCategoryDetailsMap();
+  // Same `filtered` set the list and the totals bars already use, so the
+  // pie/bar pages can never disagree with what's actually on screen.
+  const { slices: categorySlices } = useCategoryBreakdown(filtered, detailsById);
+  // The chart's own rebuild (a wedge + a label + a leader line per category)
+  // is expensive enough that doing it synchronously in the same commit as
+  // the toggle's transition and the list's own batch-mounting reintroduced
+  // the exact stutter all of that machinery above exists to avoid. This
+  // used to gate the update on this screen's own `listReady` flag instead —
+  // but that flag is a perf-tuning heuristic for the FlatList's props, not
+  // a guarantee, and nothing here forced it to eventually become true, so a
+  // slow/skipped flip left the chart permanently stuck on stale data (seen
+  // on a larger transaction set). useDeferredValue is React's own
+  // mechanism for exactly this — a low-priority value that lags behind
+  // during urgent work but is *guaranteed* by the scheduler to always catch
+  // up once things are quiet, so it can't get stuck the way a hand-rolled
+  // flag can. `chartTotal` is deferred the same way so the hole's total and
+  // the ring update together instead of the total jumping ahead.
+  const chartSlices = useDeferredValue(categorySlices);
+  const chartTotal = useDeferredValue(summary.income + summary.expense);
+  // Shared by the pie and bar chart pages — same wording either way.
+  const chartEmptyLabel =
+    mainType === "income"
+      ? "No income in this range"
+      : mainType === "expense"
+      ? "No expenses in this range"
+      : "No transactions in this range";
 
   // Bars grow from empty and amounts count up from 0 to the real value
   // whenever the summary changes (switching the Expense/Income/All tab,
@@ -654,15 +770,31 @@ function AnalyticsScreen({
       <View style={[styles.header, GlobalStyles.screenPadding]}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>Analytics</Text>
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setShowFiltersModal(true)}
-          >
-            <Ionicons name="options-outline" size={14} color={Colors.primary} />
-            <Text style={styles.filterBtnText}>
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerBtnGroup}>
+            {/* Quick undo for the wedge-hold category shortcut (and any
+                other active filter) without a trip through the filters
+                sheet — only worth showing once there's actually something
+                to clear. */}
+            {activeFilterCount > 0 && (
+              <TouchableOpacity
+                style={styles.quickResetBtn}
+                onPress={handleQuickResetFilters}
+                hitSlop={6}
+                accessibilityLabel="Clear filters"
+              >
+                <Ionicons name="close-outline" size={16} color={Colors.textMuted} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.filterBtn}
+              onPress={() => setShowFiltersModal(true)}
+            >
+              <Ionicons name="options-outline" size={14} color={Colors.primary} />
+              <Text style={styles.filterBtnText}>
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <SlidingToggle
@@ -820,70 +952,92 @@ function AnalyticsScreen({
         ListHeaderComponent={
           <>
             <CollapsibleCard
-              title="Summary"
+              title={SUMMARY_CARD_TITLES[summaryPage] ?? SUMMARY_CARD_TITLES[0]}
               reorderable={false}
               collapsed={summaryCollapsed}
               onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
             >
-              <View style={styles.summaryCard}>
-                {/* Under a single-type filter the other type's bar would just
-                    sit empty — hidden instead. */}
-                {mainType !== "expense" && (
-                <View style={styles.barRow}>
-                  <View style={styles.barLabelRow}>
-                    <View style={[styles.dot, { backgroundColor: Colors.income }]} />
-                    <Text style={styles.barLabel}>Income</Text>
-                    <CountUpAmount
-                      target={incomeTarget}
-                      progress={summaryProgress}
-                      currencyCode={currencyCode}
-                      style={styles.barAmount}
-                    />
-                  </View>
-                  <SummaryBar
-                    pctTarget={incomePctTarget}
-                    progress={summaryProgress}
-                    trackStyle={styles.barTrack}
-                    fillStyle={[styles.barFill, { backgroundColor: Colors.income }]}
-                  />
-                </View>
-                )}
+              <Carousel
+                onIndexChange={setSummaryPage}
+                pages={[
+                  <View style={styles.summaryCard} key="totals">
+                    {/* Under a single-type filter the other type's bar would
+                        just sit empty — hidden instead. */}
+                    {mainType !== "expense" && (
+                      <View style={styles.barRow}>
+                        <View style={styles.barLabelRow}>
+                          <View style={[styles.dot, { backgroundColor: Colors.income }]} />
+                          <Text style={styles.barLabel}>Income</Text>
+                          <CountUpAmount
+                            target={incomeTarget}
+                            progress={summaryProgress}
+                            currencyCode={currencyCode}
+                            style={styles.barAmount}
+                          />
+                        </View>
+                        <SummaryBar
+                          pctTarget={incomePctTarget}
+                          progress={summaryProgress}
+                          trackStyle={styles.barTrack}
+                          fillStyle={[styles.barFill, { backgroundColor: Colors.income }]}
+                        />
+                      </View>
+                    )}
 
-                {mainType !== "income" && (
-                <View style={styles.barRow}>
-                  <View style={styles.barLabelRow}>
-                    <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
-                    <Text style={styles.barLabel}>Expenses</Text>
-                    <CountUpAmount
-                      target={expenseTarget}
-                      progress={summaryProgress}
-                      currencyCode={currencyCode}
-                      style={styles.barAmount}
-                    />
-                  </View>
-                  <SummaryBar
-                    pctTarget={expensePctTarget}
-                    progress={summaryProgress}
-                    trackStyle={styles.barTrack}
-                    fillStyle={[styles.barFill, { backgroundColor: Colors.expense }]}
-                  />
-                </View>
-                )}
+                    {mainType !== "income" && (
+                      <View style={styles.barRow}>
+                        <View style={styles.barLabelRow}>
+                          <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
+                          <Text style={styles.barLabel}>Expenses</Text>
+                          <CountUpAmount
+                            target={expenseTarget}
+                            progress={summaryProgress}
+                            currencyCode={currencyCode}
+                            style={styles.barAmount}
+                          />
+                        </View>
+                        <SummaryBar
+                          pctTarget={expensePctTarget}
+                          progress={summaryProgress}
+                          trackStyle={styles.barTrack}
+                          fillStyle={[styles.barFill, { backgroundColor: Colors.expense }]}
+                        />
+                      </View>
+                    )}
 
-                <View style={styles.netRow}>
-                  <Text style={styles.netLabel}>
-                    {mainType === "expense" ? "Expenses" : mainType === "income" ? "Incomes" : "Net"}
-                  </Text>
-                  <CountUpAmount
-                    target={netTarget}
-                    progress={summaryProgress}
-                    currencyCode={currencyCode}
-                    style={styles.netAmount}
-                    negativeColor={Colors.expense}
-                    showSign
-                  />
-                </View>
-              </View>
+                    <View style={styles.netRow}>
+                      <Text style={styles.netLabel}>
+                        {mainType === "expense" ? "Expenses" : mainType === "income" ? "Incomes" : "Net"}
+                      </Text>
+                      <CountUpAmount
+                        target={netTarget}
+                        progress={summaryProgress}
+                        currencyCode={currencyCode}
+                        style={styles.netAmount}
+                        negativeColor={Colors.expense}
+                        showSign
+                      />
+                    </View>
+                  </View>,
+                  <View style={styles.summaryCard} key="pie">
+                    <CategoryPieChart
+                      slices={chartSlices}
+                      total={chartTotal}
+                      currencyCode={currencyCode}
+                      onHoldCategory={handleHoldWedgeCategory}
+                      emptyLabel={chartEmptyLabel}
+                    />
+                  </View>,
+                  <View style={styles.summaryCard} key="bar">
+                    <CategoryBarChart
+                      slices={chartSlices}
+                      currencyCode={currencyCode}
+                      onHoldCategory={handleHoldWedgeCategory}
+                      emptyLabel={chartEmptyLabel}
+                    />
+                  </View>,
+                ]}
+              />
             </CollapsibleCard>
 
             <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
@@ -904,7 +1058,25 @@ function AnalyticsScreen({
         maxToRenderPerBatch={listReady ? 10 : 4}
         updateCellsBatchingPeriod={listReady ? 50 : 60}
         windowSize={listReady ? 7 : 5}
-        removeClippedSubviews={listReady}
+        // A constant `true` (was tied to `listReady`, toggling on/off with
+        // it) — that toggling is specifically what past incident reports
+        // pin an Android Fabric crash on ("addViewAt: failed to insert
+        // view ... IndexOutOfBoundsException", via its own clipping view
+        // manager, ReactClippingViewManager) when the list's content
+        // changes quickly while it flips, which a fast hold-wedge filter
+        // then reset does twice in a row. It was disabled outright after
+        // hitting exactly that crash — but the actual root cause turned out
+        // to be a Reanimated race in the pie chart's own wedge animations
+        // (see CategoryPieChart's cancelAnimation usage), not this prop;
+        // ReactClippingViewManager showing up in that crash's native stack
+        // is consistent with it just being whatever view manager was active
+        // when Fabric's tree got corrupted by that race, not the cause
+        // itself. With that race fixed, a value that never flips sidesteps
+        // the specific "toggling while content changes" pattern those
+        // reports describe, while still getting clipping's scroll-cost
+        // benefit on this list, which is worth having back given it can
+        // run into the hundreds of rows.
+        removeClippedSubviews={true}
       />
       </View>
       </GestureDetector>
@@ -1018,6 +1190,17 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 14,
   },
   headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
+  headerBtnGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
+  quickResetBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
   filterBtn: {
     flexDirection: "row",
     alignItems: "center",

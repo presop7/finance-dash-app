@@ -1,4 +1,4 @@
-function parseHex(hex: string): [number, number, number] | null {
+export function parseHex(hex: string): [number, number, number] | null {
   const match = /^#([0-9a-fA-F]{6})$/.exec(hex);
   if (!match) return null;
   const n = parseInt(match[1], 16);
@@ -17,8 +17,17 @@ function toHexColor(r: number, g: number, b: number): string {
 // made blues specifically still read as murky while other hues looked
 // fine — it corrects the same raw RGB amount regardless of hue, but hue
 // matters for perceived brightness.
-function luminance(r: number, g: number, b: number): number {
+export function luminance(r: number, g: number, b: number): number {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+// Whether black or white text reads better on top of a solid `hex`
+// background — used for labels drawn directly inside a colored shape (a pie
+// wedge, say), where the background isn't one of our own theme tokens.
+export function contrastText(hex: string): "#000000" | "#ffffff" {
+  const rgb = parseHex(hex);
+  if (!rgb) return "#ffffff";
+  return luminance(...rgb) >= 0.6 ? "#000000" : "#ffffff";
 }
 
 // Blends a #RRGGBB hex color toward white by `amount` (0-1) — used to lift a
