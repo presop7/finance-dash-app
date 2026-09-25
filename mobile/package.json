@@ -44,5 +44,10 @@
     "@types/react": "~19.2.10",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "reanimated": {
+    "staticFeatureFlags": {
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
 }
