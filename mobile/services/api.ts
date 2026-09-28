@@ -2,6 +2,12 @@ import { supabase } from "./supabase";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
+// Every request carries the bearer token — never let a release build send it
+// over cleartext HTTP, where anyone on the network could read and replay it.
+if (!__DEV__ && !API_URL.startsWith("https://")) {
+  throw new Error("EXPO_PUBLIC_API_URL must use https:// in release builds");
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

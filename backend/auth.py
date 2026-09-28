@@ -28,6 +28,9 @@ def get_current_user(
             signing_key.key,
             algorithms=["ES256"],
             audience="authenticated",
+            issuer=f"{settings.SUPABASE_URL}/auth/v1",
+            # PyJWT only checks exp if it's present — a token without one would never expire.
+            options={"require": ["exp", "iat", "sub", "aud", "iss"]},
         )
     except jwt.PyJWTError:
         raise HTTPException(
