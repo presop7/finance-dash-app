@@ -2,6 +2,7 @@ import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useSta
 import {
   Alert,
   FlatList,
+  Platform,
   RefreshControl,
   View,
   Text,
@@ -453,11 +454,13 @@ function AnalyticsScreen({
   // handles it completely normally. Kept short — every ms here is also a ms
   // added before a plain tap-to-toggle is free to register, since the
   // gesture has to rule itself out before that touch can resolve as a tap.
+  const dragSelectingRef = useRef(false);
   const dragSelectGesture = Gesture.Pan()
     .enabled(selectMode)
     .activateAfterLongPress(80)
     .runOnJS(true)
     .onStart((e) => {
+      dragSelectingRef.current = true;
       dragProcessedRef.current = new Set();
       measureTickRef.current = 0;
       pendingHitTestDelta.value = 0;
@@ -487,8 +490,28 @@ function AnalyticsScreen({
       autoScrollDirection.value = 0;
     })
     .onFinalize(() => {
+      dragSelectingRef.current = false;
       autoScrollDirection.value = 0;
     });
+
+  // Web: while a drag-select is under way, the browser mustn't scroll the
+  // list too — it fought auto-scroll (jitter, missed rows on iPhone). The
+  // drag only starts after the finger has held still (activateAfterLongPress),
+  // i.e. before the browser has begun scrolling, so it can still be told no
+  // on each move. A quick swipe never starts the drag, so it scrolls as
+  // normal. (CSS touch-action can't do this: it's fixed at touch-down, and
+  // this detector sits outside the list's own scroll area anyway.)
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const node = (flatListRef.current as any)?.getScrollableNode?.() as HTMLElement | undefined;
+    if (!node?.addEventListener) return;
+    const blockWhileSelecting = (e: TouchEvent) => {
+      if (dragSelectingRef.current && e.cancelable) e.preventDefault();
+    };
+    node.addEventListener("touchmove", blockWhileSelecting, { passive: false });
+    return () => node.removeEventListener("touchmove", blockWhileSelecting);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Changing tabs/filters can hide selected rows without deselecting them —
   // exiting select mode avoids bulk-acting on transactions the user can no
