@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from "react-native";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import BalanceCard from "../components/BalanceCard";
@@ -12,6 +12,7 @@ import DashboardCardList, {
 } from "../components/DashboardCardList";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { GlobalStyles } from "../constants/styles";
 import { getGreeting, nameFromEmail } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
@@ -43,6 +44,7 @@ function DashboardScreen({
   const session = useAuthStore((s) => s.session);
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
+  const { refreshing, onRefresh } = usePullToRefresh();
   const displayName = displayNameOverride || nameFromEmail(session?.user.email) || "there";
   const greeting = getGreeting();
 
@@ -101,6 +103,14 @@ function DashboardScreen({
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
       >
         {/* Header */}
         <View style={[styles.header, GlobalStyles.screenPadding]}>

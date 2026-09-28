@@ -2,6 +2,7 @@ import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useSta
 import {
   Alert,
   FlatList,
+  RefreshControl,
   View,
   Text,
   StyleSheet,
@@ -26,6 +27,7 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
@@ -193,6 +195,7 @@ function AnalyticsScreen({
   // Long-press a row to enter multi-select (mirrors CategoriesModal's own
   // hold-to-select pattern); the held row is auto-selected.
   const [selectMode, setSelectMode] = useState(false);
+  const { refreshing, onRefresh } = usePullToRefresh();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // useCallback with empty deps (all of these use functional state updates,
@@ -861,6 +864,17 @@ function AnalyticsScreen({
         ref={flatListRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        // Off in select mode: there a drag at the top selects rows instead.
+        refreshControl={
+          selectMode ? undefined : (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          )
+        }
         onScroll={(e) => {
           // Keeps scrollOffset accurate for manual scrolling. While
           // auto-scroll is driving, the frame callback is the sole source
