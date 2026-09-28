@@ -18,3 +18,32 @@ services:
       # CSRF risk; tighten once there's a real bundle id / web domain to scope to.
       - key: CORS_ORIGINS
         value: "*"
+
+  # The web version of the app (browsers, and iPhones via "Add to Home
+  # Screen"). A static site: free and always on, rebuilt on every push.
+  - type: web
+    name: fi-track-web
+    runtime: static
+    rootDir: mobile
+    buildCommand: npm ci && npx expo export --platform web
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Public by design (they ship inside every app build too) — the anon
+      # key only allows what Supabase RLS permits, which is nothing.
+      - key: EXPO_PUBLIC_API_URL
+        value: https://finance-dash-api-ae3m.onrender.com
+      - key: EXPO_PUBLIC_SUPABASE_URL
+        value: https://ntzubtvaoxpqktvzbsbz.supabase.co
+      - key: EXPO_PUBLIC_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50enVidHZhb3hwcWt0dnpic2J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzQ4MTAsImV4cCI6MjEwMjkxMDgxMH0.qvd80QAouSILGxNDAvvcuY0ZA_e-cFVUI6argS27Zh4
+    headers:
+      # Always fetch the latest page (it names the newest code bundle);
+      # the bundles themselves have unique names, so they can cache forever.
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /_expo/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

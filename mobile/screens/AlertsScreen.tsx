@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -124,8 +124,9 @@ export default function AlertsScreen() {
           <View style={[styles.banner, GlobalStyles.screenPadding]}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
-              Reminders still track your spending here, but device notifications
-              aren't available in Expo Go — they need a development build.
+              {Platform.OS === "web"
+                ? "The web version can't send notifications — your reminders still keep track here, and the phone app will notify you."
+                : "Reminders still track your spending here, but device notifications aren't available in Expo Go — they need a development build."}
             </Text>
           </View>
         ) : (
