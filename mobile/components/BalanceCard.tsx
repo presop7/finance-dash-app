@@ -17,6 +17,9 @@ import { formatCurrency } from "../utils/currency";
 import HoldPressable from "./HoldPressable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 
+// How long the card must be held before a hidden balance is shown.
+const REVEAL_HOLD_MS = 300;
+
 type BalanceCardProps = {
   transactions: Transaction[];
   onNavigateToAnalytics?: (filter: AnalyticsInitialFilter) => void;
@@ -117,9 +120,12 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
       end={{ x: 1, y: 1 }}
       style={styles.card}
     >
+      {/* Hidden balance shows only while *held* — revealing on press-in
+          flashed it on every tap (and every scroll that started here). */}
       <Pressable
         disabled={!settings.hideBalance}
-        onPressIn={() => setRevealed(true)}
+        delayLongPress={REVEAL_HOLD_MS}
+        onLongPress={() => setRevealed(true)}
         onPressOut={() => setRevealed(false)}
       >
       {/* Main Balance */}
