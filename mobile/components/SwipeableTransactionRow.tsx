@@ -197,7 +197,11 @@ function SwipeableTransactionRow({
   );
 
   return (
-    <GestureDetector gesture={edgeGate}>
+    // touchAction (web only): gesture-handler otherwise sets `touch-action:
+    // none`, which stops the browser scrolling when a finger starts on a
+    // row — the "scroll" then reads as a hold. pan-y keeps vertical
+    // scrolling with the browser, same as Swipeable's own detector.
+    <GestureDetector gesture={edgeGate} touchAction="pan-y">
     <View
       collapsable={false}
       onLayout={(e) => {

@@ -1,5 +1,7 @@
 import { memo, useMemo } from "react";
-import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity, Platform } from "react-native";
+
+const WEB_PRESS_DELAY_MS = 130;
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
@@ -148,6 +150,11 @@ export const TransactionRow = memo(function TransactionRow({
       onPress={() => onPress?.(transaction)}
       onLongPress={onLongPress}
       activeOpacity={0.7}
+      // Web only: browsers don't hold back a row's pressed look while they
+      // work out whether a touch is a scroll (phones do), so every scroll
+      // flashed the row it started on. A short delay lets a scroll cancel
+      // first; a tap still registers normally.
+      delayPressIn={Platform.OS === "web" ? WEB_PRESS_DELAY_MS : 0}
     >
       {selectMode && (
         <Ionicons

@@ -902,7 +902,9 @@ function AnalyticsScreen({
           SwipeableTransactionRow's swipe already relies on) means normal
           scrolling and tapping stay completely untouched the rest of the
           time — no manual scrollEnabled toggling needed. */}
-      <GestureDetector gesture={dragSelectGesture}>
+      {/* touchAction (web only): keep the list scrollable by touch even in
+          select mode — the gesture library blocks it by default there. */}
+      <GestureDetector gesture={dragSelectGesture} touchAction="pan-y">
       <View style={styles.scrollView} ref={listContainerRef} onLayout={measureListViewport}>
       <FlatList
         ref={flatListRef}

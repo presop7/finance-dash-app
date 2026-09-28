@@ -260,7 +260,9 @@ function DraggableFund({
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
 
   return (
-    <GestureDetector gesture={gesture}>
+    // Web: keep the browser's sideways scrolling of the card row (the
+    // gesture library blocks all touch scrolling by default there).
+    <GestureDetector gesture={gesture} touchAction="pan-x">
       <Animated.View
         style={[style, { position: "absolute", top: 0, left: 0, minHeight }, cardStyle]}
         onLayout={onLayout}
