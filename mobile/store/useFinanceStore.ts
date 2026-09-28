@@ -32,9 +32,9 @@ export type Transaction = {
 
 export const DEFAULT_DASHBOARD_CARD_ORDER = [
   "insights",
-  "topExpenses",
-  "funds",
   "transactions",
+  "funds",
+  "topExpenses",
 ];
 
 export type DateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD" | "D MMM YYYY";

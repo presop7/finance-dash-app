@@ -130,14 +130,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       "Tap the card to see the next tip.",
   },
   {
-    id: "top-expenses",
-    host: "app",
-    target: "card:topExpenses",
-    skippable: true,
-    title: "Biggest spending",
-    text: "Top Expenses lists the largest amounts you've spent, so the big costs never slip by unnoticed.",
-  },
-  {
     id: "funds",
     host: "app",
     target: "card:funds",
@@ -146,6 +138,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     text:
       "Each fund gets its own card with its balance and how it changed in the last 30 days. Swipe sideways to see them all.\n\n" +
       "Press and hold a card, then let go, to see only that fund's money. Hold it and drag to change the order.",
+  },
+  {
+    id: "top-expenses",
+    host: "app",
+    target: "card:topExpenses",
+    skippable: true,
+    title: "Biggest spending",
+    text: "Top Expenses lists the largest amounts you've spent, so the big costs never slip by unnoticed.",
   },
   {
     id: "cards-tip",
