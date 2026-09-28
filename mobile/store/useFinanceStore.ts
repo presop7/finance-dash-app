@@ -15,6 +15,7 @@ import {
   ApiUser,
 } from "../services/financeApi";
 import { ApiError } from "../services/api";
+import { isDemoId } from "../utils/demoTransactions";
 
 export type Transaction = {
   id: string;
@@ -179,6 +180,9 @@ type FinanceStore = {
   // (e.g. newly created) go after, in their normal order.
   fundCardOrder: string[];
   setFundCardOrder: (order: string[]) => void;
+  // App-tour sample rows (ids start with "demo-"): memory-only, never synced.
+  addDemoTransactions: (demo: Transaction[]) => void;
+  removeDemoTransactions: () => void;
 };
 
 // Fields shared device-wide across every account signed in on this device.
@@ -276,6 +280,7 @@ function mapCategory(c: ApiCategory): Category {
     label: c.name,
     icon: (c.icon ?? "ellipsis-horizontal-outline") as Category["icon"],
     color: c.color ?? undefined,
+    locked: c.user_id === null,
   };
 }
 
@@ -285,6 +290,7 @@ function mapFundCategory(f: ApiFundCategory): FundCategory {
     name: f.name,
     icon: f.icon ?? "wallet-outline",
     color: f.color ?? "#1D2B4F",
+    locked: f.name === "Unassigned",
   };
 }
 
@@ -574,7 +580,10 @@ export const useFinanceStore = create<FinanceStore>()(
           // list yet — keep the local version of those rows (and keep locally
           // deleted ones gone) instead of letting the fetch undo them on screen.
           const pendingKeys = new Set(get().pendingOps.map(opKey));
-          const localPending = get().transactions.filter((t) => pendingKeys.has(t.id));
+          // Tour sample rows aren't on the server either — keep them too.
+          const localPending = get().transactions.filter(
+            (t) => pendingKeys.has(t.id) || isDemoId(t.id),
+          );
           const serverRows = apiTransactions
             .filter((t) => !pendingKeys.has(t.id) && !pendingKeys.has(t.client_generated_id))
             .map(mapTransaction);
@@ -685,6 +694,13 @@ export const useFinanceStore = create<FinanceStore>()(
 
       updateTransaction: async (rawId, changes) => {
         const id = resolveId(rawId);
+        if (isDemoId(id)) {
+          // Tour sample row: change it on screen only, never send it.
+          set((state) => ({
+            transactions: state.transactions.map((t) => (t.id === id ? { ...changes, id } : t)),
+          }));
+          return;
+        }
         set((state) => {
           const pendingCreate = state.pendingOps.find(
             (op) => op.kind === "create" && op.clientGeneratedId === id,
@@ -723,6 +739,10 @@ export const useFinanceStore = create<FinanceStore>()(
 
       deleteTransaction: async (rawId) => {
         const id = resolveId(rawId);
+        if (isDemoId(id)) {
+          set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
+          return;
+        }
         set((state) => {
           const hasPendingCreate = state.pendingOps.some(
             (op) => op.kind === "create" && op.clientGeneratedId === id,
@@ -920,6 +940,15 @@ export const useFinanceStore = create<FinanceStore>()(
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
       setFundCardOrder: (order) => set({ fundCardOrder: order }),
 
+      addDemoTransactions: (demo) =>
+        set((state) => ({
+          transactions: [...state.transactions.filter((t) => !isDemoId(t.id)), ...demo].sort(
+            (a, b) => b.date.getTime() - a.date.getTime(),
+          ),
+        })),
+      removeDemoTransactions: () =>
+        set((state) => ({ transactions: state.transactions.filter((t) => !isDemoId(t.id)) })),
+
       toggleDashboardCard: (id) =>
         set((state) => ({
           dashboardCollapsedCards: {
@@ -944,7 +973,8 @@ export const useFinanceStore = create<FinanceStore>()(
         fundCardOrder: state.fundCardOrder,
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,
-        transactions: state.transactions,
+        // Tour sample rows are memory-only: never written to disk.
+        transactions: state.transactions.filter((t) => !isDemoId(t.id)),
         expenseCategories: state.expenseCategories,
         incomeCategories: state.incomeCategories,
         fundCategories: state.fundCategories,

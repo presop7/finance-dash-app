@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { evaluateAlerts } from "../utils/alertEvaluation";
 import { sendLocalNotification } from "../utils/notifications";
+import { isDemoId } from "../utils/demoTransactions";
 
 export function useAlertsMonitor() {
   const transactions = useFinanceStore((s) => s.transactions);
@@ -13,7 +14,8 @@ export function useAlertsMonitor() {
   useEffect(() => {
     const results = evaluateAlerts(
       alertRules,
-      transactions,
+      // The app tour's sample rows mustn't trigger real notifications.
+      transactions.filter((t) => !isDemoId(t.id)),
       expenseCategories,
       incomeCategories,
     );

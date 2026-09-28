@@ -1,5 +1,5 @@
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -41,6 +41,17 @@ import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesMod
 import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
 import ImportCsvModal from "./screens/modals/ImportCsvModal";
 import NamePromptModal from "./screens/modals/NamePromptModal";
+import TutorialOverlay from "./components/TutorialOverlay";
+import {
+  setTutorialNavigator,
+  tutorialEmit,
+  tutorialTarget,
+  useTutorialStore,
+} from "./store/useTutorialStore";
+import type { TutorialEvent } from "./constants/tutorialSteps";
+import { accountName } from "./utils/greeting";
+import { DEV_TOOLS } from "./constants/devTools";
+import { wakeBackend } from "./services/api";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
@@ -81,6 +92,8 @@ const navigationRef = createNavigationContainerRef<TabParamList>();
 function navigateToAnalytics(filter: AnalyticsInitialFilter) {
   if (navigationRef.isReady()) navigationRef.navigate("Analytics", { filter });
 }
+
+const SLOW_LOAD_MS = 4000;
 
 // 250ms crossfade, as opposed to the library's 150ms default.
 const FADE_TRANSITION_SPEC = {
@@ -138,8 +151,9 @@ export default function App() {
             <RootNavigator />
           </NavigationContainer>
         </SafeAreaProvider>
-        {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. */}
-        <PerfOverlay />
+        {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. Dev
+            builds only, so beta testers never see it. */}
+        {DEV_TOOLS && <PerfOverlay />}
       </ThemeProvider>
     </GestureHandlerRootView>
   );
@@ -157,6 +171,18 @@ function RootNavigator() {
   // moment — e.g. a settings toggle landing locally just before a stale
   // in-flight hydrate() overwrites it back.
   const userId = session?.user.id ?? null;
+
+  useEffect(wakeBackend, []);
+
+  // A cold backend makes the first load slow; after a few seconds, say why.
+  const [slowLoad, setSlowLoad] = useState(false);
+  const waiting = !persistHydrated || status === "loading" || status === "idle";
+  useEffect(() => {
+    setSlowLoad(false);
+    if (!waiting) return;
+    const timer = setTimeout(() => setSlowLoad(true), SLOW_LOAD_MS);
+    return () => clearTimeout(timer);
+  }, [waiting]);
 
   useEffect(() => {
     if (userId) {
@@ -190,10 +216,15 @@ function RootNavigator() {
 
   // Brief, local-disk-only wait — determines whether there's a cached snapshot
   // to render instead of a spinner.
-  if (!persistHydrated || status === "loading" || status === "idle") {
+  if (waiting) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={Colors.primary} />
+        {slowLoad && (
+          <Text style={styles.errorText}>
+            Starting up — the first load can take up to a minute.
+          </Text>
+        )}
       </View>
     );
   }
@@ -327,6 +358,7 @@ function CustomTabBar({
     const isFocused = state.index === index;
 
     const onPress = () => {
+      tutorialEmit(`tab:${route.name}` as TutorialEvent);
       const event = navigation.emit({
         type: "tabPress",
         target: route.key,
@@ -340,6 +372,7 @@ function CustomTabBar({
     return (
       <TouchableOpacity
         key={route.key}
+        ref={tutorialTarget(`tab:${route.name}`) as any}
         style={styles.navItem}
         onPress={onPress}
         activeOpacity={0.7}
@@ -364,7 +397,7 @@ function CustomTabBar({
         <View style={styles.navSide}>{[0, 1].map(renderItem)}</View>
 
         {/* Center — FAB Button */}
-        <View style={styles.navCenter}>
+        <View style={styles.navCenter} ref={tutorialTarget("fab")} collapsable={false}>
           <FABButton onPress={onAddPress} />
         </View>
 
@@ -433,6 +466,7 @@ function AppContent() {
 
   useAlertsMonitor();
   useDailyReminderSync();
+  useTutorialAutoStart();
 
   return (
     <View style={styles.container}>
@@ -443,6 +477,7 @@ function AppContent() {
             onAddPress={() => {
               setEditTransaction(null);
               setShowTransaction(true);
+              tutorialEmit("addOpened");
             }}
           />
         )}
@@ -557,8 +592,37 @@ function AppContent() {
           setShowTransaction(true);
         }}
       />
+
+      {/* Last, so the tour's dimming sits above the screens and tab bar. */}
+      <TutorialOverlay host="app" />
     </View>
   );
+}
+
+// Starts the app tour once for a brand-new account: signed in, named (the
+// name prompt comes first), data loaded, no transactions yet, and not
+// already toured (remembered on the account). Anyone can replay it from
+// Settings.
+function useTutorialAutoStart() {
+  const user = useAuthStore((s) => s.session?.user);
+  const status = useFinanceStore((s) => s.status);
+  const startTutorial = useTutorialStore((s) => s.start);
+  const checkedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    setTutorialNavigator(() => {
+      if (navigationRef.isReady()) navigationRef.navigate("Dashboard");
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user || status !== "loaded" || !accountName(user)) return;
+    if (checkedFor.current === user.id) return;
+    checkedFor.current = user.id;
+    const isNew =
+      !user.user_metadata?.tutorial_done && useFinanceStore.getState().transactions.length === 0;
+    if (isNew) startTutorial();
+  }, [user, status]);
 }
 
 function createStyles(Colors: ColorsType) {

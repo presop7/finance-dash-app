@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
@@ -6,10 +6,12 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { firstNameFromUser } from "../utils/greeting";
-import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { DEV_TOOLS } from "../constants/devTools";
 import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
@@ -40,6 +42,12 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const [clearingTransactions, setClearingTransactions] = useState(false);
   const [creatingTestCategories, setCreatingTestCategories] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view), []);
+  const generalRef = useTutorialTarget("settings:general", scrollTo);
+  const categoriesRef = useTutorialTarget("settings:categories", scrollTo);
+  const aboutRef = useTutorialTarget("settings:about", scrollTo);
+  const startTutorial = useTutorialStore((s) => s.start);
 
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
@@ -61,7 +69,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       return;
     }
 
-    const ok = await confirmAsync("Sign Out", "Are you sure you want to sign out?");
+    const ok = await confirmAsyncWithLabel("Sign Out", "Are you sure you want to sign out?", "Sign Out");
     if (!ok) return;
     await signOut();
   };
@@ -125,9 +133,11 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       await alertAsync("You're offline", "This needs an internet connection.");
       return;
     }
-    const proceed = await confirmAsync(
+    const proceed = await confirmAsyncWithLabel(
       "Create Test Categories",
       "Create 20 dummy expense categories for testing?",
+      "Create",
+      { destructive: false },
     );
     if (!proceed) return;
 
@@ -158,11 +168,12 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
           <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
+        <View ref={generalRef} collapsable={false}>
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Appearance</Text>
         <View style={styles.card}>
           <View style={styles.row}>
@@ -364,9 +375,10 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
           )}
         </View>
+        </View>
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Categories & Storage</Text>
-        <View style={styles.card}>
+        <View style={styles.card} ref={categoriesRef} collapsable={false}>
           <TouchableOpacity
             style={styles.row}
             onPress={() => onOpenCategories("expense")}
@@ -415,24 +427,28 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          {DEV_TOOLS && (
+            <>
+              <View style={styles.divider} />
 
-          <TouchableOpacity
-            style={styles.row}
-            onPress={handleCreateTestCategories}
-            activeOpacity={0.7}
-            disabled={creatingTestCategories}
-          >
-            <View style={styles.rowIcon}>
-              <Ionicons name="flask-outline" size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>
-                {creatingTestCategories ? "Creating…" : "Create 20 Test Categories"}
-              </Text>
-              <Text style={styles.rowSubtitle}>Dummy expense categories, for testing bulk delete</Text>
-            </View>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handleCreateTestCategories}
+                activeOpacity={0.7}
+                disabled={creatingTestCategories}
+              >
+                <View style={styles.rowIcon}>
+                  <Ionicons name="flask-outline" size={18} color={Colors.primary} />
+                </View>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowTitle}>
+                    {creatingTestCategories ? "Creating…" : "Create 20 Test Categories"}
+                  </Text>
+                  <Text style={styles.rowSubtitle}>Dev only — dummy categories for testing bulk delete</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Account</Text>
@@ -460,7 +476,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         </View>
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>About</Text>
-        <View style={styles.card}>
+        <View style={styles.card} ref={aboutRef} collapsable={false}>
           <TouchableOpacity
             style={styles.row}
             onPress={() => setShowFeedback(true)}
@@ -472,6 +488,19 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             <View style={styles.rowInfo}>
               <Text style={styles.rowTitle}>Send Feedback</Text>
               <Text style={styles.rowSubtitle}>Report a problem or suggest an idea</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={() => startTutorial(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="school-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>Take the Tour Again</Text>
+              <Text style={styles.rowSubtitle}>A quick walk through the whole app</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>

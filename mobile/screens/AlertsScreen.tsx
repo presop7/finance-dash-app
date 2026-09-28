@@ -13,6 +13,7 @@ import {
   notificationsSupported,
 } from "../utils/notifications";
 import AlertRuleModal from "./modals/AlertRuleModal";
+import { useTutorialTarget } from "../store/useTutorialStore";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
@@ -39,6 +40,8 @@ export default function AlertsScreen() {
   const [permissionGranted, setPermissionGranted] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
+  const addRef = useTutorialTarget("alerts:add");
+  const listRef = useTutorialTarget("alerts:list");
 
   useEffect(() => {
     hasNotificationPermission().then(setPermissionGranted);
@@ -103,16 +106,18 @@ export default function AlertsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
           <Text style={styles.headerTitle}>Reminders</Text>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              setEditingRule(null);
-              setShowModal(true);
-            }}
-          >
-            <Ionicons name="add" size={16} color="#fff" />
-            <Text style={styles.addBtnText}>Add Reminder</Text>
-          </TouchableOpacity>
+          <View ref={addRef} collapsable={false}>
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => {
+                setEditingRule(null);
+                setShowModal(true);
+              }}
+            >
+              <Ionicons name="add" size={16} color="#fff" />
+              <Text style={styles.addBtnText}>Add Reminder</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {!notificationsSupported ? (
@@ -139,7 +144,7 @@ export default function AlertsScreen() {
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Reminders</Text>
 
-        <View style={styles.list}>
+        <View style={styles.list} ref={listRef} collapsable={false}>
           {alertRules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />

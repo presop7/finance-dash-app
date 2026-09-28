@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, LayoutChangeEvent, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Animated, LayoutChangeEvent, Text, TouchableOpacity, StyleSheet, View } from "react-native";
+import { tutorialTarget, useTutorialStore } from "../store/useTutorialStore";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -18,6 +19,8 @@ type DashboardCardListProps = {
   collapsed: Record<string, boolean>;
   onReorder: (order: string[]) => void;
   onToggleCollapse: (id: string) => void;
+  // Brings a card into view when the app tour lights it up.
+  tutorialScroll?: (view: View) => void;
 };
 
 const TRANSITION_MS = 220;
@@ -28,6 +31,7 @@ export default function DashboardCardList({
   collapsed,
   onReorder,
   onToggleCollapse,
+  tutorialScroll,
 }: DashboardCardListProps) {
   const [reorderMode, setReorderMode] = useState(false);
   const [draftOrder, setDraftOrder] = useState(order);
@@ -122,6 +126,22 @@ export default function DashboardCardList({
     leaveReorderMode();
   };
 
+  // The app tour lets the user try reordering, but Save/Discard sit outside
+  // its spotlight — so when the tour moves on, leave reorder mode unsaved.
+  const reorderModeRef = useRef(reorderMode);
+  reorderModeRef.current = reorderMode;
+  const leaveRef = useRef(leaveReorderMode);
+  leaveRef.current = leaveReorderMode;
+  useEffect(
+    () =>
+      useTutorialStore.subscribe((s, prev) => {
+        if ((s.index !== prev.index || s.active !== prev.active) && reorderModeRef.current) {
+          leaveRef.current();
+        }
+      }),
+    [],
+  );
+
   const displayOrder = reorderMode ? draftOrder : order;
 
   const cardList = displayOrder.map((id, index) => {
@@ -130,6 +150,7 @@ export default function DashboardCardList({
     return (
       <Animated.View
         key={id}
+        ref={tutorialTarget(`card:${id}`, tutorialScroll)}
         onLayout={handleCardLayout(id)}
         style={{ transform: [{ translateY: getCardAnim(id) }] }}
       >

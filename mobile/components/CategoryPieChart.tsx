@@ -565,7 +565,11 @@ export default function CategoryPieChart({
               fill={Colors.textMuted}
               textAnchor={e.side === "right" ? "start" : "end"}
             >
-              {e.wedge.amount.toFixed(0)} {currencyCode}
+              {/* One string, not `{amount} {code}`: JSX would split that into
+                  three text runs, and react-native-svg right-aligns
+                  ("end") using only the first — the rest spilled over the
+                  leader line, and the space between them was lost. */}
+              {`${e.wedge.amount.toFixed(0)} ${currencyCode}`}
             </SvgText>
           </Fragment>
         ))}

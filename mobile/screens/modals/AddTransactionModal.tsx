@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   InputAccessoryView,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
@@ -25,6 +25,13 @@ import DateTimeFields from "../../components/DateTimeFields";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync, alertAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import TutorialOverlay from "../../components/TutorialOverlay";
+import {
+  scrollIntoView,
+  tutorialEmit,
+  useTutorialStore,
+  useTutorialTarget,
+} from "../../store/useTutorialStore";
 
 type TransactionType = "expense" | "income";
 
@@ -91,12 +98,24 @@ export default function AddTransactionModal({
   // straight to focusing the title would just be in the way. Waits for the
   // chips to mount first so the keyboard's own animation doesn't collide
   // with that heavier work.
+  // Not during the app tour: the keyboard would cover what it's explaining.
   useEffect(() => {
-    if (ready && !editTransaction) titleInputRef.current?.focus();
+    if (ready && !editTransaction && !useTutorialStore.getState().active) {
+      titleInputRef.current?.focus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
   const amountInputRef = useRef<TextInput>(null);
   const categorySearchRef = useRef<TextInput>(null);
+
+  // App-tour spots inside this sheet.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view, 20), []);
+  const typeTargetRef = useTutorialTarget("add:type", scrollTo);
+  const fieldsTargetRef = useTutorialTarget("add:fields", scrollTo);
+  const categoryTargetRef = useTutorialTarget("add:category", scrollTo);
+  const fundTargetRef = useTutorialTarget("add:fund", scrollTo);
+  const sheetTargetRef = useTutorialTarget("add:sheet");
   const AMOUNT_ACCESSORY_ID = "amountAccessory";
 
   const isExpense = type === "expense";
@@ -133,6 +152,7 @@ export default function AddTransactionModal({
     setNote("");
     setDate(new Date());
     onClose();
+    useTutorialStore.getState().addSheetClosed();
   };
 
   // Switch type
@@ -169,6 +189,7 @@ export default function AddTransactionModal({
           note,
           date,
         );
+        tutorialEmit("transactionSaved");
       }
       handleClose();
     } catch (err) {
@@ -257,6 +278,8 @@ export default function AddTransactionModal({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
         <View
+          ref={sheetTargetRef}
+          collapsable={false}
           style={[
             styles.sheet,
             { paddingBottom: Math.max(insets.bottom, 16) + 16 },
@@ -274,12 +297,13 @@ export default function AddTransactionModal({
           </View>
 
           <ScrollView
+            ref={scrollRef}
             style={styles.scrollArea}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {/* Type Toggle */}
-            <View style={styles.typeToggle}>
+            <View style={styles.typeToggle} ref={typeTargetRef} collapsable={false}>
               <TouchableOpacity
                 style={[
                   styles.toggleOption,
@@ -329,6 +353,8 @@ export default function AddTransactionModal({
               </TouchableOpacity>
             </View>
 
+            {/* Title + amount (one spot for the app tour) */}
+            <View ref={fieldsTargetRef} collapsable={false}>
             {/* Title Input */}
             <View style={styles.fieldContainer}>
               <Ionicons
@@ -411,6 +437,7 @@ export default function AddTransactionModal({
                 />
               </TouchableOpacity>
             </View>
+            </View>
 
             {Platform.OS === "ios" && (
               <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
@@ -455,6 +482,7 @@ export default function AddTransactionModal({
             )}
 
             {/* Category */}
+            <View ref={categoryTargetRef} collapsable={false}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>Category</Text>
               <TouchableOpacity
@@ -477,8 +505,10 @@ export default function AddTransactionModal({
             ) : (
               <CategoryPickerSkeleton />
             )}
+            </View>
 
             {/* Fund Category */}
+            <View ref={fundTargetRef} collapsable={false}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionLabel}>Fund</Text>
               <TouchableOpacity
@@ -501,6 +531,7 @@ export default function AddTransactionModal({
             ) : (
               <ChipRowSkeleton count={4} />
             )}
+            </View>
 
             {/* Date and Time — native tap-to-open pickers on iOS/Android,
                 typeable fields + custom calendar/time popovers on web
@@ -566,6 +597,10 @@ export default function AddTransactionModal({
           </View>
         </View>
         </KeyboardAvoidingView>
+
+        {/* This sheet is its own window above the app, so the app tour draws
+            its steps for it here, on top. */}
+        <TutorialOverlay host="addModal" />
       </View>
     </Modal>
   );

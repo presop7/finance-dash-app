@@ -28,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import { useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
@@ -226,6 +227,18 @@ function AnalyticsScreen({
     setSelectedIds(new Set());
   }, []);
 
+  // The app tour lets the user try multi-select on the list, but the
+  // selection toolbar sits outside the lit spot — so leave select mode
+  // whenever the tour moves on. (A subscription, not a hook selector, so
+  // this heavy screen doesn't re-render on every tour step.)
+  useEffect(
+    () =>
+      useTutorialStore.subscribe((s, prev) => {
+        if (s.index !== prev.index || s.active !== prev.active) exitSelectMode();
+      }),
+    [],
+  );
+
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -259,6 +272,20 @@ function AnalyticsScreen({
   // useAnimatedRef (not a plain useRef) — required so scrollTo() in the
   // frame callback below can command the list from the UI thread directly.
   const flatListRef = useAnimatedRef<FlatList<Transaction>>();
+  // App-tour spots. The summary and the first row both sit at the top of the
+  // list, so bringing either into view means scrolling back to the top.
+  const scrollListToTop = useCallback(
+    () => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }),
+    [],
+  );
+  const toggleTargetRef = useTutorialTarget("analytics:toggle");
+  const filtersTargetRef = useTutorialTarget("analytics:filters");
+  const summaryTargetRef = useTutorialTarget("analytics:summary", scrollListToTop);
+  const firstRowTargetRef = useTutorialTarget("analytics:list", scrollListToTop);
+  const selectToolbarTargetRef = useTutorialTarget("analytics:selectToolbar");
+  // The list stays put during the tour: scrolling inside the lit spot would
+  // slide the highlighted rows out from under it.
+  const tourActive = useTutorialStore((s) => s.active);
   const listContainerRef = useRef<View>(null);
 
   const setRowRef = (id: string, el: View | null) => {
@@ -779,24 +806,28 @@ function AnalyticsScreen({
                 <Ionicons name="close-outline" size={16} color={Colors.textMuted} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              style={styles.filterBtn}
-              onPress={() => setShowFiltersModal(true)}
-            >
-              <Ionicons name="options-outline" size={14} color={Colors.primary} />
-              <Text style={styles.filterBtnText}>
-                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-              </Text>
-            </TouchableOpacity>
+            <View ref={filtersTargetRef} collapsable={false}>
+              <TouchableOpacity
+                style={styles.filterBtn}
+                onPress={() => setShowFiltersModal(true)}
+              >
+                <Ionicons name="options-outline" size={14} color={Colors.primary} />
+                <Text style={styles.filterBtnText}>
+                  Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        <SlidingToggle
-          options={MAIN_TYPE_OPTIONS}
-          value={toggleType}
-          onChange={handleTypeChange}
-          loading={isTypePending || (!showAll && !animStarted)}
-        />
+        <View ref={toggleTargetRef} collapsable={false}>
+          <SlidingToggle
+            options={MAIN_TYPE_OPTIONS}
+            value={toggleType}
+            onChange={handleTypeChange}
+            loading={isTypePending || (!showAll && !animStarted)}
+          />
+        </View>
 
         <TouchableOpacity
           style={styles.dateRangeRow}
@@ -815,7 +846,11 @@ function AnalyticsScreen({
           inside it) so it never scrolls out of view while acting on a
           selection. */}
       {selectMode && (
-        <View style={styles.selectToolbar}>
+        <View
+          style={styles.selectToolbar}
+          ref={selectToolbarTargetRef}
+          collapsable={false}
+        >
           <Text style={styles.selectToolbarText}>
             {selectedIds.size} selected
           </Text>
@@ -872,6 +907,7 @@ function AnalyticsScreen({
       <FlatList
         ref={flatListRef}
         style={styles.scrollView}
+        scrollEnabled={!tourActive}
         showsVerticalScrollIndicator={false}
         // Off in select mode: there a drag at the top selects rows instead.
         refreshControl={
@@ -917,7 +953,12 @@ function AnalyticsScreen({
           // moment later.
           if (selectMode) {
             return (
-              <View ref={(el) => setRowRef(item.id, el)}>
+              <View
+                ref={(el) => {
+                  setRowRef(item.id, el);
+                  if (isFirst) firstRowTargetRef(el);
+                }}
+              >
                 <TransactionRow
                   transaction={item}
                   details={getTransactionDetails(detailsById, item)}
@@ -930,7 +971,7 @@ function AnalyticsScreen({
               </View>
             );
           }
-          return (
+          const row = (
             // Mounts as a cheap skeleton and swaps to the real swipe row a
             // couple of rows per frame — see StaggeredRow.
             <StaggeredRow rowStyle={rowStyles.middle}>
@@ -951,10 +992,18 @@ function AnalyticsScreen({
               />
             </StaggeredRow>
           );
+          return isFirst ? (
+            <View ref={firstRowTargetRef} collapsable={false}>
+              {row}
+            </View>
+          ) : (
+            row
+          );
         }}
         ListEmptyComponent={TransactionEmptyState}
         ListHeaderComponent={
           <>
+            <View ref={summaryTargetRef} collapsable={false}>
             <CollapsibleCard
               title={SUMMARY_CARD_TITLES[summaryPage] ?? SUMMARY_CARD_TITLES[0]}
               reorderable={false}
@@ -1043,6 +1092,7 @@ function AnalyticsScreen({
                 ]}
               />
             </CollapsibleCard>
+            </View>
 
             <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
               All Transactions ({filtered.length})

@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback, useRef } from "react";
 import { View, Text, ScrollView, RefreshControl, StyleSheet } from "react-native";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -13,6 +13,7 @@ import DashboardCardList, {
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { GlobalStyles } from "../constants/styles";
 import { getGreeting, firstNameFromUser } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
@@ -45,6 +46,12 @@ function DashboardScreen({
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const { refreshing, onRefresh } = usePullToRefresh();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view), []);
+  const heroRef = useTutorialTarget("hero", scrollTo);
+  // Finger scrolling is off during the tour (it positions the page itself):
+  // scrolling inside a lit spot would slide the spot out from under it.
+  const tourActive = useTutorialStore((s) => s.active);
   const displayName = displayNameOverride || firstNameFromUser(session?.user) || "there";
   const greeting = getGreeting();
 
@@ -101,6 +108,8 @@ function DashboardScreen({
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollRef}
+        scrollEnabled={!tourActive}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -119,7 +128,9 @@ function DashboardScreen({
         </View>
 
         {/* Balance Card — always pinned at the top, not collapsible/draggable */}
-        <BalanceCard transactions={transactions} onNavigateToAnalytics={onNavigateToAnalytics} />
+        <View ref={heroRef} collapsable={false}>
+          <BalanceCard transactions={transactions} onNavigateToAnalytics={onNavigateToAnalytics} />
+        </View>
 
         {/* Everything else: collapsible + reorderable (hold a title to enter reorder mode) */}
         <DashboardCardList
@@ -128,6 +139,7 @@ function DashboardScreen({
           collapsed={dashboardCollapsedCards}
           onReorder={setDashboardCardOrder}
           onToggleCollapse={toggleDashboardCard}
+          tutorialScroll={scrollTo}
         />
 
         {/* Bottom padding for nav bar */}

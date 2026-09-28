@@ -8,6 +8,13 @@ if (!__DEV__ && !API_URL.startsWith("https://")) {
   throw new Error("EXPO_PUBLIC_API_URL must use https:// in release builds");
 }
 
+// The backend sleeps when idle (free hosting) and takes up to a minute to
+// wake. Called at app start so it's already warming up while the user signs
+// in, instead of the wait starting only after they do. Fire and forget.
+export function wakeBackend(): void {
+  fetch(`${API_URL}/health`).catch(() => {});
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

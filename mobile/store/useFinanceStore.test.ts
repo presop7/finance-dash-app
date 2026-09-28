@@ -214,6 +214,25 @@ test("a refresh landing mid-edit doesn't wipe the local change", async () => {
   expect(store().pendingOps).toEqual([]);
 });
 
+test("tour sample rows survive a refresh, never reach the server, and clear out", async () => {
+  await store().addTransaction(fields("Real"));
+  await releaseAll();
+  store().addDemoTransactions([{ ...fields("Sample"), id: "demo-1" }]);
+
+  await store().hydrate(); // background refresh while the tour runs
+  expect(store().transactions.map((t) => t.title).sort()).toEqual(["Real", "Sample"]);
+
+  await store().updateTransaction("demo-1", fields("Sample edited"));
+  await store().deleteTransaction("demo-1");
+  await releaseAll();
+  expect(mockServer.size).toBe(1);
+  expect(store().pendingOps).toEqual([]);
+
+  store().addDemoTransactions([{ ...fields("Sample"), id: "demo-2" }]);
+  store().removeDemoTransactions();
+  expect(store().transactions.map((t) => t.title)).toEqual(["Real"]);
+});
+
 test("offline writes wait, then sync on reconnect", async () => {
   store().setConnected(false);
   await store().addTransaction(fields("Offline"));

@@ -111,7 +111,9 @@ export default function CategoriesModal({
           : store.fundCategories;
     const match = initialEditId ? list.find((i) => i.id === initialEditId) : undefined;
 
-    setEditTarget(match ?? null);
+    // "Unassigned" can't be edited: holding it in the transaction form
+    // just opens the list.
+    setEditTarget(match && !match.locked ? match : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialType, initialEditId]);
 
@@ -152,12 +154,20 @@ export default function CategoriesModal({
     setSelectedIds(new Set());
   };
 
+  // "Unassigned" (locked) is never selectable for bulk delete. A ref, since
+  // the drag-select PanResponder below is created once and would otherwise
+  // see a stale list.
+  const lockedIdsRef = useRef(new Set<string>());
+  lockedIdsRef.current = new Set(items.filter((i) => i.locked).map((i) => i.id));
+
   const enterSelectMode = (id: string) => {
+    if (lockedIdsRef.current.has(id)) return;
     setSelectMode(true);
     setSelectedIds(new Set([id]));
   };
 
   const toggleSelected = (id: string) => {
+    if (lockedIdsRef.current.has(id)) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -588,6 +598,7 @@ export default function CategoriesModal({
                     onHoldComplete={() => enterSelectMode(item.id)}
                   >
                     {iconAndLabel}
+                    {!item.locked && (
                     <Pressable
                       style={styles.editIconBtn}
                       hitSlop={8}
@@ -613,6 +624,7 @@ export default function CategoriesModal({
                         <Ionicons name="pencil" size={16} color={Colors.textMuted} />
                       </Animated.View>
                     </Pressable>
+                    )}
                   </HoldPressable>
                 );
               })}

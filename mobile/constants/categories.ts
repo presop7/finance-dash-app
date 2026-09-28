@@ -3,6 +3,9 @@ export type Category = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   color?: string;
+  // "Unassigned": shared by everyone and where transactions go when their
+  // category is deleted — can't be edited or deleted.
+  locked?: boolean;
 };
 
 import { Ionicons } from "@expo/vector-icons";

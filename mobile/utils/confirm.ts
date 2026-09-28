@@ -25,11 +25,14 @@ export function alertAsync(title: string, message: string): Promise<void> {
   });
 }
 
-// Confirm with a custom confirm-button label (e.g. "Delete Anyway" for a warning).
+// Confirm with a custom confirm-button label (e.g. "Delete Anyway" for a
+// warning, "Sign Out"). Pass destructive: false for a harmless action so the
+// button isn't shown in red on iOS.
 export function confirmAsyncWithLabel(
   title: string,
   message: string,
   confirmLabel: string,
+  { destructive = true }: { destructive?: boolean } = {},
 ): Promise<boolean> {
   if (Platform.OS === "web") {
     return Promise.resolve(window.confirm(`${title}\n\n${message}`));
@@ -37,7 +40,11 @@ export function confirmAsyncWithLabel(
   return new Promise((resolve) => {
     Alert.alert(title, message, [
       { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-      { text: confirmLabel, style: "destructive", onPress: () => resolve(true) },
+      {
+        text: confirmLabel,
+        style: destructive ? "destructive" : "default",
+        onPress: () => resolve(true),
+      },
     ]);
   });
 }

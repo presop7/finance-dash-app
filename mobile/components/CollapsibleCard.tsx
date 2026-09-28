@@ -56,11 +56,13 @@ export default function CollapsibleCard({
   return (
     <Animated.View style={[styles.wrapper, { transform: [{ scale }] }]}>
       <View style={styles.header}>
-        {/* Grip — hold for a beat to enter reorder mode */}
+        {/* Title — tap to fold/unfold (same as the arrow button), hold for a
+            beat to enter reorder mode */}
         {reorderable ? (
           <HoldPressable
             style={styles.grip}
             disabled={reorderMode}
+            onPress={onToggleCollapse}
             onHoldComplete={() => onHoldComplete?.()}
           >
             <Ionicons
@@ -74,10 +76,10 @@ export default function CollapsibleCard({
             </View>
           </HoldPressable>
         ) : (
-          <View style={styles.grip}>
+          <TouchableOpacity style={styles.grip} onPress={onToggleCollapse} activeOpacity={0.7}>
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Both control sets stay mounted and crossfade via reorderProgress,
