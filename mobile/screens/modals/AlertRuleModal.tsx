@@ -19,6 +19,7 @@ import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 const TYPE_LABELS: Record<AlertRuleType, string> = {
   lowBalance: "Low Balance",
@@ -364,6 +365,11 @@ function createStyles(Colors: ColorsType) {
   // that and stays pinned to the screen edge, under the keyboard. Sitting
   // at the bottom is instead handled by keyboardAvoider's justifyContent.
   sheet: {
+    // Centered and capped on wide screens (web on a computer); phones
+    // are narrower than the cap, so unchanged there.
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

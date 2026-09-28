@@ -17,6 +17,7 @@ import { themedCategoryColor } from "../../utils/color";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 type TransactionDetailModalProps = {
   transaction: Transaction | null;
@@ -171,6 +172,11 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
+    // Centered and capped on wide screens (web on a computer); phones
+    // are narrower than the cap, so unchanged there.
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     position: "absolute",
     left: 0,
     right: 0,

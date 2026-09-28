@@ -29,6 +29,7 @@ import {
   DEFAULT_FILTERS,
   getDateRangeLabel,
 } from "../../utils/filterTransactions";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 type TransactionFiltersModalProps = {
   visible: boolean;
@@ -520,6 +521,11 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
+    // Centered and capped on wide screens (web on a computer); phones
+    // are narrower than the cap, so unchanged there.
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

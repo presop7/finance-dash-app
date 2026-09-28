@@ -1,5 +1,5 @@
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -52,6 +52,9 @@ import type { TutorialEvent } from "./constants/tutorialSteps";
 import { accountName } from "./utils/greeting";
 import { DEV_TOOLS } from "./constants/devTools";
 import { wakeBackend } from "./services/api";
+import { CONTENT_MAX_WIDTH } from "./constants/layout";
+import { isDesktopWeb } from "./utils/webPlatform";
+import InstallTip from "./components/InstallTip";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
@@ -147,15 +150,43 @@ export default function App() {
       <ThemeProvider>
         <ThemedStatusBar />
         <SafeAreaProvider>
-          <NavigationContainer ref={navigationRef}>
-            <RootNavigator />
-          </NavigationContainer>
+          <DesktopFrame>
+            <NavigationContainer ref={navigationRef}>
+              <RootNavigator />
+            </NavigationContainer>
+          </DesktopFrame>
+          <InstallTip />
         </SafeAreaProvider>
         {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. Dev
             builds only, so beta testers never see it. */}
         {DEV_TOOLS && <PerfOverlay />}
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+// The web version on a computer: the app as a centered column instead of
+// stretched across the whole window. Phones and phone browsers get the app
+// edge to edge as before.
+function DesktopFrame({ children }: { children: ReactNode }) {
+  const Colors = useThemeColors();
+  if (!isDesktopWeb) return <>{children}</>;
+  return (
+    <View style={{ flex: 1, alignItems: "center", backgroundColor: Colors.surfaceSecondary }}>
+      <View
+        style={{
+          flex: 1,
+          width: "100%",
+          maxWidth: CONTENT_MAX_WIDTH,
+          overflow: "hidden",
+          borderLeftWidth: StyleSheet.hairlineWidth,
+          borderRightWidth: StyleSheet.hairlineWidth,
+          borderColor: Colors.border,
+        }}
+      >
+        {children}
+      </View>
+    </View>
   );
 }
 

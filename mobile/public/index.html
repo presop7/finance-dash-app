@@ -44,6 +44,18 @@
         overflow: hidden;
         overscroll-behavior: none;
       }
+      /* Hover feedback on computers: everything tappable (react-native-web
+         makes every pressable focusable, tabindex="0") dims slightly under
+         the mouse. Only with a real mouse — on phones a tap would leave it
+         stuck "hovered". */
+      @media (hover: hover) and (pointer: fine) {
+        [tabindex="0"] {
+          transition: opacity 0.12s ease;
+        }
+        [tabindex="0"]:hover {
+          opacity: 0.8;
+        }
+      }
       /* These styles make the root element full-height */
       #root {
         display: flex;

@@ -31,6 +31,7 @@ import type { DeleteConflictDetail } from "../../services/financeApi";
 import HoldPressable from "../../components/HoldPressable";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import CategoryEditModal from "./CategoryEditModal";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -672,6 +673,11 @@ function createStyles(Colors: ColorsType) {
   // that and stays pinned to the screen edge, under the keyboard. Sitting
   // at the bottom is instead handled by keyboardAvoider's justifyContent.
   sheet: {
+    // Centered and capped on wide screens (web on a computer); phones
+    // are narrower than the cap, so unchanged there.
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

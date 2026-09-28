@@ -8,7 +8,9 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
+import { isDesktopWeb } from "../utils/webPlatform";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
 // Plain paged ScrollView rather than a FlatList — there are only ever a
@@ -162,6 +164,17 @@ export default function Carousel({
 
       {pages.length > 1 && (
         <View style={styles.dots}>
+          {/* Computers have no swipe: arrows either side of the dots. */}
+          {isDesktopWeb && (
+            <Pressable
+              onPress={() => goTo(index - 1)}
+              disabled={index === 0}
+              style={[styles.arrow, index === 0 && styles.arrowDisabled]}
+              accessibilityLabel="Previous"
+            >
+              <Ionicons name="chevron-back" size={16} color={Colors.textSecondary} />
+            </Pressable>
+          )}
           {pages.map((_, i) => (
             <Pressable
               key={i}
@@ -172,6 +185,16 @@ export default function Carousel({
               style={[styles.dot, i === index && styles.dotActive]}
             />
           ))}
+          {isDesktopWeb && (
+            <Pressable
+              onPress={() => goTo(index + 1)}
+              disabled={index === pages.length - 1}
+              style={[styles.arrow, index === pages.length - 1 && styles.arrowDisabled]}
+              accessibilityLabel="Next"
+            >
+              <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -181,8 +204,19 @@ export default function Carousel({
 function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
     scrollContent: { alignItems: "flex-start" },
+    arrow: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: Colors.surfaceSecondary,
+      marginHorizontal: 6,
+    },
+    arrowDisabled: { opacity: 0.35 },
     dots: {
       flexDirection: "row",
+      alignItems: "center",
       justifyContent: "center",
       gap: 8,
       marginTop: 10,

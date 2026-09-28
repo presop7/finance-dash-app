@@ -22,6 +22,7 @@ import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { financeApi } from "../../services/financeApi";
 import { alertAsync, confirmAsyncWithLabel } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 // Mirrors the limits the backend enforces (routes/feedback.py) so the user
 // hears about a problem here instead of after an upload.
@@ -285,6 +286,11 @@ function createStyles(Colors: ColorsType) {
       justifyContent: "flex-end",
     },
     sheet: {
+      // Centered and capped on wide screens (web on a computer); phones
+      // are narrower than the cap, so unchanged there.
+      width: "100%",
+      maxWidth: CONTENT_MAX_WIDTH,
+      alignSelf: "center",
       backgroundColor: Colors.surface,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,

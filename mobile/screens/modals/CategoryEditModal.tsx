@@ -19,6 +19,7 @@ import { themedCategoryColor } from "../../utils/color";
 import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 
 export const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cart-outline",
@@ -262,6 +263,11 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
+    // Centered and capped on wide screens (web on a computer); phones
+    // are narrower than the cap, so unchanged there.
+    width: "100%",
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
