@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from database import get_db
+from default_categories import add_default_categories
 from models.fund_category import FundCategory
 from models.user import User
 
@@ -78,6 +79,7 @@ def get_current_user(
                     ),
                 ]
             )
+            add_default_categories(db, user.id)
             db.commit()
         except IntegrityError:
             # Lost a race with a concurrent request auto-provisioning the same

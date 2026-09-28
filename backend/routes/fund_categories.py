@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import get_db
+from default_categories import UNASSIGNED
 from models.fund_category import FundCategory
 from models.transaction import Transaction
 from models.user import User
@@ -24,6 +25,13 @@ def _get_owned_fund_category(
     if fund_category is None:
         raise HTTPException(status_code=404, detail="Fund category not found")
     return fund_category
+
+
+def _refuse_unassigned(fund_category: FundCategory) -> None:
+    # "Unassigned" is where transactions land when their fund is deleted, and
+    # it's found again by name — so it can be neither renamed nor deleted.
+    if fund_category.name == UNASSIGNED:
+        raise HTTPException(status_code=400, detail="The Unassigned fund can't be changed")
 
 
 def _get_or_create_unassigned_fund_category(db: Session, current_user: User) -> FundCategory:
@@ -83,6 +91,7 @@ def update_fund_category(
     current_user: User = Depends(get_current_user),
 ):
     fund_category = _get_owned_fund_category(db, fund_category_id, current_user)
+    _refuse_unassigned(fund_category)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(fund_category, field, value)
     db.commit()
@@ -98,6 +107,7 @@ def delete_fund_category(
     current_user: User = Depends(get_current_user),
 ):
     fund_category = _get_owned_fund_category(db, fund_category_id, current_user)
+    _refuse_unassigned(fund_category)
 
     referencing_count = (
         db.query(Transaction).filter(Transaction.fund_category_id == fund_category.id).count()
@@ -118,8 +128,6 @@ def delete_fund_category(
 
     if referencing_count > 0:
         unassigned = _get_or_create_unassigned_fund_category(db, current_user)
-        if unassigned.id == fund_category.id:
-            raise HTTPException(status_code=400, detail="Cannot delete the Unassigned fund")
         db.query(Transaction).filter(Transaction.fund_category_id == fund_category.id).update(
             {Transaction.fund_category_id: unassigned.id}
         )

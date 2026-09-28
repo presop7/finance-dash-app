@@ -1,7 +1,9 @@
-"""One-off script to seed the global (user_id=None) default categories.
+"""One-off script to seed the shared (user_id=None) "Unassigned" categories.
 
 Run with: python -m scripts.seed_default_categories
 Safe to re-run — skips categories that already exist by (name, type).
+The regular defaults (Food, Salary, ...) are per-user copies made when an
+account is created — see default_categories.py.
 """
 
 import sys
@@ -10,68 +12,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from database import SessionLocal
-from models.category import Category, CategoryType
-
-DEFAULT_CATEGORIES = [
-    # Expense
-    {"name": "Food", "icon": "cart-outline", "color": "#0F6E56", "type": CategoryType.expense},
-    {
-        "name": "Restaurant",
-        "icon": "cafe-outline",
-        "color": "#993C1D",
-        "type": CategoryType.expense,
-    },
-    {"name": "Transport", "icon": "car-outline", "color": "#185FA5", "type": CategoryType.expense},
-    {
-        "name": "Entertainment",
-        "icon": "game-controller-outline",
-        "color": "#854F0B",
-        "type": CategoryType.expense,
-    },
-    {
-        "name": "Other",
-        "icon": "ellipsis-horizontal-outline",
-        "color": "#5F5E5A",
-        "type": CategoryType.expense,
-    },
-    {
-        "name": "Unassigned",
-        "icon": "help-circle-outline",
-        "color": "#5F5E5A",
-        "type": CategoryType.expense,
-    },
-    # Income
-    {
-        "name": "Salary",
-        "icon": "business-outline",
-        "color": "#185FA5",
-        "type": CategoryType.income,
-    },
-    {
-        "name": "Freelance",
-        "icon": "briefcase-outline",
-        "color": "#0F6E56",
-        "type": CategoryType.income,
-    },
-    {
-        "name": "Investment",
-        "icon": "trending-up-outline",
-        "color": "#854F0B",
-        "type": CategoryType.income,
-    },
-    {
-        "name": "Other",
-        "icon": "ellipsis-horizontal-outline",
-        "color": "#5F5E5A",
-        "type": CategoryType.income,
-    },
-    {
-        "name": "Unassigned",
-        "icon": "help-circle-outline",
-        "color": "#5F5E5A",
-        "type": CategoryType.income,
-    },
-]
+from default_categories import SHARED_CATEGORIES as DEFAULT_CATEGORIES
+from models.category import Category
 
 
 def seed() -> None:
