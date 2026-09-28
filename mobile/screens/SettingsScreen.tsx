@@ -12,6 +12,8 @@ import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { firstNameFromUser } from "../utils/greeting";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { DEV_TOOLS } from "../constants/devTools";
+import { generateDemoTransactions } from "../utils/demoTransactions";
+import * as Crypto from "expo-crypto";
 import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
@@ -41,6 +43,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
   const [clearingTransactions, setClearingTransactions] = useState(false);
   const [creatingTestCategories, setCreatingTestCategories] = useState(false);
+  const [addingSamples, setAddingSamples] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view), []);
@@ -122,6 +125,62 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       }
     } finally {
       setClearingTransactions(false);
+    }
+  };
+
+  // For beta testers: fills an account with realistic data to try the
+  // charts and filters with. Unlike the tour's samples these are saved to
+  // the account for real, so they can be edited and deleted like any other.
+  const handleAddSampleTransactions = async () => {
+    if (!isConnected) {
+      await alertAsync("You're offline", "Adding sample transactions needs an internet connection.");
+      return;
+    }
+    const proceed = await confirmAsyncWithLabel(
+      "Add Sample Transactions",
+      "Add 40 random example transactions (4 incomes and 36 expenses) spread over the last two months? " +
+        "They're saved to your account like real ones, so you can change or delete them later.",
+      "Add",
+      { destructive: false },
+    );
+    if (!proceed) return;
+
+    setAddingSamples(true);
+    try {
+      const { expenseCategories, incomeCategories, fundCategories } = useFinanceStore.getState();
+      const funds = fundCategories.filter((f) => !f.locked);
+      const samples = generateDemoTransactions(
+        expenseCategories,
+        incomeCategories,
+        (funds.length > 0 ? funds : fundCategories).map((f) => f.id),
+      );
+      const result = await financeApi.bulkCreateTransactions(
+        samples.map((t) => ({
+          title: t.title,
+          fund_category_id: t.fundCategory,
+          category_id: t.category,
+          amount: t.amount,
+          currency: settings.currency,
+          type: t.type,
+          note: null,
+          occurred_at: t.date.toISOString(),
+          client_generated_id: Crypto.randomUUID(),
+        })),
+      );
+      await hydrate();
+      await alertAsync(
+        "Sample transactions added",
+        result.failed.length > 0
+          ? `Added ${result.created.length}; ${result.failed.length} couldn't be added.`
+          : `Added ${result.created.length} example transactions.`,
+      );
+    } catch (err) {
+      await alertAsync(
+        "Couldn't add sample transactions",
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    } finally {
+      setAddingSamples(false);
     }
   };
 
@@ -424,6 +483,25 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
                 {clearingTransactions ? "Clearing…" : "Clear All Transactions"}
               </Text>
               <Text style={styles.rowSubtitle}>Permanently deletes every transaction</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={handleAddSampleTransactions}
+            activeOpacity={0.7}
+            disabled={addingSamples}
+          >
+            <View style={styles.rowIcon}>
+              <Ionicons name="shuffle-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>
+                {addingSamples ? "Adding…" : "Add Sample Transactions"}
+              </Text>
+              <Text style={styles.rowSubtitle}>40 random incomes and expenses, for testing</Text>
             </View>
           </TouchableOpacity>
 

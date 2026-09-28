@@ -4,10 +4,13 @@
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <!-- viewport-fit=cover: use the whole iPhone screen (notch / home bar
-         areas included); the app's own safe-area padding keeps content clear. -->
+         areas included); the app's own safe-area padding keeps content clear.
+         maximum-scale=1: stops iPhone Safari zooming in on a text field when
+         it's tapped (and staying zoomed after). Pinch-to-zoom still works —
+         iOS always allows it for accessibility. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover"
     />
     <title>Fi-Track</title>
     <meta name="description" content="Track your income, spending and funds." />
@@ -30,11 +33,15 @@
         height: 100%;
         background-color: #17181c;
       }
-      /* These styles disable body scrolling if you are using <ScrollView> */
+      /* The page itself never moves — only the app's own lists scroll.
+         position: fixed is what actually stops iPhone Safari from dragging
+         and bouncing the whole app around (overflow/overscroll alone don't). */
+      html,
       body {
+        position: fixed;
+        inset: 0;
+        width: 100%;
         overflow: hidden;
-        /* No pull-to-refresh / bounce of the whole page on phones — the app
-           has its own pull-to-refresh. */
         overscroll-behavior: none;
       }
       /* These styles make the root element full-height */

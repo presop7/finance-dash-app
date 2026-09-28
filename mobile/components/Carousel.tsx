@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import {
   View,
   Pressable,
@@ -87,6 +87,14 @@ export default function Carousel({
     onIndexChange?.(i);
   };
 
+  // Keep the shown page when the carousel's width changes (window resized
+  // on a computer, phone rotated) — on the web the browser's scroll-snap
+  // otherwise re-picks a page on its own.
+  useEffect(() => {
+    if (width > 0) scrollRef.current?.scrollTo({ x: index * width, animated: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
+
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (width <= 0) return;
     const next = Math.max(0, Math.min(pages.length - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
@@ -115,11 +123,16 @@ export default function Carousel({
         // each page's onLayout reporting its own real content height.
         contentContainerStyle={styles.scrollContent}
       >
-        {pages.map((page, i) => (
-          <View key={i} style={{ width }} onLayout={onPageLayout(i)}>
-            {visited.current.has(i) ? page : null}
-          </View>
-        ))}
+        {/* Pages wait for the width: at width 0 they'd all sit at the same
+            spot, and on the web the browser's scroll-snap would pick one of
+            them (often not the first) to stay on once they spread out —
+            showing page 2 while the dots say page 1. */}
+        {width > 0 &&
+          pages.map((page, i) => (
+            <View key={i} style={{ width }} onLayout={onPageLayout(i)}>
+              {visited.current.has(i) ? page : null}
+            </View>
+          ))}
       </ScrollView>
 
       {pages.length > 1 && (

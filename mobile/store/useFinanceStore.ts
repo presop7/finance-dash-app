@@ -1046,8 +1046,12 @@ if (Platform.OS === "web" && typeof window !== "undefined") {
 // Returning to the app is a natural moment to try again: it covers the case
 // where the *backend* was unreachable (asleep, erroring) while the device
 // itself stayed online, so no connectivity transition ever fired to retry.
+//
+// On the web it always refreshes on return: pull-to-refresh doesn't exist
+// there (react-native-web's RefreshControl draws nothing), so coming back to
+// the tab or the home-screen web app is the way to get fresh data.
 AppState.addEventListener("change", (appState) => {
-  if (appState !== "active") return;
+  if (appState !== "active" || !activeUserId()) return;
   const { isConnected, pendingOps, hydrate } = useFinanceStore.getState();
-  if (isConnected && pendingOps.length > 0) void hydrate();
+  if (isConnected && (pendingOps.length > 0 || Platform.OS === "web")) void hydrate();
 });
