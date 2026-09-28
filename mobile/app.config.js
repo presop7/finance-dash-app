@@ -10,6 +10,10 @@ module.exports = {
   expo: {
     name: IS_DEV ? "Dev Fi-Track" : "Fi-Track",
     slug: "mobile",
+    // Deep-link scheme Google sign-in returns to (<scheme>://auth-callback).
+    // Separate per variant so, with both installed, the browser hands the
+    // sign-in back to the app that started it rather than asking which one.
+    scheme: IS_DEV ? "fitrack-dev" : "fitrack",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",

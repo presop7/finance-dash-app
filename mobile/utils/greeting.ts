@@ -11,6 +11,24 @@ export function nameFromEmail(email: string | null | undefined): string | null {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+type AuthUser = { email?: string; user_metadata?: Record<string, unknown> } | null | undefined;
+
+// The name stored on the account (Supabase user_metadata): what the user
+// chose to be called, else the real name a provider like Google supplied.
+export function accountName(user: AuthUser): string | null {
+  const meta = user?.user_metadata ?? {};
+  const name = [meta.display_name, meta.given_name, meta.full_name, meta.name].find(
+    (v): v is string => typeof v === "string" && v.trim().length > 0,
+  );
+  return name?.trim() ?? null;
+}
+
+// First name for the greeting: the account's name, else the email-based guess.
+export function firstNameFromUser(user: AuthUser): string | null {
+  const name = accountName(user);
+  return name ? name.split(/\s+/)[0] : nameFromEmail(user?.email);
+}
+
 // A few reassuring late-night lines rather than one fixed string, so it
 // doesn't get stale for anyone who's a regular night owl.
 const LATE_NIGHT_MESSAGES = [

@@ -8,7 +8,7 @@ import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
-import { nameFromEmail } from "../utils/greeting";
+import { firstNameFromUser } from "../utils/greeting";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
@@ -207,7 +207,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               style={styles.nameInput}
               value={displayNameOverride ?? ""}
               onChangeText={(text) => setDisplayNameOverride(text.trim() ? text : null)}
-              placeholder={nameFromEmail(session?.user.email) ?? "Name"}
+              placeholder={firstNameFromUser(session?.user) ?? "Name"}
               placeholderTextColor={Colors.textMuted}
             />
           </View>

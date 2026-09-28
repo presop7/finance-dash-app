@@ -40,6 +40,7 @@ import { useThemeColors, useResolvedScheme, ThemeProvider, getThemedStyles } fro
 import CategoriesModal, { CategoryTabType } from "./screens/modals/CategoriesModal";
 import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
 import ImportCsvModal from "./screens/modals/ImportCsvModal";
+import NamePromptModal from "./screens/modals/NamePromptModal";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
@@ -545,6 +546,7 @@ function AppContent() {
         }
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
+      <NamePromptModal />
 
       <TransactionDetailModal
         transaction={selectedTransaction}

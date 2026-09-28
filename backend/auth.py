@@ -43,8 +43,13 @@ def get_current_user(
 
     user = db.query(User).filter(User.auth_provider_id == auth_provider_id).first()
     if user is None:
-        display_name = payload.get("user_metadata", {}).get("display_name") or (
-            email.split("@")[0] if email else "User"
+        # Google sign-in supplies the real name as full_name/name.
+        metadata = payload.get("user_metadata") or {}
+        display_name = (
+            metadata.get("display_name")
+            or metadata.get("full_name")
+            or metadata.get("name")
+            or (email.split("@")[0] if email else "User")
         )
         user = User(
             auth_provider_id=auth_provider_id,

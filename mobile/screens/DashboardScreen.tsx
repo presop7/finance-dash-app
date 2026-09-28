@@ -14,7 +14,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { GlobalStyles } from "../constants/styles";
-import { getGreeting, nameFromEmail } from "../utils/greeting";
+import { getGreeting, firstNameFromUser } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 
 type DashboardScreenProps = {
@@ -45,7 +45,7 @@ function DashboardScreen({
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const { refreshing, onRefresh } = usePullToRefresh();
-  const displayName = displayNameOverride || nameFromEmail(session?.user.email) || "there";
+  const displayName = displayNameOverride || firstNameFromUser(session?.user) || "there";
   const greeting = getGreeting();
 
   // Show only the last 5 added transactions on the dashboard.

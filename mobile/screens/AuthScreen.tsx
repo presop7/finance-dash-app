@@ -24,7 +24,7 @@ type Mode = "sign-in" | "sign-up";
 const WIDE_SCREEN_BREAKPOINT = 768;
 
 export default function AuthScreen() {
-  const { signIn, signUp, error, clearError } = useAuthStore();
+  const { signIn, signUp, signInWithGoogle, error, clearError } = useAuthStore();
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const { width } = useWindowDimensions();
@@ -32,13 +32,18 @@ export default function AuthScreen() {
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const translateAnim = useRef(new Animated.Value(0)).current;
 
-  const canSubmit = email.trim().length > 0 && password.length >= 6 && !submitting;
+  const canSubmit =
+    email.trim().length > 0 &&
+    password.length >= 6 &&
+    (mode === "sign-in" || displayName.trim().length > 0) &&
+    !submitting;
 
   // Fades/slides the swappable content out, applies the state change, then back in —
   // gives the user visible feedback that the screen actually switched modes.
@@ -64,11 +69,22 @@ export default function AuthScreen() {
       if (mode === "sign-in") {
         await signIn(email.trim(), password);
       } else {
-        const hasSession = await signUp(email.trim(), password);
+        const hasSession = await signUp(email.trim(), password, displayName.trim());
         if (!hasSession) {
           animateSwap(() => setSignedUpEmail(email.trim()));
         }
       }
+    } catch {
+      // error is surfaced via the store's `error` field
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setSubmitting(true);
+    try {
+      await signInWithGoogle();
     } catch {
       // error is surfaced via the store's `error` field
     } finally {
@@ -131,6 +147,22 @@ export default function AuthScreen() {
               </View>
             ) : (
               <>
+                {mode === "sign-up" && (
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>What should we call you?</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Your name"
+                      placeholderTextColor={Colors.textMuted}
+                      value={displayName}
+                      onChangeText={setDisplayName}
+                      autoCapitalize="words"
+                      autoComplete="given-name"
+                      maxLength={40}
+                    />
+                  </View>
+                )}
+
                 <View style={styles.field}>
                   <Text style={styles.fieldLabel}>Email</Text>
                   <TextInput
@@ -174,6 +206,22 @@ export default function AuthScreen() {
                       {mode === "sign-in" ? "Sign In" : "Sign Up"}
                     </Text>
                   )}
+                </TouchableOpacity>
+
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={handleGoogle}
+                  disabled={submitting}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="logo-google" size={18} color={Colors.textPrimary} />
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -300,6 +348,39 @@ function createStyles(Colors: ColorsType) {
   },
   submitButtonText: {
     color: Colors.surface,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 0.5,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: "uppercase",
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 13,
+    backgroundColor: Colors.surfaceSecondary,
+    marginBottom: 20,
+  },
+  googleButtonText: {
+    color: Colors.textPrimary,
     fontSize: 15,
     fontWeight: "600",
   },
