@@ -62,7 +62,6 @@ import {
   getDateRangeLabel,
 } from "../utils/filterTransactions";
 import { getCurrency } from "../constants/currencies";
-import { financeApi } from "../services/financeApi";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 
 // Roughly a screenful of rows below the header — enough that the first
@@ -195,7 +194,6 @@ function AnalyticsScreen({
   // hold-to-select pattern); the held row is auto-selected.
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkActing, setBulkActing] = useState(false);
 
   // useCallback with empty deps (all of these use functional state updates,
   // so they never need anything from the closure) keeps these — and
@@ -558,10 +556,8 @@ function AnalyticsScreen({
     }
   }, []);
 
-  // Deliberately bypasses the store's deleteTransaction/updateTransaction
-  // (each does its own full refetch per call) in favor of calling financeApi
-  // directly in parallel and refetching once at the end — the same approach
-  // CategoriesModal's own bulk delete already uses, for the same reason.
+  // Goes through the store's sync queue like single edits: applied on screen
+  // instantly, sent to the server in the background.
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -572,32 +568,18 @@ function AnalyticsScreen({
     );
     if (!ok) return;
 
-    setBulkActing(true);
-    const results = await Promise.allSettled(ids.map((id) => financeApi.deleteTransaction(id)));
-    const failedCount = results.filter((r) => r.status === "rejected").length;
-    await useFinanceStore.getState().hydrate();
-    setBulkActing(false);
+    const { deleteTransaction } = useFinanceStore.getState();
+    for (const id of ids) await deleteTransaction(id);
     exitSelectMode();
-
-    if (failedCount > 0) {
-      await alertAsync("Some deletions failed", `${failedCount} couldn't be deleted — try again.`);
-    }
   };
 
   const applyBulkField = async (field: "fund_category_id" | "category_id", value: string) => {
-    const ids = Array.from(selectedIds);
-    setBulkActing(true);
-    const results = await Promise.allSettled(
-      ids.map((id) => financeApi.updateTransaction(id, { [field]: value })),
-    );
-    const failedCount = results.filter((r) => r.status === "rejected").length;
-    await useFinanceStore.getState().hydrate();
-    setBulkActing(false);
-    exitSelectMode();
-
-    if (failedCount > 0) {
-      await alertAsync("Some updates failed", `${failedCount} transaction${failedCount === 1 ? "" : "s"} couldn't be updated.`);
+    const { transactions, updateTransaction } = useFinanceStore.getState();
+    const key = field === "fund_category_id" ? "fundCategory" : "category";
+    for (const { id, isPending: _, ...fields } of transactions.filter((t) => selectedIds.has(t.id))) {
+      await updateTransaction(id, { ...fields, [key]: value });
     }
+    exitSelectMode();
   };
 
   // Fund is shared across expense/income, so "Change Fund" always applies.
@@ -829,7 +811,6 @@ function AnalyticsScreen({
             <TouchableOpacity
               onPress={exitSelectMode}
               style={styles.selectDiscardBtn}
-              disabled={bulkActing}
             >
               <Text style={styles.selectDiscardText}>Discard</Text>
             </TouchableOpacity>
@@ -837,9 +818,9 @@ function AnalyticsScreen({
               onPress={handleBulkEdit}
               style={[
                 styles.selectEditBtn,
-                (selectedIds.size === 0 || bulkActing) && styles.selectBtnDisabled,
+                selectedIds.size === 0 && styles.selectBtnDisabled,
               ]}
-              disabled={selectedIds.size === 0 || bulkActing}
+              disabled={selectedIds.size === 0}
             >
               <Ionicons name="pricetag-outline" size={14} color={Colors.primary} />
               <Text style={styles.selectEditText}>Bulk Edit</Text>
@@ -848,12 +829,12 @@ function AnalyticsScreen({
               onPress={handleBulkDelete}
               style={[
                 styles.selectDeleteBtn,
-                (selectedIds.size === 0 || bulkActing) && styles.selectBtnDisabled,
+                selectedIds.size === 0 && styles.selectBtnDisabled,
               ]}
-              disabled={selectedIds.size === 0 || bulkActing}
+              disabled={selectedIds.size === 0}
             >
               <Ionicons name="trash-outline" size={14} color="#fff" />
-              <Text style={styles.selectDeleteText}>{bulkActing ? "Working…" : "Delete"}</Text>
+              <Text style={styles.selectDeleteText}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>

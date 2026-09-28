@@ -25,7 +25,7 @@ export type Transaction = {
   fundCategory: string;
   note: string;
   date: Date;
-  // Set while a create/edit for this row is still sitting in the offline queue.
+  // Set while a create/edit for this row is still waiting in the sync queue.
   isPending?: boolean;
 };
 
@@ -100,7 +100,8 @@ type TransactionFields = Omit<Transaction, "id" | "isPending">;
 
 export type OpStatus = "pending" | "syncing" | "failed";
 
-// Writes made while offline are queued as operations and replayed on reconnect.
+// Every transaction write is queued as an operation and sent in the background
+// (immediately when online, on reconnect otherwise).
 // Ops are collapsed to their net effect at enqueue time (see queueWrite helpers
 // below), so there is at most one op per transaction and replay never has to
 // reason about ordering between conflicting ops.
@@ -352,60 +353,154 @@ type FinanceSet = (
 ) => void;
 type FinanceGet = () => FinanceStore;
 
+// Placeholder id → server id for creates that have synced. A screen opened on
+// the placeholder row (e.g. the edit modal) can still hand back the old id
+// after the swap; this routes that edit/delete to the real row.
+// ponytail: in-memory only — placeholder ids don't outlive the screens holding them.
+const syncedIds = new Map<string, string>();
+const resolveId = (id: string) => syncedIds.get(id) ?? id;
+
+async function sendCreate(op: Extract<PendingOp, { kind: "create" }>, currency: string) {
+  try {
+    return await financeApi.createTransaction(
+      toCreatePayload(op.payload, currency, op.clientGeneratedId),
+    );
+  } catch (err) {
+    // 409: an earlier attempt landed but its response was lost (common on a
+    // slow network). Look the row up so we still learn its real id.
+    if (!isAlreadySettled(err, "create")) throw err;
+    const existing = (await financeApi.listTransactions()).find(
+      (t) => t.client_generated_id === op.clientGeneratedId,
+    );
+    if (!existing) throw err;
+    return existing;
+  }
+}
+
 // Sends one queued op to the backend and reconciles local state with the result.
+// The user can keep editing while it's in flight: an edit/delete of the same
+// transaction replaces the op in the queue, which is how we detect it below.
 async function runPendingOp(op: PendingOp, set: FinanceSet, get: FinanceGet): Promise<void> {
   const key = opKey(op);
-  const setStatus = (status: OpStatus) =>
-    set((state) => ({
-      pendingOps: state.pendingOps.map((o) => (opKey(o) === key ? { ...o, status } : o)),
-    }));
+  const userId = activeUserId();
+  const current = () => get().pendingOps.find((o) => opKey(o) === key);
   const dropOp = () =>
     set((state) => ({ pendingOps: state.pendingOps.filter((o) => opKey(o) !== key) }));
 
-  setStatus("syncing");
+  set((state) => ({
+    pendingOps: state.pendingOps.map((o) =>
+      opKey(o) === key ? { ...o, status: "syncing" as const } : o,
+    ),
+  }));
+  const sent = current();
 
   try {
     if (op.kind === "create") {
-      const created = await financeApi.createTransaction(
-        toCreatePayload(op.payload, get().settings.currency, op.clientGeneratedId),
-      );
+      const created = await sendCreate(op, get().settings.currency);
+      if (activeUserId() !== userId) return;
       const real = mapTransaction(created);
-      // Swap the local placeholder (still keyed by clientGeneratedId) for the
-      // server row, which carries the real id.
-      set((state) => ({
-        transactions: state.transactions.map((t) =>
-          t.id === op.clientGeneratedId ? real : t,
-        ),
-      }));
-    } else if (op.kind === "update") {
+      syncedIds.set(op.clientGeneratedId, real.id);
+      const now = current();
+
+      if (!now) {
+        // Deleted locally while the POST was in flight — the row exists on the
+        // server now, so it needs a real delete.
+        set((state) => ({
+          pendingOps: [
+            ...state.pendingOps,
+            { kind: "delete", transactionId: real.id, status: "pending" },
+          ],
+        }));
+      } else if (now !== sent && now.kind === "create") {
+        // Edited while in flight: keep the local edit and send it as an update
+        // against the real id.
+        set((state) => ({
+          pendingOps: state.pendingOps.map((o) =>
+            opKey(o) === key
+              ? { kind: "update", transactionId: real.id, payload: now.payload, status: "pending" }
+              : o,
+          ),
+          transactions: state.transactions.map((t) =>
+            t.id === op.clientGeneratedId ? { ...t, id: real.id } : t,
+          ),
+        }));
+      } else {
+        // Swap the local placeholder (still keyed by clientGeneratedId) for the
+        // server row, which carries the real id.
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            t.id === op.clientGeneratedId ? real : t,
+          ),
+        }));
+        dropOp();
+      }
+      return;
+    }
+
+    if (op.kind === "update") {
       const updated = await financeApi.updateTransaction(
         op.transactionId,
         toUpdatePayload(op.payload),
       );
+      if (activeUserId() !== userId) return;
+      // A newer edit/delete queued meanwhile wins; it's sent next.
+      if (current() !== sent) return;
       const real = mapTransaction(updated);
       set((state) => ({
         transactions: state.transactions.map((t) => (t.id === op.transactionId ? real : t)),
       }));
     } else {
       await financeApi.deleteTransaction(op.transactionId);
+      if (activeUserId() !== userId) return;
     }
     dropOp();
   } catch (err) {
-    if (isAlreadySettled(err, op.kind)) {
-      // Server already reflects the intent. Clear the pending marker; the
-      // hydrate at the end of replay reconciles any id mismatch.
-      const id = op.kind === "create" ? op.clientGeneratedId : op.transactionId;
+    if (activeUserId() !== userId) return;
+    if (current() !== sent) return; // superseded — the newer op gets sent next
+    if (op.kind !== "create" && isAlreadySettled(err, op.kind)) {
+      // Server already reflects the intent (row gone, deleted elsewhere).
       set((state) => ({
         transactions: state.transactions.map((t) =>
-          t.id === id ? { ...t, isPending: false } : t,
+          t.id === op.transactionId ? { ...t, isPending: false } : t,
         ),
       }));
       dropOp();
       return;
     }
     // Leave it queued so it can be retried rather than blocking the rest.
-    setStatus("failed");
+    set((state) => ({
+      pendingOps: state.pendingOps.map((o) =>
+        opKey(o) === key ? { ...o, status: "failed" as const } : o,
+      ),
+    }));
   }
+}
+
+// Sends queued ops one at a time in the background. Only one runner exists at
+// a time, so an op is never sent twice in parallel; writes queued while it
+// runs are picked up by the same loop. retryFailed also re-sends ops that
+// failed earlier (each at most once per run, so a dead server can't spin it).
+let flushing: Promise<void> | null = null;
+
+function flushQueue(set: FinanceSet, get: FinanceGet, retryFailed = false): Promise<void> {
+  if (flushing) {
+    return retryFailed ? flushing.then(() => flushQueue(set, get, true)) : flushing;
+  }
+  flushing = (async () => {
+    const retried = new Set<string>();
+    while (get().isConnected) {
+      const op = get().pendingOps.find(
+        (o) =>
+          o.status === "pending" || (retryFailed && o.status === "failed" && !retried.has(opKey(o))),
+      );
+      if (!op) break;
+      retried.add(opKey(op));
+      await runPendingOp(op, set, get);
+    }
+  })().finally(() => {
+    flushing = null;
+  });
+  return flushing;
 }
 
 export const useFinanceStore = create<FinanceStore>()(
@@ -439,14 +534,19 @@ export const useFinanceStore = create<FinanceStore>()(
         const hasCache = get().status === "loaded";
         set({ status: hasCache ? "refreshing" : "loading", syncError: null });
 
+        // If the account switches while this is awaiting, whatever comes back
+        // belongs to the previous user — applying it would show their data to
+        // the new one and persist it into the new user's slot.
+        const userId = activeUserId();
+        const userSwitched = () => activeUserId() !== userId;
+
         // Flush queued writes before reading, so the fetched state already
         // includes them. This is also what retries failed ops: any sync —
         // launch, reconnect, sign-in — gets them moving again, rather than
         // them being stuck until connectivity happens to flap.
         if (get().isConnected) {
-          for (const op of get().pendingOps.filter((o) => o.status !== "syncing")) {
-            await runPendingOp(op, set, get);
-          }
+          await flushQueue(set, get, true);
+          if (userSwitched()) return;
         }
 
         // Snapshot the settings version before fetching: if updateSettings()
@@ -461,8 +561,18 @@ export const useFinanceStore = create<FinanceStore>()(
             financeApi.listFundCategories(),
             financeApi.listTransactions(),
           ]);
+          if (userSwitched()) return;
 
           const settingsStale = get().settingsVersion !== settingsVersionAtFetch;
+
+          // Writes queued while this fetch was in flight aren't in the server
+          // list yet — keep the local version of those rows (and keep locally
+          // deleted ones gone) instead of letting the fetch undo them on screen.
+          const pendingKeys = new Set(get().pendingOps.map(opKey));
+          const localPending = get().transactions.filter((t) => pendingKeys.has(t.id));
+          const serverRows = apiTransactions
+            .filter((t) => !pendingKeys.has(t.id) && !pendingKeys.has(t.client_generated_id))
+            .map(mapTransaction);
 
           set({
             status: "loaded",
@@ -471,11 +581,12 @@ export const useFinanceStore = create<FinanceStore>()(
             expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
             incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
             fundCategories: apiFundCategories.map(mapFundCategory),
-            transactions: apiTransactions
-              .map(mapTransaction)
-              .sort((a, b) => b.date.getTime() - a.date.getTime()),
+            transactions: [...localPending, ...serverRows].sort(
+              (a, b) => b.date.getTime() - a.date.getTime(),
+            ),
           });
         } catch (err) {
+          if (userSwitched()) return;
           const message = err instanceof Error ? err.message : "Failed to load your data";
           // A failed refresh keeps the cached data on screen — the hard error
           // screen is only for having nothing to show at all.
@@ -551,96 +662,80 @@ export const useFinanceStore = create<FinanceStore>()(
       addTransaction: async (transaction) => {
         const clientGeneratedId = Crypto.randomUUID();
 
-        if (!get().isConnected) {
-          set((state) => ({
-            pendingOps: [
-              ...state.pendingOps,
-              { kind: "create", clientGeneratedId, payload: transaction, status: "pending" },
-            ],
-            transactions: [
-              { ...transaction, id: clientGeneratedId, isPending: true },
-              ...state.transactions,
-            ],
-          }));
-          return;
-        }
-
-        const created = await financeApi.createTransaction(
-          toCreatePayload(transaction, get().settings.currency, clientGeneratedId),
-        );
+        // Transaction writes always land locally first and sync in the
+        // background, online or not — the UI never waits on the network (a
+        // cold or slow backend used to hold the modal open for 15-20s).
         set((state) => ({
-          transactions: [mapTransaction(created), ...state.transactions],
+          pendingOps: [
+            ...state.pendingOps,
+            { kind: "create", clientGeneratedId, payload: transaction, status: "pending" },
+          ],
+          transactions: [
+            { ...transaction, id: clientGeneratedId, isPending: true },
+            ...state.transactions,
+          ],
         }));
+        void flushQueue(set, get);
       },
 
-      updateTransaction: async (id, changes) => {
-        if (!get().isConnected) {
-          set((state) => {
-            const pendingCreate = state.pendingOps.find(
-              (op) => op.kind === "create" && op.clientGeneratedId === id,
-            );
+      updateTransaction: async (rawId, changes) => {
+        const id = resolveId(rawId);
+        set((state) => {
+          const pendingCreate = state.pendingOps.find(
+            (op) => op.kind === "create" && op.clientGeneratedId === id,
+          );
 
-            const pendingOps: PendingOp[] = pendingCreate
-              ? // Never reached the server yet — fold the edit into the queued
-                // create so it still syncs as a single POST.
+          const pendingOps: PendingOp[] = pendingCreate
+            ? // Not confirmed by the server yet — fold the edit into the queued
+              // create so it still syncs as a single POST (runPendingOp turns it
+              // into an update if the POST was already in flight).
+              state.pendingOps.map((op) =>
+                op.kind === "create" && op.clientGeneratedId === id
+                  ? { ...op, payload: changes, status: "pending" }
+                  : op,
+              )
+            : state.pendingOps.some((op) => op.kind === "update" && op.transactionId === id)
+              ? // Repeated edits collapse — only the latest values matter.
                 state.pendingOps.map((op) =>
-                  op.kind === "create" && op.clientGeneratedId === id
+                  op.kind === "update" && op.transactionId === id
                     ? { ...op, payload: changes, status: "pending" }
                     : op,
                 )
-              : state.pendingOps.some((op) => op.kind === "update" && op.transactionId === id)
-                ? // Repeated offline edits collapse — only the latest values matter.
-                  state.pendingOps.map((op) =>
-                    op.kind === "update" && op.transactionId === id
-                      ? { ...op, payload: changes, status: "pending" }
-                      : op,
-                  )
-                : [
-                    ...state.pendingOps,
-                    { kind: "update", transactionId: id, payload: changes, status: "pending" },
-                  ];
+              : [
+                  ...state.pendingOps,
+                  { kind: "update", transactionId: id, payload: changes, status: "pending" },
+                ];
 
-            return {
-              pendingOps,
-              transactions: state.transactions.map((t) =>
-                t.id === id ? { ...changes, id, isPending: true } : t,
-              ),
-            };
-          });
-          return;
-        }
-
-        const updated = await financeApi.updateTransaction(id, toUpdatePayload(changes));
-        set((state) => ({
-          transactions: state.transactions.map((t) => (t.id === id ? mapTransaction(updated) : t)),
-        }));
+          return {
+            pendingOps,
+            transactions: state.transactions.map((t) =>
+              t.id === id ? { ...changes, id, isPending: true } : t,
+            ),
+          };
+        });
+        void flushQueue(set, get);
       },
 
-      deleteTransaction: async (id) => {
-        if (!get().isConnected) {
-          set((state) => {
-            const hasPendingCreate = state.pendingOps.some(
-              (op) => op.kind === "create" && op.clientGeneratedId === id,
-            );
+      deleteTransaction: async (rawId) => {
+        const id = resolveId(rawId);
+        set((state) => {
+          const hasPendingCreate = state.pendingOps.some(
+            (op) => op.kind === "create" && op.clientGeneratedId === id,
+          );
 
-            // A row that never reached the server just disappears — dropping the
-            // queued create means nothing is sent at all, not a create-then-delete.
-            const withoutThisRow = state.pendingOps.filter((op) => opKey(op) !== id);
+          // A row that never reached the server just disappears — dropping the
+          // queued create means nothing is sent at all, not a create-then-delete.
+          // (If the POST was already in flight, runPendingOp queues the delete.)
+          const withoutThisRow = state.pendingOps.filter((op) => opKey(op) !== id);
 
-            return {
-              pendingOps: hasPendingCreate
-                ? withoutThisRow
-                : [...withoutThisRow, { kind: "delete", transactionId: id, status: "pending" }],
-              transactions: state.transactions.filter((t) => t.id !== id),
-            };
-          });
-          return;
-        }
-
-        await financeApi.deleteTransaction(id);
-        set((state) => ({
-          transactions: state.transactions.filter((t) => t.id !== id),
-        }));
+          return {
+            pendingOps: hasPendingCreate
+              ? withoutThisRow
+              : [...withoutThisRow, { kind: "delete", transactionId: id, status: "pending" }],
+            transactions: state.transactions.filter((t) => t.id !== id),
+          };
+        });
+        void flushQueue(set, get);
       },
 
       addExpenseCategory: async (category) => {
@@ -779,7 +874,13 @@ export const useFinanceStore = create<FinanceStore>()(
       retryPendingOp: async (key) => {
         const op = get().pendingOps.find((o) => opKey(o) === key);
         if (!op || op.status === "syncing") return;
-        await runPendingOp(op, set, get);
+        // Through the single runner, so it can't race an in-flight send of the same op.
+        set((state) => ({
+          pendingOps: state.pendingOps.map((o) =>
+            opKey(o) === key ? { ...o, status: "pending" as const } : o,
+          ),
+        }));
+        await flushQueue(set, get);
       },
 
       addAlertRule: (rule) =>
