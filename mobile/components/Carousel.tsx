@@ -36,6 +36,10 @@ export default function Carousel({
   const styles = getThemedStyles(createStyles, Colors);
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
+  // Set while a dot-tap slide is under way: pages it passes over on the way
+  // mustn't count as "landed on".
+  const targetRef = useRef<number | null>(null);
   const visited = useRef(new Set([0]));
   const [, forceRender] = useState(0);
   // Each page's own measured height, so the ScrollView can be pinned to
@@ -72,6 +76,24 @@ export default function Carousel({
       changed = true;
     }
     if (changed) forceRender((n) => n + 1);
+
+    // Landed (near enough) on a page → that's the current page. Needed on
+    // the web, where scrolling with a mouse wheel / Shift+wheel / trackpad
+    // never fires onMomentumScrollEnd, so the dots and title stayed put.
+    const nearest = Math.round(raw);
+    if (Math.abs(raw - nearest) < 0.02) settleOn(nearest);
+  };
+
+  const settleOn = (i: number) => {
+    const next = Math.max(0, Math.min(pages.length - 1, i));
+    if (targetRef.current !== null) {
+      if (next !== targetRef.current) return;
+      targetRef.current = null;
+    }
+    if (next === indexRef.current) return;
+    indexRef.current = next;
+    setIndex(next);
+    onIndexChange?.(next);
   };
   // Tapping a dot jumps to its page — the way to change pages on a computer,
   // where there's no swipe. Set directly rather than waiting for
@@ -82,7 +104,9 @@ export default function Carousel({
       visited.current.add(i);
       forceRender((n) => n + 1);
     }
+    targetRef.current = i === indexRef.current ? null : i;
     scrollRef.current?.scrollTo({ x: i * width, animated: true });
+    indexRef.current = i;
     setIndex(i);
     onIndexChange?.(i);
   };
@@ -97,9 +121,10 @@ export default function Carousel({
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (width <= 0) return;
-    const next = Math.max(0, Math.min(pages.length - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
-    setIndex(next);
-    onIndexChange?.(next);
+    // A finished swipe is always where the user ended up — even if it
+    // interrupted a dot-tap slide.
+    targetRef.current = null;
+    settleOn(Math.round(e.nativeEvent.contentOffset.x / width));
   };
 
   return (
