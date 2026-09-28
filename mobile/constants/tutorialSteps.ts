@@ -194,7 +194,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     skippable: true,
     title: "The summary",
     text:
-      "This adds everything up for you. Swipe it to the left to see charts of which categories take the most money.",
+      "This adds everything up for you. Swipe it to the left — or tap the dots under it — to see charts of which categories take the most money.",
   },
   {
     id: "analytics-list",

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle, G, Path, Text as SvgText, Line } from "react-native-svg";
 import Animated, {
@@ -67,6 +67,17 @@ const HOLD_MS = 450;
 // Two label columns flanking the ring, wide enough for a short category
 // name + its amount on two lines each.
 const LABEL_COL = 112;
+// The chart is laid out at its phone size, then scaled up as a whole to use
+// wider screens (tablets, the web version on a computer) — never down, and
+// capped so it doesn't turn huge on a desktop monitor.
+const MAX_FIT_SCALE = 1.8;
+// SVG text doesn't inherit the app's font: browsers fall back to a serif
+// (Times). Match react-native-web's own system font stack there; native
+// already uses the system font.
+const LABEL_FONT =
+  Platform.OS === "web"
+    ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+    : undefined;
 const ROW_H = 24;
 const V_PAD = 14;
 
@@ -495,6 +506,11 @@ export default function CategoryPieChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cx, cy]);
 
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const fit = availableWidth
+    ? Math.min(MAX_FIT_SCALE, Math.max(1, availableWidth / width))
+    : 1;
+
   if (slices.length === 0) {
     return (
       <View style={styles.emptyWrap}>
@@ -505,7 +521,17 @@ export default function CategoryPieChart({
   }
 
   return (
-    <Pressable onPress={dismiss} style={{ width, height, alignSelf: "center" }}>
+    // Outer box: measures the room available, and takes the scaled size so
+    // the layout around the chart makes space for it.
+    <View
+      style={styles.fitWrap}
+      onLayout={(e) => setAvailableWidth(e.nativeEvent.layout.width)}
+    >
+    <View style={{ width: width * fit, height: height * fit }}>
+    <Pressable
+      onPress={dismiss}
+      style={{ width, height, transform: [{ scale: fit }], transformOrigin: "top left" }}
+    >
       <Svg width={width} height={height}>
         <G transform={`translate(${cx}, ${cy})`}>
           {chunks.map((chunk, i) =>
@@ -553,6 +579,7 @@ export default function CategoryPieChart({
               y={e.labelY - 3}
               fontSize={10}
               fontWeight="600"
+              fontFamily={LABEL_FONT}
               fill={Colors.textPrimary}
               textAnchor={e.side === "right" ? "start" : "end"}
             >
@@ -563,6 +590,7 @@ export default function CategoryPieChart({
               y={e.labelY + 9}
               fontSize={9}
               fill={Colors.textMuted}
+              fontFamily={LABEL_FONT}
               textAnchor={e.side === "right" ? "start" : "end"}
             >
               {/* One string, not `{amount} {code}`: JSX would split that into
@@ -628,6 +656,8 @@ export default function CategoryPieChart({
         </Animated.View>
       )}
     </Pressable>
+    </View>
+    </View>
   );
 }
 
@@ -655,6 +685,7 @@ function createStyles(Colors: ColorsType) {
     },
     holeLabel: { width: "100%", fontSize: 9, fontWeight: "600", color: Colors.textMuted, textTransform: "uppercase", textAlign: "center" },
     holeAmount: { width: "100%", fontSize: 11, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
+    fitWrap: { alignSelf: "stretch", alignItems: "center" },
     emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 8 },
     emptyText: { fontSize: 13, color: Colors.textMuted },
   });

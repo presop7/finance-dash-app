@@ -1,5 +1,13 @@
 import { ReactNode, useRef, useState } from "react";
-import { View, ScrollView, StyleSheet, LayoutChangeEvent, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import {
+  View,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  LayoutChangeEvent,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from "react-native";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 
@@ -65,6 +73,20 @@ export default function Carousel({
     }
     if (changed) forceRender((n) => n + 1);
   };
+  // Tapping a dot jumps to its page — the way to change pages on a computer,
+  // where there's no swipe. Set directly rather than waiting for
+  // onMomentumScrollEnd, which a programmatic scroll doesn't fire on web.
+  const scrollRef = useRef<ScrollView>(null);
+  const goTo = (i: number) => {
+    if (!visited.current.has(i)) {
+      visited.current.add(i);
+      forceRender((n) => n + 1);
+    }
+    scrollRef.current?.scrollTo({ x: i * width, animated: true });
+    setIndex(i);
+    onIndexChange?.(i);
+  };
+
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (width <= 0) return;
     const next = Math.max(0, Math.min(pages.length - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
@@ -75,6 +97,7 @@ export default function Carousel({
   return (
     <View onLayout={onLayout}>
       <ScrollView
+        ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -102,7 +125,14 @@ export default function Carousel({
       {pages.length > 1 && (
         <View style={styles.dots}>
           {pages.map((_, i) => (
-            <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
+            <Pressable
+              key={i}
+              onPress={() => goTo(i)}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={`Page ${i + 1} of ${pages.length}`}
+              style={[styles.dot, i === index && styles.dotActive]}
+            />
           ))}
         </View>
       )}
@@ -116,18 +146,18 @@ function createStyles(Colors: ColorsType) {
     dots: {
       flexDirection: "row",
       justifyContent: "center",
-      gap: 6,
+      gap: 8,
       marginTop: 10,
     },
     dot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
       backgroundColor: Colors.border,
     },
     dotActive: {
       backgroundColor: Colors.primary,
-      width: 16,
+      width: 18,
     },
   });
 }
