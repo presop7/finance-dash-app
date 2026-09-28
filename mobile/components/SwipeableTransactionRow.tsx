@@ -1,11 +1,13 @@
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, StyleProp, ViewStyle, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Swipeable, { SwipeableMethods } from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
   interpolate,
   Extrapolation,
   SharedValue,
   useAnimatedStyle,
+  useSharedValue,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColors } from "../hooks/useThemeColors";
@@ -40,6 +42,10 @@ type SwipeableTransactionRowProps = {
 // moment instead of the visual cue and the actual trigger disagreeing.
 const ACTION_WIDTH = 80;
 const FULL_SWIPE_DISTANCE = ACTION_WIDTH + 20;
+
+// A swipe only starts from the outer quarter of the row on either side, so a
+// drag that starts in the middle half is always free to scroll the list.
+const EDGE_ZONE = 0.25;
 
 // progress is 0 while closed, 1 exactly at the action icon's own box width,
 // and (Swipeable doesn't clamp it) keeps climbing past 1 the further you
@@ -149,6 +155,25 @@ function SwipeableTransactionRow({
     onEdit?.(transaction);
   };
 
+  // Swipeable's pan waits for this gate to fail before it may activate. A
+  // touch landing in an edge zone fails it at once (swipe allowed); one
+  // landing mid-row leaves it pending until the finger lifts, so the swipe
+  // never starts. The gate itself never activates, so it can't block the
+  // list's scrolling or the row's own press/long-press.
+  const rowWidth = useSharedValue(0);
+  const edgeGate = useMemo(
+    () =>
+      Gesture.Manual()
+        .onTouchesDown((e, manager) => {
+          const x = e.allTouches[0]?.x ?? 0;
+          const edge = rowWidth.value * EDGE_ZONE;
+          if (x <= edge || x >= rowWidth.value - edge) manager.fail();
+        })
+        .onTouchesUp((_e, manager) => manager.fail())
+        .onTouchesCancelled((_e, manager) => manager.fail()),
+    [],
+  );
+
   // Flips once, on this row's first drag, and stays — see SwipeActionPanel.
   const [panelsActive, setPanelsActive] = useState(false);
   const activatePanels = useCallback(() => setPanelsActive(true), []);
@@ -172,8 +197,16 @@ function SwipeableTransactionRow({
   );
 
   return (
+    <GestureDetector gesture={edgeGate}>
+    <View
+      collapsable={false}
+      onLayout={(e) => {
+        rowWidth.value = e.nativeEvent.layout.width;
+      }}
+    >
     <Swipeable
       ref={swipeableRef}
+      requireExternalGestureToFail={edgeGate}
       renderLeftActions={renderLeftActions}
       renderRightActions={renderRightActions}
       onSwipeableOpenStartDrag={activatePanels}
@@ -212,6 +245,8 @@ function SwipeableTransactionRow({
         />
       </View>
     </Swipeable>
+    </View>
+    </GestureDetector>
   );
 }
 

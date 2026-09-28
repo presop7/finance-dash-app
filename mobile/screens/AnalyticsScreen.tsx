@@ -180,6 +180,15 @@ function AnalyticsScreen({
     ...DEFAULT_FILTERS,
     fundIds: initialFilter?.fundIds ?? [],
   });
+  // This tab stays mounted (lazy: false in App.tsx), so the useState
+  // initializers above only ever saw the params from startup. Re-apply each
+  // time the Dashboard navigates here with a filter — every navigate passes
+  // a fresh object, so tapping the same fund twice re-applies it too.
+  useEffect(() => {
+    if (!initialFilter) return;
+    handleTypeChange(initialFilter.mainType ?? "all");
+    setFilters({ ...DEFAULT_FILTERS, fundIds: initialFilter.fundIds ?? [] });
+  }, [initialFilter]);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   // Set only when the filters modal was opened via the date-range label
   // below (rather than the "Filters" button), so it can jump straight into

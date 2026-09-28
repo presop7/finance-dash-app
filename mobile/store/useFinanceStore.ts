@@ -175,6 +175,10 @@ type FinanceStore = {
   toggleAlertRule: (id: string) => void;
   setDashboardCardOrder: (order: string[]) => void;
   toggleDashboardCard: (id: string) => void;
+  // Fund ids in the user's chosen Funds-card order; funds missing from it
+  // (e.g. newly created) go after, in their normal order.
+  fundCardOrder: string[];
+  setFundCardOrder: (order: string[]) => void;
 };
 
 // Fields shared device-wide across every account signed in on this device.
@@ -524,6 +528,7 @@ export const useFinanceStore = create<FinanceStore>()(
 
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
+      fundCardOrder: [],
       themePreference: "system",
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
@@ -913,6 +918,7 @@ export const useFinanceStore = create<FinanceStore>()(
       setThemePreference: (pref) => set({ themePreference: pref }),
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
+      setFundCardOrder: (order) => set({ fundCardOrder: order }),
 
       toggleDashboardCard: (id) =>
         set((state) => ({
@@ -935,6 +941,7 @@ export const useFinanceStore = create<FinanceStore>()(
         themePreference: state.themePreference,
         displayNameOverride: state.displayNameOverride,
         // per-user
+        fundCardOrder: state.fundCardOrder,
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,
         transactions: state.transactions,

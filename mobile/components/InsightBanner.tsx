@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -20,14 +20,21 @@ export default function InsightBanner({
   const styles = getThemedStyles(createStyles, Colors);
   const currency = useFinanceStore((s) => s.settings.currency);
 
-  // Picked once per mount (app open) so it doesn't shuffle on every re-render.
-  const [message] = useState(() => {
-    const insights = getInsights(transactions, expenseCategories, new Date(), currency);
-    return insights[Math.floor(Math.random() * insights.length)];
-  });
+  const insights = useMemo(
+    () => getInsights(transactions, expenseCategories, new Date(), currency),
+    [transactions, expenseCategories, currency],
+  );
+  // Random starting insight per mount (app open); tapping steps through the rest.
+  const [index, setIndex] = useState(() => Math.floor(Math.random() * 1000));
+  const message = insights[index % insights.length];
+  const canCycle = insights.length > 1;
 
   return (
-    <View style={styles.banner}>
+    <Pressable
+      style={styles.banner}
+      disabled={!canCycle}
+      onPress={() => setIndex((i) => i + 1)}
+    >
       {/* Icon */}
       <View style={styles.iconContainer}>
         <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
@@ -39,7 +46,13 @@ export default function InsightBanner({
           {message}
         </Text>
       </View>
-    </View>
+
+      {canCycle && (
+        <Text style={styles.counter}>
+          {(index % insights.length) + 1}/{insights.length}
+        </Text>
+      )}
+    </Pressable>
   );
 }
 
@@ -76,6 +89,11 @@ function createStyles(Colors: ColorsType) {
     fontSize: 12,
     color: Colors.textSecondary,
     lineHeight: 16,
+  },
+  counter: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    flexShrink: 0,
   },
   });
 }
