@@ -246,3 +246,21 @@ test("offline writes wait, then sync on reconnect", async () => {
   expect(mockServer.size).toBe(1);
   expect(store().pendingOps).toEqual([]);
 });
+
+test("a device field (language) always comes from the shared device slot, never a per-user one", async () => {
+  // A same-named key sitting under the signed-in user (useAuthStore is
+  // mocked to "user-1" for this whole file) — an older build, a bug,
+  // anything — must never resurface and shadow the real device value once
+  // the persisted blob is re-read after signing in.
+  const AsyncStorage = require("@react-native-async-storage/async-storage");
+  await AsyncStorage.setItem(
+    "finance-store",
+    JSON.stringify({
+      device: { language: "bg" },
+      users: { "user-1": { language: "en" } },
+      version: 0,
+    }),
+  );
+  await useFinanceStore.persist.rehydrate();
+  expect(store().language).toBe("bg");
+});

@@ -250,7 +250,15 @@ const storage = {
     const blob = await readBlob(name);
     const userId = activeUserId();
     const userState = userId ? (blob.users[userId] ?? {}) : {};
-    return { state: { ...blob.device, ...userState }, version: blob.version };
+    // A device field (language, theme, ...) must always come from `blob.device`
+    // — never shadowed by the signed-in user's own slot, even if one somehow
+    // ended up holding a same-named key (an older build, a bug, anything).
+    // setItem already keeps new writes correctly separated; this is what
+    // stops a stale leftover from resurfacing only after signing in.
+    const userOnly = Object.fromEntries(
+      Object.entries(userState).filter(([key]) => !DEVICE_FIELDS.includes(key)),
+    );
+    return { state: { ...blob.device, ...userOnly }, version: blob.version };
   },
   setItem: async (name: string, value: { state: Record<string, unknown>; version?: number }) => {
     const blob = await readBlob(name);
