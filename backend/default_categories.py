@@ -39,35 +39,8 @@ SHARED_CATEGORIES = [
 ]
 
 
-# Default category names in other languages (English is the fallback).
-# Keyed by the English name; types don't matter here ("Other" is the same
-# word for expense and income).
-TRANSLATED_NAMES: dict[str, dict[str, str]] = {
-    "bg": {
-        "Food": "Храна",
-        "Restaurant": "Ресторанти",
-        "Transport": "Транспорт",
-        "Entertainment": "Забавления",
-        "Other": "Други",
-        "Salary": "Заплата",
-        "Freelance": "Хонорари",
-        "Investment": "Инвестиции",
-    },
-}
-
-
-def language_from_header(accept_language: str | None) -> str:
-    """First language code from an Accept-Language header ("bg-BG,en;q=0.8" -> "bg")."""
-    if not accept_language:
-        return "en"
-    return accept_language.split(",")[0].split(";")[0].split("-")[0].strip().lower() or "en"
-
-
-def add_default_categories(db: Session, user_id: uuid.UUID, language: str = "en") -> None:
-    """Gives a new user their own editable copy of the defaults (no commit),
-    named in their language when we have it."""
-    names = TRANSLATED_NAMES.get(language, {})
-    db.add_all(
-        Category(user_id=user_id, **{**entry, "name": names.get(entry["name"], entry["name"])})
-        for entry in DEFAULT_CATEGORIES
-    )
+def add_default_categories(db: Session, user_id: uuid.UUID) -> None:
+    """Gives a new user their own editable copy of the defaults (no commit).
+    Stored in English; the app shows untouched defaults in the user's
+    language (mobile/constants/defaultNames.ts)."""
+    db.add_all(Category(user_id=user_id, **entry) for entry in DEFAULT_CATEGORIES)

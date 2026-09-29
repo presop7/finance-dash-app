@@ -6,6 +6,8 @@ export type Category = {
   // "Unassigned": shared by everyone and where transactions go when their
   // category is deleted — can't be edited or deleted.
   locked?: boolean;
+  // Set for untouched default categories: shown translated (defaultNames).
+  defaultKey?: string;
 };
 
 import { Ionicons } from "@expo/vector-icons";

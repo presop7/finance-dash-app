@@ -214,7 +214,7 @@ function RootNavigator() {
   const language = useFinanceStore((s) => s.language);
   useEffect(() => {
     applyLanguage(language);
-    useFinanceStore.getState().relabelLocked();
+    useFinanceStore.getState().relabelDefaults();
   }, [language]);
 
   useEffect(wakeBackend, []);

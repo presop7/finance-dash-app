@@ -40,7 +40,6 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
   const styles = getThemedStyles(createStyles, Colors);
   const insets = useSafeAreaInsets();
   const index = useTutorialStore((s) => s.index);
-  const replay = useTutorialStore((s) => s.replay);
   const next = useTutorialStore((s) => s.next);
   const back = useTutorialStore((s) => s.back);
   const finish = useTutorialStore((s) => s.finish);
@@ -260,6 +259,12 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
               {index + 1} / {TUTORIAL_STEPS.length}
             </Text>
             <View style={styles.buttons}>
+            {/* First step: skip right from the popup, next to "Let's go". */}
+            {index === 0 && (
+              <TouchableOpacity style={styles.backBtn} onPress={finish} activeOpacity={0.7}>
+                <Text style={styles.backText}>{t("tour.skipShort")}</Text>
+              </TouchableOpacity>
+            )}
             {canGoBack(index) && (
               <TouchableOpacity style={styles.backBtn} onPress={back} activeOpacity={0.7}>
                 <Text style={styles.backText}>{t("common.back")}</Text>
@@ -278,7 +283,8 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
           </View>
         </View>
 
-        {(step.skippable || replay) && !isLast && (
+        {/* Skippable from the very first step — many people don't want a tour. */}
+        {!isLast && (
           <TouchableOpacity
             style={[styles.skip, { top: insets.top + 10 }]}
             onPress={finish}

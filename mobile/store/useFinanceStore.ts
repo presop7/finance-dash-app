@@ -17,6 +17,7 @@ import {
 import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
 import i18n from "../i18n";
+import { defaultCategoryKey, defaultFundKey } from "../constants/defaultNames";
 
 export type Transaction = {
   id: string;
@@ -168,8 +169,8 @@ type FinanceStore = {
   // own language. Device preference, like the theme.
   language: string | null;
   setLanguage: (language: string | null) => void;
-  // Re-translates the names of the locked "Unassigned" category/fund.
-  relabelLocked: () => void;
+  // Re-translates the default categories/funds' names (language changed).
+  relabelDefaults: () => void;
   setThemePreference: (pref: ThemePreference) => void;
   // Overrides the email-derived dashboard greeting name. Device-only for
   // now to save on backend/DB work — TODO: move into Settings (synced) if
@@ -282,11 +283,17 @@ const storage = {
 
 // ---- Mappers: backend (snake_case) <-> app shape (camelCase) ----
 
+// A default's name in the app's language (falls back to the stored name).
+const defaultLabel = (key: string | undefined, stored: string) =>
+  key ? i18n.t(`defaults.${key}`, { defaultValue: stored }) : stored;
+
 function mapCategory(c: ApiCategory): Category {
   return {
     id: c.id,
-    // The shared "Unassigned" is stored in English; shown in the app's language.
-    label: c.user_id === null ? i18n.t("categories.unassigned") : c.name,
+    // Untouched defaults (and the shared "Unassigned") are stored in English
+    // and shown in the app's language — see constants/defaultNames.
+    label: defaultLabel(defaultCategoryKey(c.name, c.icon, c.user_id === null), c.name),
+    defaultKey: defaultCategoryKey(c.name, c.icon, c.user_id === null),
     icon: (c.icon ?? "ellipsis-horizontal-outline") as Category["icon"],
     color: c.color ?? undefined,
     locked: c.user_id === null,
@@ -296,7 +303,8 @@ function mapCategory(c: ApiCategory): Category {
 function mapFundCategory(f: ApiFundCategory): FundCategory {
   return {
     id: f.id,
-    name: f.name === "Unassigned" ? i18n.t("categories.unassignedFund") : f.name,
+    name: defaultLabel(defaultFundKey(f.name, f.icon), f.name),
+    defaultKey: defaultFundKey(f.name, f.icon),
     icon: f.icon ?? "wallet-outline",
     color: f.color ?? "#1D2B4F",
     locked: f.name === "Unassigned",
@@ -947,16 +955,16 @@ export const useFinanceStore = create<FinanceStore>()(
 
       setThemePreference: (pref) => set({ themePreference: pref }),
       setLanguage: (language) => set({ language }),
-      relabelLocked: () =>
+      relabelDefaults: () =>
         set((state) => ({
           expenseCategories: state.expenseCategories.map((c) =>
-            c.locked ? { ...c, label: i18n.t("categories.unassigned") } : c,
+            c.defaultKey ? { ...c, label: defaultLabel(c.defaultKey, c.label) } : c,
           ),
           incomeCategories: state.incomeCategories.map((c) =>
-            c.locked ? { ...c, label: i18n.t("categories.unassigned") } : c,
+            c.defaultKey ? { ...c, label: defaultLabel(c.defaultKey, c.label) } : c,
           ),
           fundCategories: state.fundCategories.map((f) =>
-            f.locked ? { ...f, name: i18n.t("categories.unassignedFund") } : f,
+            f.defaultKey ? { ...f, name: defaultLabel(f.defaultKey, f.name) } : f,
           ),
         })),
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),

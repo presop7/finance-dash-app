@@ -53,6 +53,7 @@ const en = {
     showingSaved: "Showing saved data — sync failed, will retry",
   },
   tour: {
+    skipShort: "Skip",
     tapSpot: "Tap the highlighted spot",
     tryIt: "Try it, then tap Next.",
     letsGo: "Let's go",
@@ -60,7 +61,7 @@ const en = {
     skip: "Skip tour",
     "welcome": {
       title: "Welcome to Fi-Track! 👋",
-      text: "A quick tour of the app. The example transactions disappear when it ends.",
+      text: "A quick tour of the app. Not now? Tap \"Skip tour\" in the corner. The examples disappear when it ends.",
     },
     "fab": {
       title: "Add money in or out",
@@ -92,7 +93,7 @@ const en = {
     },
     "recent": {
       title: "Latest transactions",
-      text: "Yours is on top. Tap one for details. Swipe from the edge to edit or delete.\n\n\"Skip tour\" is now in the corner.",
+      text: "Yours is on top. Tap one for details. Swipe from the edge to edit or delete.",
     },
     "insights": {
       title: "Tips",
@@ -468,8 +469,6 @@ const en = {
     expoGoNoNotifications: "Reminders still track your spending here, but notifications aren't available in Expo Go — they need a development build.",
   },
   categories: {
-    unassigned: "Unassigned",
-    unassignedFund: "Unassigned",
     edit_category: "Edit Category",
     edit_fund: "Edit Fund",
     new_category: "New Category",
@@ -639,6 +638,19 @@ const en = {
     importN_other: "Import {{count}} Transactions",
     continue: "Continue",
     importedTitle: "Imported transaction",
+  },
+  defaults: {
+    unassigned: "Unassigned",
+    unassignedFund: "Unassigned",
+    food: "Food",
+    restaurant: "Restaurant",
+    transport: "Transport",
+    entertainment: "Entertainment",
+    other: "Other",
+    salary: "Salary",
+    freelance: "Freelance",
+    investment: "Investment",
+    cash: "Cash",
   },
 };
 
