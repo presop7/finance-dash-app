@@ -60,7 +60,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     host: "addModal",
     target: "add:fields",
     title: "Name and amount",
-    text: "Add a name and the amount. Only the amount is required.",
+    text: "Add a name and the amount. Both are required.",
   },
   {
     id: "add-category",

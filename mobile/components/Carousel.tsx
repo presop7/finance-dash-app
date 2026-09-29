@@ -24,6 +24,9 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 // off-screen one swipe away; that's what made switching Analytics' Expense/
 // Income/All tab freeze once the pie chart was added, even while the user
 // was looking at the plain totals page the whole time.
+// Scrolling idle this long between two pages → glide to the nearest.
+const SNAP_IDLE_MS = 140;
+
 export default function Carousel({
   pages,
   onIndexChange,
@@ -83,7 +86,20 @@ export default function Carousel({
     // the web, where scrolling with a mouse wheel / Shift+wheel / trackpad
     // never fires onMomentumScrollEnd, so the dots and title stayed put.
     const nearest = Math.round(raw);
-    if (Math.abs(raw - nearest) < 0.02) settleOn(nearest);
+    if (Math.abs(raw - nearest) < 0.02) {
+      settleOn(nearest);
+      return;
+    }
+
+    // Came to rest between two pages (a chart grabbed the finger mid-swipe,
+    // a trackpad stopped short): once scrolling has been still for a
+    // moment, glide to the nearest page — never left half-way.
+    if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
+    snapTimerRef.current = setTimeout(() => {
+      snapTimerRef.current = null;
+      if (targetRef.current !== null) return; // a dot-tap slide is under way
+      scrollRef.current?.scrollTo({ x: nearest * width, animated: true });
+    }, SNAP_IDLE_MS);
   };
 
   const settleOn = (i: number) => {
@@ -101,6 +117,13 @@ export default function Carousel({
   // where there's no swipe. Set directly rather than waiting for
   // onMomentumScrollEnd, which a programmatic scroll doesn't fire on web.
   const scrollRef = useRef<ScrollView>(null);
+  const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
+    },
+    [],
+  );
   const goTo = (i: number) => {
     if (!visited.current.has(i)) {
       visited.current.add(i);
@@ -135,6 +158,11 @@ export default function Carousel({
         ref={scrollRef}
         horizontal
         pagingEnabled
+        // One page per swipe, however hard the flick — never skips a page
+        // or stops between two.
+        snapToInterval={width || undefined}
+        disableIntervalMomentum
+        decelerationRate="fast"
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         onMomentumScrollEnd={onMomentumEnd}

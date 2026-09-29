@@ -163,10 +163,15 @@ export default function AddTransactionModal({
     setSelectedCategory(list[0]?.id ?? "");
   };
 
+  // Both a title and a positive amount are required.
+  const parsedAmountValue = parseFloat(amount);
+  const canSave =
+    title.trim().length > 0 && !isNaN(parsedAmountValue) && parsedAmountValue > 0 && !saving;
+
   // Save
   const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (!canSave) return;
 
     setSaving(true);
     try {
@@ -582,10 +587,10 @@ export default function AddTransactionModal({
                 styles.saveBtn,
                 styles.saveBtnFlex,
                 { backgroundColor: activeColor },
-                (!amount || saving) && styles.saveBtnDisabled,
+                !canSave && styles.saveBtnDisabled,
               ]}
               onPress={handleSave}
-              disabled={!amount || saving}
+              disabled={!canSave}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
