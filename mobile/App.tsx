@@ -70,7 +70,7 @@ import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 import { alertAsync } from "./utils/confirm";
 import WebDialogHost from "./components/WebDialogHost";
 import BackExitHint from "./components/BackExitHint";
-import { installWebBack, rearmWebGuard, useAndroidDoubleBackExit } from "./hooks/useBackNavigation";
+import { installWebBack, syncWebTab, useAndroidDoubleBackExit } from "./hooks/useBackNavigation";
 
 // TEMPORARY diagnostic (see utils/perfWatchdog.ts) — started once at module
 // load, before anything else mounts, so the earliest app-startup work is
@@ -178,7 +178,7 @@ export default function App() {
         <ThemedStatusBar />
         <SafeAreaProvider>
           <DesktopFrame>
-            <NavigationContainer ref={navigationRef} onStateChange={rearmWebGuard}>
+            <NavigationContainer ref={navigationRef} onStateChange={syncWebTab}>
               <RootNavigator />
             </NavigationContainer>
           </DesktopFrame>

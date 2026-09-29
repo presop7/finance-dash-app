@@ -5,89 +5,141 @@ import i18n from "../i18n";
 
 // What back (browser button, Android's gesture or system button) does, in
 // order: close the newest open sheet/dialog; otherwise return to the
-// Dashboard; on the Dashboard, the first back only warns and a second one
-// within EXIT_WINDOW_MS exits — so the app isn't left by accident.
+// Dashboard; on the Dashboard with nothing open, the first back only warns
+// and a second one within EXIT_WINDOW_MS exits — so the app isn't left by
+// accident.
 //
 // The phone apps get the first two from React Native itself (a Modal closes
 // on Android's back, and the tab navigator returns to its first tab) — only
-// the double-back exit is added there. The web version has none of it
-// built in, so it's all done here with one "guard" history entry.
+// the double-back exit is added there. The web version has none of it built
+// in, so it's done here with browser history.
 
 const EXIT_WINDOW_MS = 2000;
 
-// ---- open sheets/dialogs, newest last ----
+export const useExitHint = create<{ visible: boolean }>(() => ({ visible: false }));
 
-const closers: (() => void)[] = [];
+// ---- web ----
+//
+// Every "layer" back can undo gets its own history entry, created when the
+// layer appears (a sheet opening, leaving the Dashboard) — not when back is
+// pressed. So several fast backs each just pop an entry that's already
+// there; re-adding one mid-press is what used to race a quick second back
+// and let it leave the app. Each entry records how many layers existed when
+// it was added; on back, whatever layers are above that number are undone,
+// newest first — correct even if the browser pops several entries at once.
+//
+//   base   the Dashboard with nothing open; undoing it only warns
+//   tab    another tab is showing; undoing it returns to the Dashboard
+//   sheet  an open sheet/dialog; undoing it closes it
 
-// Registers `onClose` while `visible`, as the newest thing back should close.
-// Used by components/AppModal for every sheet and dialog.
+type Layer = { kind: "base" } | { kind: "tab" } | { kind: "sheet"; close: () => void; gone: boolean };
+
+const web = Platform.OS === "web" && typeof window !== "undefined";
+const layers: Layer[] = [];
+let exitTimer: ReturnType<typeof setTimeout> | undefined;
+let nav: { onDashboard: () => boolean; toDashboard: () => void } | null = null;
+
+function pushEntry() {
+  window.history.pushState({ fitrackDepth: layers.length }, "");
+}
+
+function ensureBase() {
+  if (layers[0]?.kind === "base") return;
+  // Only missing during the "press again to exit" window: anything new
+  // happening ends that window, so the next back can't exit by mistake.
+  clearTimeout(exitTimer);
+  exitTimer = undefined;
+  useExitHint.setState({ visible: false });
+  layers.unshift({ kind: "base" });
+  pushEntry();
+}
+
+function addLayer(layer: Layer, index = -1) {
+  ensureBase();
+  layers.splice(index < 0 ? layers.length : index, 0, layer);
+  pushEntry();
+}
+
+// A layer that went away without back (a sheet closed by tapping, the
+// Dashboard tab tapped): drop it and step history back past its entry. The
+// popstate that causes finds nothing left to undo.
+function removeLayer(layer: Layer) {
+  const i = layers.indexOf(layer);
+  if (i < 0) return; // back already undid it
+  layers.splice(i, 1);
+  window.history.back();
+}
+
+function undo(layer: Layer) {
+  if (layer.kind === "sheet") {
+    layer.close();
+    // A sheet meant to stay put (its close does nothing) keeps its place.
+    setTimeout(() => {
+      if (!layer.gone && !layers.includes(layer)) addLayer(layer);
+    }, 300);
+  } else if (layer.kind === "tab") {
+    nav?.toDashboard();
+  } else {
+    // Dashboard, nothing open: warn, and leave the base off for a moment —
+    // one more back now leaves the app.
+    useExitHint.setState({ visible: true });
+    exitTimer = setTimeout(() => {
+      exitTimer = undefined;
+      useExitHint.setState({ visible: false });
+      ensureBase();
+    }, EXIT_WINDOW_MS);
+  }
+}
+
+// Called once at app start. `onDashboard` is true when there's no tab to go
+// back from (the Dashboard, or the sign-in screen).
+export function installWebBack(navigation: { onDashboard: () => boolean; toDashboard: () => void }) {
+  if (!web) return;
+  nav = navigation;
+  if (window.history.state?.fitrackDepth !== undefined) {
+    // A refresh reloads onto one of our own entries: make it the base
+    // rather than stacking another on top.
+    layers.push({ kind: "base" });
+    window.history.replaceState({ fitrackDepth: 1 }, "");
+  } else {
+    ensureBase();
+  }
+  window.addEventListener("popstate", (event) => {
+    const depth: number = event.state?.fitrackDepth ?? 0;
+    while (layers.length > depth) undo(layers.pop()!);
+  });
+}
+
+// Keeps the tab layer in step with the navigator — call on every change.
+export function syncWebTab() {
+  if (!web || !nav) return;
+  const tab = layers.find((l) => l.kind === "tab");
+  if (nav.onDashboard()) {
+    if (tab) removeLayer(tab);
+  } else if (!tab) {
+    addLayer({ kind: "tab" }, 1); // just above the base, under any open sheet
+  }
+}
+
+// Registers an open sheet's close as the newest thing back undoes; returns
+// the unregister. Used through useCloseOnBack / components/AppModal.
+export function registerBackClose(close: () => void): () => void {
+  if (!web) return () => {};
+  const layer: Layer = { kind: "sheet", close, gone: false };
+  addLayer(layer);
+  return () => {
+    layer.gone = true;
+    removeLayer(layer);
+  };
+}
+
 export function useCloseOnBack(visible: boolean, onClose?: () => void) {
   const latest = useRef(onClose);
   latest.current = onClose;
   useEffect(() => {
     if (!visible) return;
-    const close = () => latest.current?.();
-    closers.push(close);
-    rearmWebGuard(); // something new to go back from
-    return () => {
-      const i = closers.indexOf(close);
-      if (i >= 0) closers.splice(i, 1);
-    };
+    return registerBackClose(() => latest.current?.());
   }, [visible]);
-}
-
-// ---- "press back again to exit" hint ----
-
-export const useExitHint = create<{ visible: boolean }>(() => ({ visible: false }));
-
-// ---- web ----
-
-let exitTimer: ReturnType<typeof setTimeout> | undefined;
-
-function pushWebGuard() {
-  window.history.pushState({ fitrackBackGuard: true }, "");
-}
-
-// While the "press again" window is open the guard is deliberately missing
-// (that's what lets the second back leave). Anything new happening in the
-// meantime — a sheet opening, a tab change — puts it back first, so that
-// back doesn't exit instead of closing it.
-export function rearmWebGuard() {
-  if (exitTimer === undefined) return;
-  clearTimeout(exitTimer);
-  exitTimer = undefined;
-  useExitHint.setState({ visible: false });
-  pushWebGuard();
-}
-
-// Called once at app start (web only). `onDashboard` is true when there's no
-// tab to return to (the Dashboard, or the sign-in screen).
-export function installWebBack(nav: { onDashboard: () => boolean; toDashboard: () => void }) {
-  if (Platform.OS !== "web" || typeof window === "undefined") return;
-  // A refresh reloads onto the guard entry itself — don't stack a second.
-  if (!window.history.state?.fitrackBackGuard) pushWebGuard();
-
-  // Fires when back has just consumed the guard.
-  window.addEventListener("popstate", () => {
-    const close = closers[closers.length - 1];
-    if (close) {
-      close();
-      pushWebGuard();
-      return;
-    }
-    if (!nav.onDashboard()) {
-      nav.toDashboard();
-      pushWebGuard();
-      return;
-    }
-    // Dashboard: leave the guard off for a moment — back now leaves the app.
-    useExitHint.setState({ visible: true });
-    exitTimer = setTimeout(() => {
-      exitTimer = undefined;
-      useExitHint.setState({ visible: false });
-      pushWebGuard();
-    }, EXIT_WINDOW_MS);
-  });
 }
 
 // ---- Android app ----

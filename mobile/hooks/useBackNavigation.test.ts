@@ -1,7 +1,8 @@
 /// <reference types="jest" />
-// Web back behaviour: sheet first, then Dashboard, then press-twice-to-exit.
-// Simulates the browser's history: back() pops an entry and fires popstate,
-// unless it's at the very first entry (then it "leaves the app").
+// Web back behaviour: sheets first, then the Dashboard, and only there a
+// press-twice-to-exit. Simulates browser session history: pushState adds an
+// entry (dropping any forward ones), back() moves one entry back and fires
+// popstate with that entry's state — at the very first entry it "leaves".
 jest.mock("react-native", () => {
   const rn = jest.requireActual("react-native");
   Object.defineProperty(rn.Platform, "OS", { get: () => "web" });
@@ -9,62 +10,127 @@ jest.mock("react-native", () => {
 });
 jest.mock("../i18n", () => ({ t: (k: string) => k }));
 
-const entries: unknown[] = ["page"];
-let listener: () => void = () => {};
+let entries: unknown[] = [null];
+let index = 0;
+let listener: (e: { state: unknown }) => void = () => {};
 let leftApp = false;
 (global as any).window = {
   history: {
     get state() {
-      return entries[entries.length - 1];
+      return entries[index];
     },
-    pushState: (state: unknown) => entries.push(state),
+    pushState: (state: unknown) => {
+      entries = [...entries.slice(0, index + 1), state];
+      index++;
+    },
+    replaceState: (state: unknown) => {
+      entries[index] = state;
+    },
+    back: () => pressBack(),
   },
-  addEventListener: (_: string, fn: () => void) => (listener = fn),
+  addEventListener: (_: string, fn: (e: { state: unknown }) => void) => (listener = fn),
 };
-function pressBack() {
-  if (entries.length === 1) {
+function pressBack(steps = 1) {
+  if (index - steps < 0) {
     leftApp = true;
     return;
   }
-  entries.pop();
-  listener();
+  index -= steps;
+  listener({ state: entries[index] });
 }
 
-import { installWebBack, rearmWebGuard, useExitHint } from "./useBackNavigation";
+import { installWebBack, registerBackClose, syncWebTab, useExitHint } from "./useBackNavigation";
 
 jest.useFakeTimers();
 let tab = "Dashboard";
-installWebBack({ onDashboard: () => tab === "Dashboard", toDashboard: () => (tab = "Dashboard") });
+const goTo = (name: string) => {
+  tab = name;
+  syncWebTab(); // what the navigator's onStateChange calls
+};
+installWebBack({ onDashboard: () => tab === "Dashboard", toDashboard: () => goTo("Dashboard") });
 
-test("back returns to the Dashboard from another tab", () => {
-  tab = "Settings";
-  pressBack();
-  expect(tab).toBe("Dashboard");
-  expect(leftApp).toBe(false);
+// A sheet whose close unregisters it, as a real Modal's does once hidden.
+function openSheet() {
+  const sheet = { open: true, unregister: () => {} };
+  sheet.unregister = registerBackClose(() => {
+    sheet.open = false;
+    sheet.unregister();
+  });
+  return sheet;
+}
+
+afterEach(() => {
+  jest.advanceTimersByTime(2100); // let any exit window lapse
+  leftApp = false;
 });
 
-test("on the Dashboard the first back only warns; a second one within the window exits", () => {
+test("two stacked sheets, fast double back: each closes, the app stays", () => {
+  const add = openSheet();
+  const editCategory = openSheet();
+  pressBack();
+  pressBack();
+  expect(editCategory.open).toBe(false);
+  expect(add.open).toBe(false);
+  expect(leftApp).toBe(false);
+  expect(useExitHint.getState().visible).toBe(false);
+});
+
+test("from another tab, fast backs: Dashboard first, then a warning — never straight out", () => {
+  goTo("Settings");
+  pressBack();
+  expect(tab).toBe("Dashboard");
   pressBack();
   expect(leftApp).toBe(false);
+  expect(useExitHint.getState().visible).toBe(true);
+});
+
+test("on the Dashboard with nothing open, the second back exits", () => {
+  pressBack();
   expect(useExitHint.getState().visible).toBe(true);
   pressBack();
   expect(leftApp).toBe(true);
 });
 
-test("after the window passes, a single back only warns again", () => {
-  leftApp = false;
+test("once the warning lapses, a single back only warns again", () => {
+  pressBack();
   jest.advanceTimersByTime(2100);
   expect(useExitHint.getState().visible).toBe(false);
   pressBack();
   expect(leftApp).toBe(false);
-  jest.advanceTimersByTime(2100);
 });
 
-test("anything new during the window (a tab change) puts the guard back", () => {
-  pressBack(); // warn
-  tab = "Analytics";
-  rearmWebGuard(); // what the navigator's state change calls
+test("a sheet closed by tapping leaves no stray step behind", () => {
+  const sheet = openSheet();
+  sheet.unregister(); // closed with its X
   pressBack();
+  expect(useExitHint.getState().visible).toBe(true); // straight to the Dashboard warning
+  expect(leftApp).toBe(false);
+});
+
+test("the browser popping two entries in one go still undoes both layers", () => {
+  goTo("Analytics");
+  const sheet = openSheet();
+  pressBack(2);
+  expect(sheet.open).toBe(false);
   expect(tab).toBe("Dashboard");
   expect(leftApp).toBe(false);
+});
+
+test("opening something during the warning ends it, so back can't exit", () => {
+  pressBack(); // warning
+  const sheet = openSheet();
+  expect(useExitHint.getState().visible).toBe(false);
+  pressBack();
+  expect(sheet.open).toBe(false);
+  expect(leftApp).toBe(false);
+});
+
+test("a sheet that mustn't be dismissed stays, and keeps its place", () => {
+  registerBackClose(() => {}); // e.g. the name prompt
+  pressBack();
+  jest.advanceTimersByTime(300);
+  pressBack();
+  jest.advanceTimersByTime(300);
+  expect(leftApp).toBe(false);
+  expect(useExitHint.getState().visible).toBe(false);
 });
