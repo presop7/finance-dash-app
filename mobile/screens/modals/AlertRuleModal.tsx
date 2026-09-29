@@ -22,6 +22,8 @@ import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 
+const pad2 = (n: number) => n.toString().padStart(2, "0");
+
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
   balanceAbove: "trending-up-outline",
@@ -205,15 +207,46 @@ export default function AlertRuleModal({
               {type === "dailyReminder" ? (
                 <>
                   <Text style={styles.formLabel}>{t("reminders.time")}</Text>
-                  <TouchableOpacity
-                    style={styles.fieldContainer}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
-                    <Text style={styles.fieldInput}>
-                      {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                    </Text>
-                  </TouchableOpacity>
+                  {Platform.OS === "web" ? (
+                    // DateTimePicker has no web version; the browser's own time
+                    // input opens the phone's clock/wheel picker instead.
+                    <View style={styles.fieldContainer}>
+                      <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                      <input
+                        type="time"
+                        value={`${pad2(time.getHours())}:${pad2(time.getMinutes())}`}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        onChange={(e) => {
+                          const [h, m] = e.target.value.split(":").map(Number);
+                          if (Number.isNaN(h) || Number.isNaN(m)) return;
+                          const d = new Date(time);
+                          d.setHours(h, m, 0, 0);
+                          setTime(d);
+                        }}
+                        style={{
+                          flex: 1,
+                          fontSize: 13,
+                          fontFamily: "inherit",
+                          color: Colors.textPrimary,
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          padding: 0,
+                          colorScheme: resolvedScheme,
+                        }}
+                      />
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.fieldContainer}
+                      onPress={() => setShowTimePicker(true)}
+                    >
+                      <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                      <Text style={styles.fieldInput}>
+                        {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   {showTimePicker && (
                     <DateTimePicker
                       value={time}

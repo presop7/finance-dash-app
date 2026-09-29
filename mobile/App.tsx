@@ -1,6 +1,6 @@
 // Translations — initialised before anything renders.
 import "./i18n";
-import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,6 +68,7 @@ import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 
 // Explanation dialog for the offline / failed-sync status bar
 import { alertAsync } from "./utils/confirm";
+import WebDialogHost from "./components/WebDialogHost";
 
 // TEMPORARY diagnostic (see utils/perfWatchdog.ts) — started once at module
 // load, before anything else mounts, so the earliest app-startup work is
@@ -170,6 +171,7 @@ export default function App() {
             </NavigationContainer>
           </DesktopFrame>
           <InstallTip />
+          {Platform.OS === "web" && <WebDialogHost />}
         </SafeAreaProvider>
         {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. Dev
             builds only, so beta testers never see it. */}

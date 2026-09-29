@@ -1,6 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
-  Alert,
   FlatList,
   Platform,
   RefreshControl,
@@ -67,7 +66,7 @@ import {
   getDateRangeLabel,
 } from "../utils/filterTransactions";
 import { getCurrency } from "../constants/currencies";
-import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { confirmAsyncWithLabel, alertAsync, showDialog } from "../utils/confirm";
 import { useTranslation } from "react-i18next";
 
 // Roughly a screenful of rows below the header — enough that the first
@@ -721,7 +720,7 @@ function AnalyticsScreen({
     const selectedTypes = new Set(selectedTransactions.map((t) => t.type));
     const sharedType = selectedTypes.size === 1 ? [...selectedTypes][0] : null;
 
-    Alert.alert(
+    showDialog(
       t("analytics.bulkEdit"),
       t("analytics.bulkEditApply", { count: selectedIds.size }),
       [
