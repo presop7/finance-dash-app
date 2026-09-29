@@ -22,6 +22,16 @@ class Settings(BaseSettings):
     FEEDBACK_TO_EMAIL: str = ""
     FEEDBACK_FROM_EMAIL: str = "Finance Dash Feedback <onboarding@resend.dev>"
 
+    # Web push (reminders for the web version, sent even when it's closed).
+    # All optional: unset, the push endpoints answer 503 and nothing else breaks.
+    # VAPID keys identify this server to the browsers' push services; the
+    # public one is handed to browsers, the private one signs each push.
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_SUBJECT: str = "mailto:admin@example.com"
+    # Shared secret the scheduler (Supabase pg_cron) sends to POST /push/send-due.
+    CRON_SECRET: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

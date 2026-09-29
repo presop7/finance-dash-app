@@ -220,6 +220,8 @@ const ja: Locale = {
     unsyncedSignOut_other: "{{count}}件の変更がまだ同期されていません。この端末に保存されたままで、オンラインでログインすると同期されます。それでもログアウトしますか？",
     signOutAnyway: "ログアウトする",
     about: "このアプリについて",
+    shareApp: "Fi-Trackをシェア",
+    shareAppHint: "リンクやQRコードで友だちを招待",
     feedback: "フィードバックを送信",
     feedbackHint: "問題の報告やアイデアの提案",
     replayTour: "ツアーをもう一度",
@@ -467,7 +469,8 @@ const ja: Locale = {
     enable: "オンにする",
     empty: "リマインダーはまだありません",
     tapToEdit: "タップして編集",
-    webNoNotifications: "Web版は通知を送れません — リマインダーはここで引き続き確認でき、スマホアプリから通知が届きます。",
+    webNoNotifications: "このブラウザは通知を表示できません — リマインダーはここで引き続き確認できます。",
+    webInstallForNotifications: "iPhoneで通知を受け取るには、Fi-Trackをホーム画面に追加してください：共有 →「ホーム画面に追加」。",
     expoGoNoNotifications: "リマインダーはここで支出を追跡しますが、Expo Goでは通知を使えません — development buildが必要です。",
   },
   categories: {
@@ -555,6 +558,13 @@ const ja: Locale = {
     descriptionPlaceholder: "何をしていて、何を期待し、実際には何が起きましたか？",
     pictures: "画像（{{count}}/{{max}}）",
     send: "レポートを送信",
+  },
+  share: {
+    subtitle: "スマホのカメラでコードを読み取るとFi-Trackが開きます。リンクを送ることもできます。",
+    shareLink: "リンクをシェア",
+    copyLink: "リンクをコピー",
+    copied: "リンクをコピーしました ✓",
+    message: "Fi-Trackでお金を管理しよう：",
   },
   csv: {
     reasons: {

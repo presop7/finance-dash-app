@@ -218,6 +218,8 @@ const en = {
     unsyncedSignOut_other: "{{count}} changes haven't synced yet. They stay saved on this phone and sync once you're back online and signed in. Sign out anyway?",
     signOutAnyway: "Sign Out Anyway",
     about: "About",
+    shareApp: "Share Fi-Track",
+    shareAppHint: "Invite friends with a link or QR code",
     feedback: "Send Feedback",
     feedbackHint: "Report a problem or suggest an idea",
     replayTour: "Take the Tour Again",
@@ -465,7 +467,8 @@ const en = {
     enable: "Enable",
     empty: "No reminders yet",
     tapToEdit: "Tap to edit",
-    webNoNotifications: "The web version can't send notifications — your reminders still keep track here, and the phone app will notify you.",
+    webNoNotifications: "This browser can't show notifications — your reminders still keep track here.",
+    webInstallForNotifications: "To get notifications on iPhone, add Fi-Track to your Home Screen: Share → \"Add to Home Screen\".",
     expoGoNoNotifications: "Reminders still track your spending here, but notifications aren't available in Expo Go — they need a development build.",
   },
   categories: {
@@ -553,6 +556,13 @@ const en = {
     descriptionPlaceholder: "What were you doing, what did you expect, and what happened instead?",
     pictures: "Pictures ({{count}}/{{max}})",
     send: "Send Report",
+  },
+  share: {
+    subtitle: "Scan the code with a phone camera to open Fi-Track, or send the link.",
+    shareLink: "Share link",
+    copyLink: "Copy link",
+    copied: "Link copied ✓",
+    message: "Track your money with Fi-Track:",
   },
   csv: {
     reasons: {

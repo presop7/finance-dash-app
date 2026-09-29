@@ -52,19 +52,23 @@ export const lightColors: ColorsType = {
         heroGradientFrom: '#1D2B4F',
         heroGradientTo: '#7383ac',
 
-    // Income and Expense Colors
-        income: '#1D9E75',
-        expense: '#D85A30',
+    // Income and Expense Colors — deep enough to read as text on white
+    // (≥ 5:1) and to carry white text when used as a fill.
+        income: '#13795B',
+        expense: '#B94A22',
 
-    // Text Colors
+    // Text Colors — every one at least 4.5:1 (the WCAG minimum for text) on
+    // both surface and surfaceSecondary, so labels, placeholders and
+    // unselected toggles stay readable on dim or older screens.
         textPrimary: '#000000',
-        textSecondary: '#757575',
-        textMuted: '#BDBDBD',
+        textSecondary: '#4B5563',
+        textMuted: '#646B78',
 
-    // Surface Colors
+    // Surface Colors — fields and chips (surfaceSecondary) and their borders
+    // visibly set apart from the white page.
         surface: '#FFFFFF',
-        surfaceSecondary: '#F9FAFB',
-        border: '#E5E7EB',
+        surfaceSecondary: '#F3F4F6',
+        border: '#CBD0D8',
 
     // Status Colors — for state that should stand out from the UI, not blend in
         warningBg: '#FEF3C7',
@@ -112,7 +116,7 @@ export const darkColors: ColorsType = {
     // Text Colors
         textPrimary: '#F5F6FA',
         textSecondary: '#A0A4AD',
-        textMuted: '#6B6F78',
+        textMuted: '#858A94', // ≥ 4.4:1 on both dark surfaces
 
     // Surface Colors
         surface: '#181A20',

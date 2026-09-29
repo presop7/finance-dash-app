@@ -15,6 +15,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { GlobalStyles } from "../constants/styles";
+import { useScreenTop } from "../hooks/useScreenTop";
 import { getGreeting, firstNameFromUser } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 import { useTranslation } from "react-i18next";
@@ -45,6 +46,7 @@ function DashboardScreen({
   } = useFinanceStore();
   const session = useAuthStore((s) => s.session);
   const Colors = useThemeColors();
+  const screenTop = useScreenTop();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const { refreshing, onRefresh } = usePullToRefresh();
@@ -124,7 +126,7 @@ function DashboardScreen({
         }
       >
         {/* Header */}
-        <View style={[styles.header, GlobalStyles.screenPadding]}>
+        <View style={[styles.header, GlobalStyles.screenPadding, { paddingTop: screenTop }]}>
           <Text style={styles.greeting}>{greeting.text}</Text>
           <Text style={styles.name}>{displayName} {greeting.emoji}</Text>
         </View>
@@ -161,7 +163,6 @@ function createStyles(Colors: ColorsType) {
       flex: 1,
     },
     header: {
-      paddingTop: 60,
       paddingBottom: 16,
     },
     greeting: {

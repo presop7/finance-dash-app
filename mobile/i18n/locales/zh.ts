@@ -220,6 +220,8 @@ const zh: Locale = {
     unsyncedSignOut_other: "{{count}} 项更改尚未同步。它们会保留在本设备上，等你联网并登录后同步。仍要退出吗？",
     signOutAnyway: "仍要退出",
     about: "关于",
+    shareApp: "分享 Fi-Track",
+    shareAppHint: "通过链接或二维码邀请朋友",
     feedback: "发送反馈",
     feedbackHint: "报告问题或提出建议",
     replayTour: "重看导览",
@@ -467,7 +469,8 @@ const zh: Locale = {
     enable: "开启",
     empty: "还没有提醒",
     tapToEdit: "点按编辑",
-    webNoNotifications: "网页版无法发送通知——提醒仍会在这里跟踪，手机应用会通知你。",
+    webNoNotifications: "此浏览器无法显示通知——提醒仍会在这里跟踪。",
+    webInstallForNotifications: "要在 iPhone 上收到通知，请将 Fi-Track 添加到主屏幕：分享 →“添加到主屏幕”。",
     expoGoNoNotifications: "提醒仍会在这里跟踪你的支出，但 Expo Go 不支持通知——需要 development build。",
   },
   categories: {
@@ -555,6 +558,13 @@ const zh: Locale = {
     descriptionPlaceholder: "你当时在做什么，预期是什么，实际发生了什么？",
     pictures: "图片（{{count}}/{{max}}）",
     send: "发送反馈",
+  },
+  share: {
+    subtitle: "用手机相机扫描二维码即可打开 Fi-Track，或直接发送链接。",
+    shareLink: "分享链接",
+    copyLink: "复制链接",
+    copied: "链接已复制 ✓",
+    message: "用 Fi-Track 记账：",
   },
   csv: {
     reasons: {

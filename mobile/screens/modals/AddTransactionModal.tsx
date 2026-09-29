@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
+import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useDeferredReady } from "../../hooks/useDeferredReady";
 import { CategoryPickerSkeleton, ChipRowSkeleton } from "../../components/Skeleton";
@@ -716,7 +717,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 10,
-    padding: 12,
+    ...FIELD_BOX,
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
@@ -730,25 +731,24 @@ function createStyles(Colors: ColorsType) {
     marginTop: 2,
   },
   noteInput: {
-    minHeight: 20,
+    minHeight: 40,
     maxHeight: 120,
   },
   fieldInput: {
-    flex: 1,
-    fontSize: 13,
+    ...FIELD_INPUT,
     color: Colors.textPrimary,
   },
   amountFieldText: {
-    flex: 1,
-    fontSize: 15,
+    ...FIELD_INPUT,
+    fontSize: 18,
     fontWeight: "500",
   },
   amountSign: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "600",
   },
   amountSuffix: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.textMuted,
   },
   numpad: {

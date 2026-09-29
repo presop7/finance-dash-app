@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
+import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../store/useFinanceStore";
 import { formatCurrency } from "../utils/currency";
 import { confirmAsync } from "../utils/confirm";
@@ -16,6 +17,7 @@ import AlertRuleModal from "./modals/AlertRuleModal";
 import { useTutorialTarget } from "../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
+import { isAppleMobileWeb } from "../utils/webPlatform";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
@@ -37,6 +39,8 @@ export default function AlertsScreen() {
   } = useFinanceStore();
 
   const Colors = useThemeColors();
+
+  const screenTop = useScreenTop();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
@@ -107,7 +111,7 @@ export default function AlertsScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={[styles.header, GlobalStyles.screenPadding]}>
+        <View style={[styles.header, GlobalStyles.screenPadding, { paddingTop: screenTop }]}>
           <Text style={styles.headerTitle}>{t("nav.reminders")}</Text>
           <View ref={addRef} collapsable={false}>
             <TouchableOpacity
@@ -127,9 +131,11 @@ export default function AlertsScreen() {
           <View style={[styles.banner, GlobalStyles.screenPadding]}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
-              {Platform.OS === "web"
-                ? t("reminders.webNoNotifications")
-                : t("reminders.expoGoNoNotifications")}
+              {Platform.OS !== "web"
+                ? t("reminders.expoGoNoNotifications")
+                : isAppleMobileWeb
+                  ? t("reminders.webInstallForNotifications") // a Safari tab; the installed app can
+                  : t("reminders.webNoNotifications")}
             </Text>
           </View>
         ) : (
@@ -212,7 +218,6 @@ function createStyles(Colors: ColorsType) {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 60,
     paddingBottom: 16,
   },
   headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },

@@ -31,6 +31,7 @@ import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { isTouchWeb, useWebTouchDragSelect } from "../hooks/useWebTouchDragSelect";
 import { useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { GlobalStyles } from "../constants/styles";
+import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
 import SlidingToggle from "../components/SlidingToggle";
@@ -111,6 +112,7 @@ function AnalyticsScreen({
 }: AnalyticsScreenProps) {
   const { transactions, settings } = useFinanceStore();
   const Colors = useThemeColors();
+  const screenTop = useScreenTop();
   const { t } = useTranslation();
   const mainTypeOptions = useMemo(
     () => MAIN_TYPE_OPTION_KEYS.map((o) => ({ key: o.key, label: t(o.labelKey) })),
@@ -878,7 +880,7 @@ function AnalyticsScreen({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, GlobalStyles.screenPadding]}>
+      <View style={[styles.header, GlobalStyles.screenPadding, { paddingTop: screenTop }]}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>{t("nav.analytics")}</Text>
           <View style={styles.headerBtnGroup}>
@@ -1331,7 +1333,6 @@ function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   header: {
-    paddingTop: 60,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,

@@ -219,6 +219,8 @@ const de: Locale = {
     unsyncedSignOut_other: "{{count}} Änderungen sind noch nicht synchronisiert. Sie bleiben auf diesem Gerät gespeichert und werden synchronisiert, sobald du online und angemeldet bist. Trotzdem abmelden?",
     signOutAnyway: "Trotzdem abmelden",
     about: "Info",
+    shareApp: "Fi-Track teilen",
+    shareAppHint: "Lade Freunde per Link oder QR-Code ein",
     feedback: "Feedback senden",
     feedbackHint: "Ein Problem melden oder eine Idee vorschlagen",
     replayTour: "Tour wiederholen",
@@ -466,7 +468,8 @@ const de: Locale = {
     enable: "Einschalten",
     empty: "Noch keine Erinnerungen",
     tapToEdit: "Tippen zum Bearbeiten",
-    webNoNotifications: "Die Web-Version kann keine Benachrichtigungen senden — deine Erinnerungen werden hier trotzdem verfolgt, und die Handy-App benachrichtigt dich.",
+    webNoNotifications: "Dieser Browser kann keine Benachrichtigungen anzeigen — deine Erinnerungen werden hier trotzdem verfolgt.",
+    webInstallForNotifications: "Für Benachrichtigungen auf dem iPhone füge Fi-Track zum Home-Bildschirm hinzu: Teilen → „Zum Home-Bildschirm“.",
     expoGoNoNotifications: "Erinnerungen verfolgen deine Ausgaben hier trotzdem, aber Benachrichtigungen gibt es in Expo Go nicht — dafür braucht es einen Development Build.",
   },
   categories: {
@@ -554,6 +557,13 @@ const de: Locale = {
     descriptionPlaceholder: "Was hast du gemacht, was hast du erwartet und was ist stattdessen passiert?",
     pictures: "Bilder ({{count}}/{{max}})",
     send: "Bericht senden",
+  },
+  share: {
+    subtitle: "Scanne den Code mit einer Handykamera, um Fi-Track zu öffnen, oder sende den Link.",
+    shareLink: "Link teilen",
+    copyLink: "Link kopieren",
+    copied: "Link kopiert ✓",
+    message: "Behalte dein Geld im Blick mit Fi-Track:",
   },
   csv: {
     reasons: {

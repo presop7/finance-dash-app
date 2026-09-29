@@ -14,6 +14,15 @@ services:
         sync: false
       - key: SUPABASE_URL
         sync: false
+      # Web push reminders (see backend/.env.example).
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: CRON_SECRET
+        sync: false
       # Bearer-token auth (no cookies) means a wide-open CORS policy carries no
       # CSRF risk; tighten once there's a real bundle id / web domain to scope to.
       - key: CORS_ORIGINS

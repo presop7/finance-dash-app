@@ -963,7 +963,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    fontSize: 14,
+    fontSize: 17,
     color: Colors.textPrimary,
     marginTop: 8,
   },
@@ -1013,7 +1013,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 8,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    fontSize: 13,
+    fontSize: 16,
     color: Colors.textPrimary,
   },
   errorCardFixBtn: {

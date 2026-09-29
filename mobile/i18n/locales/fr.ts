@@ -219,6 +219,8 @@ const fr: Locale = {
     unsyncedSignOut_other: "{{count}} modifications ne sont pas encore synchronisées. Elles restent enregistrées sur cet appareil et se synchroniseront une fois en ligne et connecté. Se déconnecter quand même ?",
     signOutAnyway: "Se déconnecter quand même",
     about: "À propos",
+    shareApp: "Partager Fi-Track",
+    shareAppHint: "Invitez vos amis avec un lien ou un QR code",
     feedback: "Envoyer un avis",
     feedbackHint: "Signaler un problème ou proposer une idée",
     replayTour: "Refaire la visite",
@@ -466,7 +468,8 @@ const fr: Locale = {
     enable: "Activer",
     empty: "Aucun rappel",
     tapToEdit: "Touchez pour modifier",
-    webNoNotifications: "La version web ne peut pas envoyer de notifications — vos rappels restent suivis ici, et l'app mobile vous préviendra.",
+    webNoNotifications: "Ce navigateur ne peut pas afficher de notifications — vos rappels restent suivis ici.",
+    webInstallForNotifications: "Pour recevoir des notifications sur iPhone, ajoutez Fi-Track à l'écran d'accueil : Partager → « Sur l'écran d'accueil ».",
     expoGoNoNotifications: "Les rappels suivent toujours vos dépenses ici, mais les notifications ne sont pas disponibles dans Expo Go — il faut une development build.",
   },
   categories: {
@@ -554,6 +557,13 @@ const fr: Locale = {
     descriptionPlaceholder: "Que faisiez-vous, qu'attendiez-vous, et que s'est-il passé à la place ?",
     pictures: "Images ({{count}}/{{max}})",
     send: "Envoyer le rapport",
+  },
+  share: {
+    subtitle: "Scannez le code avec l'appareil photo d'un téléphone pour ouvrir Fi-Track, ou envoyez le lien.",
+    shareLink: "Partager le lien",
+    copyLink: "Copier le lien",
+    copied: "Lien copié ✓",
+    message: "Suivez votre argent avec Fi-Track :",
   },
   csv: {
     reasons: {

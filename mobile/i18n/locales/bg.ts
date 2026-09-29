@@ -219,6 +219,8 @@ const bg: Translations = {
     unsyncedSignOut_other: "{{count}} промени още не са синхронизирани. Остават запазени в телефона и ще се синхронизират, когато имате интернет и сте влезли. Да излезем ли все пак?",
     signOutAnyway: "Излез все пак",
     about: "Относно",
+    shareApp: "Сподели Fi-Track",
+    shareAppHint: "Поканете приятели с линк или QR код",
     feedback: "Изпрати отзив",
     feedbackHint: "Съобщете за проблем или предложете идея",
     replayTour: "Обиколка отново",
@@ -466,7 +468,8 @@ const bg: Translations = {
     enable: "Включи",
     empty: "Все още няма напомняния",
     tapToEdit: "Докоснете за редакция",
-    webNoNotifications: "Уеб версията не може да изпраща известия — напомнянията ви се следят тук, а приложението на телефона ще ви известява.",
+    webNoNotifications: "Този браузър не може да показва известия — напомнянията ви пак се следят тук.",
+    webInstallForNotifications: "За известия на iPhone добавете Fi-Track към началния екран: Споделяне → „Добави към начален екран“.",
     expoGoNoNotifications: "Напомнянията се следят тук, но известията не работят в Expo Go — нужна е development версия.",
   },
   categories: {
@@ -554,6 +557,13 @@ const bg: Translations = {
     descriptionPlaceholder: "Какво правехте, какво очаквахте и какво се случи?",
     pictures: "Снимки ({{count}}/{{max}})",
     send: "Изпрати",
+  },
+  share: {
+    subtitle: "Сканирайте кода с камерата на телефон, за да отворите Fi-Track, или изпратете линка.",
+    shareLink: "Сподели линка",
+    copyLink: "Копирай линка",
+    copied: "Линкът е копиран ✓",
+    message: "Следи парите си с Fi-Track:",
   },
   csv: {
     reasons: {

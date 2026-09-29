@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
+import { FIELD_BOX, FIELD_INPUT } from "../constants/styles";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { currentLocale } from "../i18n";
 
@@ -322,7 +323,7 @@ function createStyles(Colors: ColorsType) {
   fieldContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    ...FIELD_BOX,
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
@@ -339,10 +340,9 @@ function createStyles(Colors: ColorsType) {
     minWidth: 0,
   },
   dateTimeInput: {
-    flex: 1,
+    ...FIELD_INPUT,
     minWidth: 0,
     width: "100%",
-    fontSize: 13,
     color: Colors.textPrimary,
   },
   popover: {

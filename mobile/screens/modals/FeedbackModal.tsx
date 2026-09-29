@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
+import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { financeApi } from "../../services/financeApi";
 import { alertAsync, confirmAsyncWithLabel } from "../../utils/confirm";
@@ -330,13 +331,13 @@ function createStyles(Colors: ColorsType) {
     fieldContainer: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 12,
+      ...FIELD_BOX,
       backgroundColor: Colors.surfaceSecondary,
       borderRadius: 10,
       borderWidth: 0.5,
       borderColor: Colors.border,
     },
-    fieldInput: { flex: 1, fontSize: 13, color: Colors.textPrimary, padding: 0 },
+    fieldInput: { ...FIELD_INPUT, color: Colors.textPrimary },
     descriptionContainer: { alignItems: "flex-start" },
     descriptionInput: { minHeight: 110, maxHeight: 220 },
     counter: {

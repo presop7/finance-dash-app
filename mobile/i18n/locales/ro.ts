@@ -231,6 +231,8 @@ const ro: Locale = {
     unsyncedSignOut_other: "{{count}} de modificări nu s-au sincronizat încă. Rămân salvate pe acest dispozitiv și se sincronizează când ești online și conectat. Te deconectezi oricum?",
     signOutAnyway: "Deconectează-te oricum",
     about: "Despre",
+    shareApp: "Distribuie Fi-Track",
+    shareAppHint: "Invită prieteni cu un link sau un cod QR",
     feedback: "Trimite o părere",
     feedbackHint: "Raportează o problemă sau propune o idee",
     replayTour: "Reia ghidul",
@@ -484,7 +486,8 @@ const ro: Locale = {
     enable: "Activează",
     empty: "Încă nu ai mementouri",
     tapToEdit: "Atinge pentru editare",
-    webNoNotifications: "Versiunea web nu poate trimite notificări — mementourile tale funcționează în continuare aici, iar aplicația de pe telefon te va anunța.",
+    webNoNotifications: "Acest browser nu poate afișa notificări — mementourile tale funcționează în continuare aici.",
+    webInstallForNotifications: "Pentru notificări pe iPhone, adaugă Fi-Track pe ecranul principal: Partajare → „Adaugă pe ecranul principal”.",
     expoGoNoNotifications: "Mementourile urmăresc în continuare cheltuielile aici, dar notificările nu sunt disponibile în Expo Go — e nevoie de un development build.",
   },
   categories: {
@@ -581,6 +584,13 @@ const ro: Locale = {
     descriptionPlaceholder: "Ce făceai, ce te așteptai să se întâmple și ce s-a întâmplat de fapt?",
     pictures: "Imagini ({{count}}/{{max}})",
     send: "Trimite raportul",
+  },
+  share: {
+    subtitle: "Scanează codul cu camera unui telefon ca să deschizi Fi-Track, sau trimite linkul.",
+    shareLink: "Distribuie linkul",
+    copyLink: "Copiază linkul",
+    copied: "Link copiat ✓",
+    message: "Ține evidența banilor cu Fi-Track:",
   },
   csv: {
     reasons: {

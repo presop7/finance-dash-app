@@ -19,3 +19,17 @@ export const GlobalStyles = StyleSheet.create({
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
 })
+// Text fields. The typing area fills its box, so a tap anywhere in the box
+// lands in it, and keeps 6px between the text and the focus ring (the ring
+// itself is styled in public/index.html). 16px text is 1.2× the old 13 and
+// also stops iPhone Safari zooming in on a tapped field.
+export const FIELD_INPUT = {
+  flex: 1,
+  alignSelf: 'stretch',
+  paddingHorizontal: 6,
+  paddingVertical: 8,
+  borderRadius: 6,
+  fontSize: 16,
+} as const
+// The bordered box around a field: with the field inside, about 48px tall.
+export const FIELD_BOX = { paddingVertical: 6, paddingHorizontal: 8 } as const

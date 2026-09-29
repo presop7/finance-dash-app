@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
+import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { themedCategoryColor } from "../../utils/color";
 import { useDeferredReady } from "../../hooks/useDeferredReady";
@@ -601,14 +602,13 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
     gap: 6,
     marginBottom: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    ...FIELD_BOX,
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  searchInput: { flex: 1, fontSize: 13, color: Colors.textPrimary, padding: 0 },
+  searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
   emptySearchText: {
     fontSize: 12,
     color: Colors.textMuted,

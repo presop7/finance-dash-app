@@ -109,7 +109,8 @@ function createStyles(Colors: ColorsType) {
   fieldContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14, // same ~48px height as the typed fields
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
@@ -123,7 +124,7 @@ function createStyles(Colors: ColorsType) {
     flex: 1,
   },
   dateTimeText: {
-    fontSize: 13,
+    fontSize: 16,
     color: Colors.textPrimary,
   },
   });

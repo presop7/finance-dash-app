@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
+import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, ThemePreference } from "../store/useFinanceStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
@@ -19,6 +20,7 @@ import * as Crypto from "expo-crypto";
 import Constants from "expo-constants";
 import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
+import ShareAppModal from "./modals/ShareAppModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 
 type SettingsScreenProps = {
@@ -41,6 +43,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   } = useFinanceStore();
   const { session, signOut } = useAuthStore();
   const Colors = useThemeColors();
+  const screenTop = useScreenTop();
   const styles = getThemedStyles(createStyles, Colors);
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [dateFormatOpen, setDateFormatOpen] = useState(false);
@@ -48,6 +51,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const [creatingTestCategories, setCreatingTestCategories] = useState(false);
   const [addingSamples, setAddingSamples] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const language = useFinanceStore((s) => s.language);
   const setLanguage = useFinanceStore((s) => s.setLanguage);
@@ -230,7 +234,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   return (
     <View style={styles.container}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <View style={[styles.header, GlobalStyles.screenPadding]}>
+        <View style={[styles.header, GlobalStyles.screenPadding, { paddingTop: screenTop }]}>
           <Text style={styles.headerTitle}>{t("nav.settings")}</Text>
         </View>
 
@@ -605,6 +609,19 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.about")}</Text>
         <View style={styles.card} ref={aboutRef} collapsable={false}>
+          <TouchableOpacity style={styles.row} onPress={() => setShowShare(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="share-social-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{t("settings.shareApp")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.shareAppHint")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity
             style={styles.row}
             onPress={() => setShowFeedback(true)}
@@ -650,6 +667,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       </ScrollView>
 
       <FeedbackModal visible={showFeedback} onClose={() => setShowFeedback(false)} />
+      <ShareAppModal visible={showShare} onClose={() => setShowShare(false)} />
     </View>
   );
 }
@@ -657,7 +675,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
-  header: { paddingTop: 60, paddingBottom: 16 },
+  header: { paddingBottom: 16 },
   headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
   sectionLabel: {
     fontSize: 11,
@@ -693,7 +711,10 @@ function createStyles(Colors: ColorsType) {
   rowTitle: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary },
   rowSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   nameInput: {
-    fontSize: 13,
+    fontSize: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    borderRadius: 6,
     color: Colors.textPrimary,
     textAlign: "right",
     minWidth: 100,

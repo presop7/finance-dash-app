@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";
+import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { confirmAsync } from "../../utils/confirm";
@@ -224,14 +225,11 @@ export default function AlertRuleModal({
                           setTime(d);
                         }}
                         style={{
-                          flex: 1,
-                          fontSize: 13,
+                          ...FIELD_INPUT,
                           fontFamily: "inherit",
                           color: Colors.textPrimary,
                           background: "transparent",
                           border: "none",
-                          outline: "none",
-                          padding: 0,
                           colorScheme: resolvedScheme,
                         }}
                       />
@@ -456,14 +454,14 @@ function createStyles(Colors: ColorsType) {
   fieldContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    ...FIELD_BOX,
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: Colors.border,
     gap: 8,
   },
-  fieldInput: { flex: 1, fontSize: 13, color: Colors.textPrimary },
+  fieldInput: { ...FIELD_INPUT, color: Colors.textPrimary },
   typeToggle: {
     flexDirection: "row",
     borderRadius: 10,

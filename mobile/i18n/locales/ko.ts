@@ -220,6 +220,8 @@ const ko: Locale = {
     unsyncedSignOut_other: "변경 사항 {{count}}개가 아직 동기화되지 않았어요. 이 기기에 저장된 채로 남아 온라인에서 로그인하면 동기화돼요. 그래도 로그아웃할까요?",
     signOutAnyway: "그래도 로그아웃",
     about: "정보",
+    shareApp: "Fi-Track 공유",
+    shareAppHint: "링크나 QR 코드로 친구를 초대하세요",
     feedback: "의견 보내기",
     feedbackHint: "문제를 알리거나 아이디어를 제안하세요",
     replayTour: "둘러보기 다시 보기",
@@ -467,7 +469,8 @@ const ko: Locale = {
     enable: "켜기",
     empty: "아직 알림이 없어요",
     tapToEdit: "탭해서 수정",
-    webNoNotifications: "웹 버전은 알림을 보낼 수 없어요 — 알림 조건은 여기서 계속 확인되고, 휴대폰 앱이 알려 드려요.",
+    webNoNotifications: "이 브라우저는 알림을 표시할 수 없어요 — 알림 조건은 여기서 계속 확인돼요.",
+    webInstallForNotifications: "iPhone에서 알림을 받으려면 Fi-Track을 홈 화면에 추가하세요: 공유 → \"홈 화면에 추가\".",
     expoGoNoNotifications: "알림 조건은 여기서 계속 지출을 확인하지만, Expo Go에서는 알림을 받을 수 없어요 — development build가 필요해요.",
   },
   categories: {
@@ -555,6 +558,13 @@ const ko: Locale = {
     descriptionPlaceholder: "무엇을 하고 있었고, 무엇을 기대했으며, 실제로 무슨 일이 일어났나요?",
     pictures: "사진 ({{count}}/{{max}})",
     send: "의견 보내기",
+  },
+  share: {
+    subtitle: "휴대폰 카메라로 코드를 스캔하면 Fi-Track이 열려요. 링크를 보낼 수도 있어요.",
+    shareLink: "링크 공유",
+    copyLink: "링크 복사",
+    copied: "링크 복사됨 ✓",
+    message: "Fi-Track으로 돈을 관리해 보세요:",
   },
   csv: {
     reasons: {
