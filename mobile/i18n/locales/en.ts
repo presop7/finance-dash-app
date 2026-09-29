@@ -656,3 +656,11 @@ const en = {
 
 export default en;
 export type Translations = typeof en;
+
+// Type for the other languages: every English key is required, and a
+// language may add extra plural forms English doesn't have (Polish _few /
+// _many, Romanian _few, …).
+type WithExtraPlurals<T> = { [K in keyof T]: T[K] extends string ? string : WithExtraPlurals<T[K]> } & {
+  [extra: string]: unknown;
+};
+export type Locale = WithExtraPlurals<Translations>;

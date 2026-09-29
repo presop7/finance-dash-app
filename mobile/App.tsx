@@ -54,7 +54,7 @@ import type { TutorialEvent } from "./constants/tutorialSteps";
 import { accountName } from "./utils/greeting";
 import { DEV_TOOLS } from "./constants/devTools";
 import { useTranslation } from "react-i18next";
-import { applyLanguage } from "./i18n";
+import { applyLanguage, languageReady } from "./i18n";
 import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
@@ -151,6 +151,14 @@ function ThemedStatusBar() {
 }
 
 export default function App() {
+  // Wait for the phone's language (a split-second import) so the first
+  // screen isn't English for a moment.
+  const [languageLoaded, setLanguageLoaded] = useState(false);
+  useEffect(() => {
+    languageReady.then(() => setLanguageLoaded(true));
+  }, []);
+  if (!languageLoaded) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
@@ -213,8 +221,7 @@ function RootNavigator() {
   // The saved language (or the phone's, when none is chosen).
   const language = useFinanceStore((s) => s.language);
   useEffect(() => {
-    applyLanguage(language);
-    useFinanceStore.getState().relabelDefaults();
+    applyLanguage(language).then(() => useFinanceStore.getState().relabelDefaults());
   }, [language]);
 
   useEffect(wakeBackend, []);
