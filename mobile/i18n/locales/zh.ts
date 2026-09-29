@@ -31,6 +31,7 @@ const zh: Locale = {
     settings: "设置",
   },
   app: {
+    pressBackAgain: "再按一次返回键退出",
     startingUp: "正在启动——首次加载最多可能需要一分钟。",
     loadFailed: "无法加载你的数据",
     offlineBar_one: "你已离线——{{count}} 项更改等待同步",

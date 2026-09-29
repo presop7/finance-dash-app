@@ -69,6 +69,8 @@ import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 // Explanation dialog for the offline / failed-sync status bar
 import { alertAsync } from "./utils/confirm";
 import WebDialogHost from "./components/WebDialogHost";
+import BackExitHint from "./components/BackExitHint";
+import { installWebBack, rearmWebGuard, useAndroidDoubleBackExit } from "./hooks/useBackNavigation";
 
 // TEMPORARY diagnostic (see utils/perfWatchdog.ts) — started once at module
 // load, before anything else mounts, so the earliest app-startup work is
@@ -103,32 +105,15 @@ function navigateToAnalytics(filter: AnalyticsInitialFilter) {
   if (navigationRef.isReady()) navigationRef.navigate("Analytics", { filter });
 }
 
-// Web: the browser's back button / Android's back gesture returns to the
-// Dashboard from any other tab, like the phone apps, instead of leaving the
-// app. Switching tabs adds no browser history on its own, so there was
-// nothing inside the app for "back" to go to. Leaving the Dashboard adds one
-// history entry (same URL); back consumes it and shows the Dashboard, and
-// from the Dashboard back leaves as usual. Returning to the Dashboard by tab
-// removes the entry again, so it never takes two backs to exit.
-let webBackEntry = false;
-function syncWebBack() {
-  if (Platform.OS !== "web") return;
-  const onDashboard = navigationRef.getCurrentRoute()?.name === "Dashboard";
-  if (!onDashboard && !webBackEntry) {
-    window.history.pushState(null, "");
-    webBackEntry = true;
-  } else if (onDashboard && webBackEntry) {
-    webBackEntry = false; // before back(): the popstate it causes is ours
-    window.history.back();
-  }
-}
-if (Platform.OS === "web" && typeof window !== "undefined") {
-  window.addEventListener("popstate", () => {
-    if (!webBackEntry) return;
-    webBackEntry = false;
+// Back (browser button, Android gesture or system button): closes the newest
+// sheet, then returns to the Dashboard, then needs a second press to exit —
+// see hooks/useBackNavigation.
+installWebBack({
+  onDashboard: () => (navigationRef.getCurrentRoute()?.name ?? "Dashboard") === "Dashboard",
+  toDashboard: () => {
     if (navigationRef.isReady()) navigationRef.navigate("Dashboard");
-  });
-}
+  },
+});
 
 const SLOW_LOAD_MS = 4000;
 
@@ -193,12 +178,13 @@ export default function App() {
         <ThemedStatusBar />
         <SafeAreaProvider>
           <DesktopFrame>
-            <NavigationContainer ref={navigationRef} onStateChange={syncWebBack}>
+            <NavigationContainer ref={navigationRef} onStateChange={rearmWebGuard}>
               <RootNavigator />
             </NavigationContainer>
           </DesktopFrame>
           <InstallTip />
           {Platform.OS === "web" && <WebDialogHost />}
+          {Platform.OS === "web" && <BackExitHint />}
         </SafeAreaProvider>
         {/* TEMPORARY diagnostic — see components/PerfOverlay.tsx. Dev
             builds only, so beta testers never see it. */}
@@ -254,6 +240,7 @@ function RootNavigator() {
   }, [language]);
 
   useEffect(wakeBackend, []);
+  useAndroidDoubleBackExit();
 
   // A cold backend makes the first load slow; after a few seconds, say why.
   const [slowLoad, setSlowLoad] = useState(false);

@@ -4,12 +4,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  Modal,
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";

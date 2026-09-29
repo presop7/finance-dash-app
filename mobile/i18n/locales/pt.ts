@@ -31,6 +31,7 @@ const pt: Locale = {
     settings: "Ajustes",
   },
   app: {
+    pressBackAgain: "Toque em voltar novamente para sair",
     startingUp: "Iniciando — o primeiro carregamento pode levar até um minuto.",
     loadFailed: "Não foi possível carregar seus dados",
     offlineBar_one: "Você está offline — {{count}} alteração aguardando sincronização",

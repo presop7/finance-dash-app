@@ -32,6 +32,7 @@ const pl: Locale = {
     settings: "Ustawienia",
   },
   app: {
+    pressBackAgain: "Naciśnij wstecz ponownie, aby wyjść",
     startingUp: "Uruchamianie — pierwsze wczytanie może potrwać do minuty.",
     loadFailed: "Nie udało się wczytać danych",
     offlineBar_one: "Jesteś offline — {{count}} zmiana czeka na synchronizację",

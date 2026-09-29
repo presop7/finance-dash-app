@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Modal from "../../components/AppModal";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../../constants/colors";
 import { CURRENCIES } from "../../constants/currencies";

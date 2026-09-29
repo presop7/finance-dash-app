@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Modal, Platform, Pressable, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, Pressable, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Modal from "../../components/AppModal";
 import { ColorsType } from "../../constants/colors";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { shareUrl } from "../../constants/appLinks";

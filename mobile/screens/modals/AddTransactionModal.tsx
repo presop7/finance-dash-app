@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Modal,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -12,6 +11,7 @@ import {
   ActivityIndicator,
   InputAccessoryView,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

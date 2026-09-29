@@ -31,6 +31,7 @@ const ro: Locale = {
     settings: "Setări",
   },
   app: {
+    pressBackAgain: "Apasă din nou înapoi pentru a ieși",
     startingUp: "Pornire — prima încărcare poate dura până la un minut.",
     loadFailed: "Datele nu au putut fi încărcate",
     offlineBar_one: "Ești offline — {{count}} modificare așteaptă sincronizarea",

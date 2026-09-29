@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { ColorsType } from "../../constants/colors";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useAuthStore } from "../../store/useAuthStore";

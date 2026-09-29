@@ -29,6 +29,7 @@ const en = {
     settings: "Settings",
   },
   app: {
+    pressBackAgain: "Press back again to exit",
     startingUp: "Starting up — the first load can take up to a minute.",
     loadFailed: "Couldn't load your data",
     offlineBar_one: "You're offline — {{count}} change waiting to sync",

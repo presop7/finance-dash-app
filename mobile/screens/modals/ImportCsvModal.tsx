@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  Modal,
   ScrollView,
   TextInput,
   Switch,
@@ -13,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

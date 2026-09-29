@@ -31,6 +31,7 @@ const ja: Locale = {
     settings: "設定",
   },
   app: {
+    pressBackAgain: "もう一度戻るを押すと終了します",
     startingUp: "起動中 — 初回の読み込みには最大1分ほどかかることがあります。",
     loadFailed: "データを読み込めませんでした",
     offlineBar_one: "オフラインです — {{count}}件の変更が同期待ちです",

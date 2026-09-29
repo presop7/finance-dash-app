@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  Modal,
   ScrollView,
   TextInput,
   PanResponder,
@@ -12,6 +11,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

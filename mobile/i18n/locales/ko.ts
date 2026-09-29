@@ -31,6 +31,7 @@ const ko: Locale = {
     settings: "설정",
   },
   app: {
+    pressBackAgain: "한 번 더 누르면 종료돼요",
     startingUp: "시작하는 중 — 처음 불러올 때 최대 1분 정도 걸릴 수 있어요.",
     loadFailed: "데이터를 불러오지 못했습니다",
     offlineBar_one: "오프라인 — 변경 사항 {{count}}개가 동기화를 기다리고 있어요",

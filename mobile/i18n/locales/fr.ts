@@ -30,6 +30,7 @@ const fr: Locale = {
     settings: "Réglages",
   },
   app: {
+    pressBackAgain: "Appuyez à nouveau sur retour pour quitter",
     startingUp: "Démarrage — le premier chargement peut prendre jusqu'à une minute.",
     loadFailed: "Impossible de charger vos données",
     offlineBar_one: "Hors ligne — {{count}} modification en attente de synchronisation",

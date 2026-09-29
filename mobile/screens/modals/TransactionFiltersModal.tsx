@@ -6,9 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   Pressable,
-  Modal,
   ScrollView,
 } from "react-native";
+import Modal from "../../components/AppModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../../constants/colors";

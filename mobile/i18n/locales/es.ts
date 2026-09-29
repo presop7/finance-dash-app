@@ -30,6 +30,7 @@ const es: Locale = {
     settings: "Ajustes",
   },
   app: {
+    pressBackAgain: "Pulsa atrás otra vez para salir",
     startingUp: "Iniciando — la primera carga puede tardar hasta un minuto.",
     loadFailed: "No se pudieron cargar tus datos",
     offlineBar_one: "Sin conexión — {{count}} cambio pendiente de sincronizar",
