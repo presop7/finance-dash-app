@@ -1,33 +1,11 @@
+# Only the web version lives in this Blueprint. The backend is the Render
+# service "Fi-Track-app" (https://finance-dash-api-ae3m.onrender.com), managed
+# in the dashboard: Python, root dir backend, build `pip install -r
+# requirements.txt`, start `uvicorn main:app --host 0.0.0.0 --port $PORT`,
+# settings as in backend/.env.example. It used to be listed here too, but
+# Blueprints match services by name, so after the rename Render created an
+# empty duplicate instead of updating it.
 services:
-  - type: web
-    name: finance-dash-api
-    runtime: python
-    rootDir: backend
-    plan: free
-    region: frankfurt
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
-    envVars:
-      # Secrets — set these manually in the Render dashboard, never committed here.
-      - key: DATABASE_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      # Web push reminders (see backend/.env.example).
-      - key: VAPID_PUBLIC_KEY
-        sync: false
-      - key: VAPID_PRIVATE_KEY
-        sync: false
-      - key: VAPID_SUBJECT
-        sync: false
-      - key: CRON_SECRET
-        sync: false
-      # Bearer-token auth (no cookies) means a wide-open CORS policy carries no
-      # CSRF risk; tighten once there's a real bundle id / web domain to scope to.
-      - key: CORS_ORIGINS
-        value: "*"
-
   # The web version of the app (browsers, and iPhones via "Add to Home
   # Screen"). A static site: free and always on, rebuilt on every push.
   - type: web
