@@ -29,6 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import { isTouchWeb, useWebTouchDragSelect } from "../hooks/useWebTouchDragSelect";
 import { useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
 import { GlobalStyles } from "../constants/styles";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
@@ -249,10 +250,65 @@ function AnalyticsScreen({
     });
   }, []);
 
+  // A touch that turned into a hold-and-drag must not also count as a tap on
+  // the row it started on (that toggled it back, or toggled a second row).
+  const suppressTapRef = useRef(false);
   const handleRowPressToggle = useCallback(
-    (transaction: Transaction) => toggleSelected(transaction.id),
+    (transaction: Transaction) => {
+      if (suppressTapRef.current) return;
+      toggleSelected(transaction.id);
+    },
     [toggleSelected],
   );
+
+  // Hold-and-drag *sets* rows rather than toggling them, following the row
+  // the hold started on: unselected there -> the drag selects everything it
+  // passes, selected -> it unselects. Toggling made rows flip back and forth
+  // when the finger crossed them twice or passed already-selected ones.
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+  const dragSelectsRef = useRef(true);
+  const lastDragIndexRef = useRef(-1);
+  // id -> position in the list, for filling in rows a fast drag skipped.
+  const listIndexRef = useRef(new Map<string, number>());
+  const listIdsRef = useRef<string[]>([]);
+
+  const setRowSelected = useCallback((id: string, on: boolean) => {
+    setSelectedIds((prev) => {
+      if (prev.has(id) === on) return prev;
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const beginDrag = (anchorId: string) => {
+    suppressTapRef.current = true;
+    dragSelectsRef.current = !selectedIdsRef.current.has(anchorId);
+    lastDragIndexRef.current = listIndexRef.current.get(anchorId) ?? -1;
+    setRowSelected(anchorId, dragSelectsRef.current);
+  };
+
+  const applyDrag = (id: string) => setRowSelected(id, dragSelectsRef.current);
+
+  // The finger is now over `id`: apply to it and to every row between it and
+  // the previous one (a fast move or auto-scroll can pass rows unreported).
+  const dragOver = (id: string) => {
+    const to = listIndexRef.current.get(id);
+    if (to === undefined) return;
+    const from = lastDragIndexRef.current < 0 ? to : lastDragIndexRef.current;
+    const [lo, hi] = from < to ? [from, to] : [to, from];
+    for (let i = lo; i <= hi; i++) applyDrag(listIdsRef.current[i]);
+    lastDragIndexRef.current = to;
+  };
+
+  const endDrag = () => {
+    // The row's own tap fires right after release - ignore that one only.
+    setTimeout(() => {
+      suppressTapRef.current = false;
+    }, 400);
+  };
 
   // Drag-to-select, like a phone photo gallery: once in select mode, press
   // down anywhere in the list and drag across rows to select all of them in
@@ -268,7 +324,6 @@ function AnalyticsScreen({
   // scroll, so the same mechanism is used here instead of fighting it again.
   const rowRefsRef = useRef(new Map<string, View>());
   const rowLayoutsRef = useRef(new Map<string, { y: number; height: number }>());
-  const dragProcessedRef = useRef(new Set<string>());
   const lastDragYRef = useRef(0);
   // useAnimatedRef (not a plain useRef) — required so scrollTo() in the
   // frame callback below can command the list from the UI thread directly.
@@ -301,13 +356,24 @@ function AnalyticsScreen({
   // position within *that* cell (~0), not its place in the scrollable
   // content. measureInWindow sidesteps that by reporting each row's actual
   // on-screen position instead.
-  const measureRows = () => {
-    rowRefsRef.current.forEach((ref, id) => {
-      ref.measureInWindow((_x, y, _width, height) => {
-        rowLayoutsRef.current.set(id, { y, height });
+  //
+  // Rows that have scrolled away (and been recycled) are forgotten here -
+  // keeping their old positions let them match the finger and get selected
+  // though nowhere near it. Resolves once every mounted row is measured.
+  const measureRows = () =>
+    new Promise<void>((resolve) => {
+      for (const id of [...rowLayoutsRef.current.keys()]) {
+        if (!rowRefsRef.current.has(id)) rowLayoutsRef.current.delete(id);
+      }
+      let pending = rowRefsRef.current.size;
+      if (pending === 0) return resolve();
+      rowRefsRef.current.forEach((ref, id) => {
+        ref.measureInWindow((_x, y, _width, height) => {
+          rowLayoutsRef.current.set(id, { y, height });
+          if (--pending === 0) resolve();
+        });
       });
     });
-  };
 
   const hitTestRow = (pageY: number): string | null => {
     for (const [id, layout] of rowLayoutsRef.current) {
@@ -324,11 +390,7 @@ function AnalyticsScreen({
     const min = Math.min(fromY, toY);
     const max = Math.max(fromY, toY);
     for (const [id, layout] of rowLayoutsRef.current) {
-      if (dragProcessedRef.current.has(id)) continue;
-      if (layout.y + layout.height >= min && layout.y <= max) {
-        toggleSelected(id);
-        dragProcessedRef.current.add(id);
-      }
+      if (layout.y + layout.height >= min && layout.y <= max) applyDrag(id);
     }
   };
 
@@ -392,11 +454,7 @@ function AnalyticsScreen({
     const min = Math.min(fingerY, fingerY - delta);
     const max = Math.max(fingerY, fingerY - delta);
     for (const [id, layout] of rowLayoutsRef.current) {
-      if (dragProcessedRef.current.has(id)) continue;
-      if (layout.y + layout.height >= min && layout.y <= max) {
-        toggleSelected(id);
-        dragProcessedRef.current.add(id);
-      }
+      if (layout.y + layout.height >= min && layout.y <= max) applyDrag(id);
     }
   };
 
@@ -454,27 +512,37 @@ function AnalyticsScreen({
   // handles it completely normally. Kept short — every ms here is also a ms
   // added before a plain tap-to-toggle is free to register, since the
   // gesture has to rule itself out before that touch can resolve as a tap.
-  const dragSelectingRef = useRef(false);
+  //
+  // 250ms, clearly longer than a tap: at 80ms ordinary taps were read as
+  // holds, so one touch both tapped and started a drag. Phone browsers use
+  // useWebTouchDragSelect below instead (touch there can't be taken over
+  // from the browser's scrolling by this gesture reliably).
+  const dragAnchoredRef = useRef(false);
   const dragSelectGesture = Gesture.Pan()
-    .enabled(selectMode)
-    .activateAfterLongPress(80)
+    .enabled(selectMode && !isTouchWeb)
+    .activateAfterLongPress(250)
     .runOnJS(true)
     .onStart((e) => {
-      dragSelectingRef.current = true;
-      dragProcessedRef.current = new Set();
+      dragAnchoredRef.current = false;
+      suppressTapRef.current = true;
       measureTickRef.current = 0;
       pendingHitTestDelta.value = 0;
       autoScrollFrameCount.value = 0;
-      measureRows();
       measureListViewport();
       lastDragYRef.current = e.absoluteY;
-      const id = hitTestRow(e.absoluteY);
-      if (id) {
-        toggleSelected(id);
-        dragProcessedRef.current.add(id);
-      }
+      // Fresh positions first - the anchor must be the row actually under
+      // the finger, not wherever a row was last measured.
+      measureRows().then(() => {
+        const id = hitTestRow(lastDragYRef.current);
+        if (id) beginDrag(id);
+        dragAnchoredRef.current = true;
+      });
     })
     .onUpdate((e) => {
+      if (!dragAnchoredRef.current) {
+        lastDragYRef.current = e.absoluteY;
+        return;
+      }
       // While auto-scroll is actively driving, its own tick-based hit-test
       // (above) already covers "what's under the finger now" — the content
       // is moving while the finger stays roughly fixed, so running this
@@ -489,29 +557,17 @@ function AnalyticsScreen({
     .onEnd(() => {
       autoScrollDirection.value = 0;
     })
-    .onFinalize(() => {
-      dragSelectingRef.current = false;
+    .onFinalize((_e, success) => {
       autoScrollDirection.value = 0;
+      if (success) endDrag();
     });
 
-  // Web: while a drag-select is under way, the browser mustn't scroll the
-  // list too — it fought auto-scroll (jitter, missed rows on iPhone). The
-  // drag only starts after the finger has held still (activateAfterLongPress),
-  // i.e. before the browser has begun scrolling, so it can still be told no
-  // on each move. A quick swipe never starts the drag, so it scrolls as
-  // normal. (CSS touch-action can't do this: it's fixed at touch-down, and
-  // this detector sits outside the list's own scroll area anyway.)
-  useEffect(() => {
-    if (Platform.OS !== "web") return;
-    const node = (flatListRef.current as any)?.getScrollableNode?.() as HTMLElement | undefined;
-    if (!node?.addEventListener) return;
-    const blockWhileSelecting = (e: TouchEvent) => {
-      if (dragSelectingRef.current && e.cancelable) e.preventDefault();
-    };
-    node.addEventListener("touchmove", blockWhileSelecting, { passive: false });
-    return () => node.removeEventListener("touchmove", blockWhileSelecting);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Phone browsers: hold-and-drag handled against the browser directly.
+  useWebTouchDragSelect(
+    selectMode,
+    () => (flatListRef.current as any)?.getScrollableNode?.() as HTMLElement | undefined,
+    { onStart: beginDrag, onOver: dragOver, onEnd: endDrag },
+  );
 
   // Changing tabs/filters can hide selected rows without deselecting them —
   // exiting select mode avoids bulk-acting on transactions the user can no
@@ -530,6 +586,11 @@ function AnalyticsScreen({
   const listData = useMemo(
     () => (showAll ? filtered : filtered.slice(0, FIRST_SLICE_ROWS)),
     [showAll, filtered],
+  );
+  listIdsRef.current = useMemo(() => listData.map((t) => t.id), [listData]);
+  listIndexRef.current = useMemo(
+    () => new Map(listData.map((t, i) => [t.id, i])),
+    [listData],
   );
   // A category filter only ever matches one type (expense categories and
   // income categories are separate lists) — so filtering to just one, with
@@ -987,6 +1048,9 @@ function AnalyticsScreen({
                   setRowRef(item.id, el);
                   if (isFirst) firstRowTargetRef(el);
                 }}
+                // data-rowid on web: how phone-browser drag-select finds the
+                // row under the finger (useWebTouchDragSelect).
+                {...({ dataSet: { rowid: item.id } } as object)}
               >
                 <TransactionRow
                   transaction={item}

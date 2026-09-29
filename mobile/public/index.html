@@ -44,6 +44,19 @@
         overflow: hidden;
         overscroll-behavior: none;
       }
+      /* Like an app, not a web page: holding a finger on text doesn't start
+         text selection / the copy menu (it fought hold-to-select). Typing
+         fields keep normal selection. */
+      body {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
+      }
       /* Hover feedback on computers: everything tappable (react-native-web
          makes every pressable focusable, tabindex="0") dims slightly under
          the mouse. Only with a real mouse — on phones a tap would leave it
