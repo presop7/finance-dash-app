@@ -21,7 +21,7 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    currency: Mapped[str] = mapped_column(String, nullable=False, server_default="BGN")
+    currency: Mapped[str] = mapped_column(String, nullable=False, server_default="EUR")
     hide_balance: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     time_format: Mapped[str] = mapped_column(String, nullable=False, server_default="24h")
     date_format: Mapped[str] = mapped_column(

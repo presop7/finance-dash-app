@@ -250,7 +250,7 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
           <ScrollView style={styles.textScroll} showsVerticalScrollIndicator={false} bounces={false}>
             <Text style={styles.text}>{step.text}</Text>
             {step.tryIt && hasHole && (
-              <Text style={styles.tryIt}>Go ahead and try it — tap Next when you're ready.</Text>
+              <Text style={styles.tryIt}>Try it, then tap Next.</Text>
             )}
           </ScrollView>
           <View style={styles.footer}>

@@ -66,14 +66,14 @@ def get_current_user(
                     FundCategory(
                         user_id=user.id,
                         name="Cash",
-                        currency="BGN",
+                        currency="EUR",
                         icon="cash-outline",
                         color="#1D9E75",
                     ),
                     FundCategory(
                         user_id=user.id,
                         name="Unassigned",
-                        currency="BGN",
+                        currency="EUR",
                         icon="help-circle-outline",
                         color="#5F5E5A",
                     ),

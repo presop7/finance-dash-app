@@ -12,7 +12,7 @@ export function getInsights(
   transactions: Transaction[],
   expenseCategories: Category[],
   now: Date = new Date(),
-  currency: string = "BGN",
+  currency: string = "EUR",
 ): string[] {
   if (transactions.length === 0) {
     return ["Add your first transaction to get started!"];

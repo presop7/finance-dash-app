@@ -38,73 +38,58 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: "welcome",
     host: "app",
     title: "Welcome to Fi-Track! 👋",
-    text:
-      "Let's take a quick tour so you know where everything is.\n\n" +
-      "To make it easier to follow, we've filled the app with some example spending and income. " +
-      "Don't worry — the examples disappear as soon as the tour ends.",
+    text: "A quick tour of the app. The example transactions disappear when it ends.",
   },
   {
     id: "fab",
     host: "app",
     target: "fab",
     waitFor: "addOpened",
-    title: "Write down your money",
-    text: "This + button is how you write down any money you spend or receive. Tap it now.",
+    title: "Add money in or out",
+    text: "Tap +.",
   },
   {
     id: "add-type",
     host: "addModal",
     target: "add:type",
-    title: "Spent or received?",
-    text:
-      "First choose what it is: Expense is money that left your pocket, Income is money that came in.\n\n" +
-      "The colours change with your choice, so you can always tell which one you picked.",
+    title: "Expense or income?",
+    text: "Expense = money out. Income = money in.",
   },
   {
     id: "add-fields",
     host: "addModal",
     target: "add:fields",
     title: "Name and amount",
-    text:
-      "Give it a short name you'll recognise later, like \"Groceries\" or \"Bus ticket\", then type how much it was.\n\n" +
-      "The amount is the only thing you have to fill in — the Save button stays grey until you do.",
+    text: "Add a name and the amount. Only the amount is required.",
   },
   {
     id: "add-category",
     host: "addModal",
     target: "add:category",
-    title: "Categories",
-    text:
-      "Categories group similar things together, like Food or Transport, so you can see where your money goes. Tap one to choose it.\n\n" +
-      "Missing one? Tap \"+ New\" to make your own. Press and hold a category to change its name, icon or colour.",
+    title: "Category",
+    text: "Pick one. \"+ New\" adds your own. Hold one to edit it.",
   },
   {
     id: "add-fund",
     host: "addModal",
     target: "add:fund",
-    title: "Where the money is",
-    text:
-      "Funds are the places you keep money — your wallet, a bank card, savings. " +
-      "Pick where this money came from or went to. \"+ New\" adds another one.",
+    title: "Fund",
+    text: "Where the money is: wallet, card, savings. \"+ New\" adds one.",
   },
   {
     id: "add-yours",
     host: "addModal",
     target: "add:sheet",
     waitFor: "transactionSaved",
-    title: "Your turn!",
-    text:
-      "Add a real one now: choose Expense or Income, type a name and an amount, pick a category, then tap Save at the bottom. " +
-      "The date is today unless you change it, and a note is optional.",
+    title: "Your turn",
+    text: "Fill it in and tap Save.",
   },
   {
     id: "hero",
     host: "app",
     target: "hero",
     title: "Your balance",
-    text:
-      "This shows all the money you have, plus how much came in and went out. See how it changed with what you just added?\n\n" +
-      "Tap the period button to switch between this month, this year and more. Press and hold Income or Expenses to see just those.",
+    text: "Total money, plus money in and out. Tap the period to change it. Hold Income or Expenses to see just those.",
   },
   {
     id: "recent",
@@ -112,11 +97,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "card:transactions",
     tryIt: true,
     skippable: true,
-    title: "Your latest entries",
-    text:
-      "Here are your five newest transactions — yours is at the top. Tap one to see everything about it, " +
-      "or slide it from its left or right edge to change or delete it.\n\n" +
-      "You can leave the tour any time from now on with \"Skip tour\" in the corner.",
+    title: "Latest transactions",
+    text: "Yours is on top. Tap one for details. Swipe from the edge to edit or delete.\n\n\"Skip tour\" is now in the corner.",
   },
   {
     id: "insights",
@@ -124,10 +106,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "card:insights",
     tryIt: true,
     skippable: true,
-    title: "Handy tips",
-    text:
-      "Insights point out useful things about your money, like which category costs you the most. " +
-      "Tap the card to see the next tip.",
+    title: "Tips",
+    text: "Tap the card for the next tip.",
   },
   {
     id: "funds",
@@ -135,17 +115,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "card:funds",
     skippable: true,
     title: "Your funds",
-    text:
-      "Each fund gets its own card with its balance and how it changed in the last 30 days. Swipe sideways to see them all.\n\n" +
-      "Press and hold a card, then let go, to see only that fund's money. Hold it and drag to change the order.",
+    text: "Balance per fund. Swipe for more. Hold and release to see one fund. Hold and drag to reorder.",
   },
   {
     id: "top-expenses",
     host: "app",
     target: "card:topExpenses",
     skippable: true,
-    title: "Biggest spending",
-    text: "Top Expenses lists the largest amounts you've spent, so the big costs never slip by unnoticed.",
+    title: "Biggest expenses",
+    text: "Your largest spending, at a glance.",
   },
   {
     id: "cards-tip",
@@ -153,10 +131,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "card:insights",
     tryIt: true,
     skippable: true,
-    title: "Make it yours",
-    text:
-      "Tap a card's title to fold it away, and tap again to open it.\n\n" +
-      "Press and hold a title to move the cards into the order you like.",
+    title: "Arrange your cards",
+    text: "Tap a title to fold a card. Hold a title to reorder.",
   },
   {
     id: "go-analytics",
@@ -164,8 +140,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "tab:Analytics",
     waitFor: "tab:Analytics",
     skippable: true,
-    title: "See the bigger picture",
-    text: "Now tap Analytics at the bottom of the screen.",
+    title: "Analytics",
+    text: "Tap Analytics below.",
   },
   {
     id: "analytics-toggle",
@@ -173,8 +149,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "analytics:toggle",
     tryIt: true,
     skippable: true,
-    title: "All, spending or income",
-    text: "Use this switch to look at everything, only what you spent, or only what came in.",
+    title: "All, expenses or income",
+    text: "Switch what the screen shows.",
   },
   {
     id: "analytics-filters",
@@ -182,9 +158,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "analytics:filters",
     skippable: true,
     title: "Filters",
-    text:
-      "Filters narrow things down — for example only last month, one category or one fund.\n\n" +
-      "You can also tap the dates under the switch to quickly pick a different time period.",
+    text: "Narrow by date, category or fund. Tap the date below the switch for a quick change.",
   },
   {
     id: "analytics-summary",
@@ -192,9 +166,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: "analytics:summary",
     tryIt: true,
     skippable: true,
-    title: "The summary",
-    text:
-      "This adds everything up for you. Swipe it to the left — or tap the dots under it — to see charts of which categories take the most money.",
+    title: "Summary",
+    text: "Totals at a glance. Swipe or tap the dots for charts.",
   },
   {
     id: "analytics-list",
@@ -203,12 +176,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: ["analytics:list", "analytics:selectToolbar"],
     tryIt: true,
     skippable: true,
-    title: "All your transactions",
-    text:
-      "Every transaction is listed here. Tap one to see its details.\n\n" +
-      "Slide one from its left or right edge: to the left to delete it, to the right to change it. " +
-      "Press and hold one to select several at once, then tap more to add them. " +
-      "The bar that appears on top lets you delete them or move them to another category together — Discard ends selecting.",
+    title: "All transactions",
+    text: "Tap: details. Swipe from the edge: edit or delete. Hold: select several, then delete or move them together.",
   },
   {
     id: "go-alerts",
@@ -217,26 +186,23 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     waitFor: "tab:Alerts",
     skippable: true,
     title: "Reminders",
-    text: "Next, tap Reminders at the bottom.",
+    text: "Tap Reminders below.",
   },
   {
     id: "alerts-list",
     host: "app",
     target: "alerts:list",
     skippable: true,
-    title: "Let the app keep watch",
-    text:
-      "Reminders give you a nudge — for example when your money runs low, when you've spent a lot this month, " +
-      "or every evening to remind you to write down the day's spending.\n\n" +
-      "Use the switch to turn one on or off, tap it to change it, or tap the bin to remove it.",
+    title: "Reminders",
+    text: "Alerts for low balance, big spending, or a daily reminder. Switch on or off, tap to edit, bin to delete.",
   },
   {
     id: "alerts-add",
     host: "app",
     target: "alerts:add",
     skippable: true,
-    title: "Make your own",
-    text: "Tap Add Reminder to create a new one: choose what to watch, set the amount or time, and save.",
+    title: "New reminder",
+    text: "Tap Add Reminder.",
   },
   {
     id: "go-settings",
@@ -245,44 +211,36 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     waitFor: "tab:Settings",
     skippable: true,
     title: "Settings",
-    text: "Last stop — tap Settings.",
+    text: "Tap Settings below.",
   },
   {
     id: "settings-look",
     host: "app",
     target: "settings:general",
     skippable: true,
-    title: "Make it feel right",
-    text:
-      "Choose a light or dark look, your currency, and how dates and times are shown.\n\n" +
-      "You can also hide your balance so nobody can peek over your shoulder — press and hold it to see it.",
+    title: "Look and format",
+    text: "Theme, currency, date and time. Hide Balance keeps it private: hold it to see.",
   },
   {
     id: "settings-categories",
     host: "app",
     target: "settings:categories",
     skippable: true,
-    title: "Categories and older records",
-    text:
-      "Manage all your categories and funds in one place. " +
-      "You can also bring in transactions from another app or your bank, from a spreadsheet file (CSV).",
+    title: "Categories and import",
+    text: "Manage categories and funds. Import from a spreadsheet (CSV).",
   },
   {
     id: "settings-account",
     host: "app",
     target: "settings:about",
     skippable: true,
-    title: "Help and feedback",
-    text:
-      "Tell us about a problem or an idea with Send Feedback, or take this tour again whenever you like.\n\n" +
-      "Just above you'll find Sign Out — and \"Clear All Transactions\", so be careful: that one deletes everything for good.",
+    title: "Help",
+    text: "Send feedback or replay this tour. Careful: \"Clear All Transactions\" deletes everything.",
   },
   {
     id: "done",
     host: "app",
-    title: "You're all set! 🎉",
-    text:
-      "When you tap Finish, the examples are removed and you'll only see your own money.\n\n" +
-      "Happy tracking!",
+    title: "All set! 🎉",
+    text: "The examples are removed when you tap Finish.",
   },
 ];

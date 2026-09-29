@@ -55,6 +55,8 @@ import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
 import InstallTip from "./components/InstallTip";
+import CurrencyPromptModal from "./screens/modals/CurrencyPromptModal";
+import { detectCurrency } from "./utils/detectCurrency";
 
 // Alerts monitoring
 import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
@@ -613,6 +615,7 @@ function AppContent() {
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
       <NamePromptModal />
+      <CurrencyPromptModal />
 
       <TransactionDetailModal
         transaction={selectedTransaction}
@@ -652,7 +655,16 @@ function useTutorialAutoStart() {
     checkedFor.current = user.id;
     const isNew =
       !user.user_metadata?.tutorial_done && useFinanceStore.getState().transactions.length === 0;
-    if (isNew) startTutorial();
+    if (!isNew) return;
+    // Their currency: from where the phone is, if we can tell; otherwise
+    // they're asked right after the tour.
+    const currency = detectCurrency();
+    const finance = useFinanceStore.getState();
+    if (!currency) useTutorialStore.getState().setAskCurrency(true);
+    else if (currency !== finance.settings.currency) {
+      finance.updateSettings({ currency }).catch(() => {});
+    }
+    startTutorial();
   }, [user, status]);
 }
 

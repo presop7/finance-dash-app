@@ -75,12 +75,18 @@ type TutorialState = {
   // The add-transaction sheet closed before the user saved: go back to the
   // "tap +" step so the sheet steps can run again.
   addSheetClosed: () => void;
+  // A new account whose currency couldn't be worked out: ask them once the
+  // tour is out of the way (see CurrencyPromptModal).
+  askCurrency: boolean;
+  setAskCurrency: (ask: boolean) => void;
 };
 
 export const useTutorialStore = create<TutorialState>((set, get) => ({
   active: false,
   index: 0,
   replay: false,
+  askCurrency: false,
+  setAskCurrency: (ask) => set({ askCurrency: ask }),
 
   start: (replay = false) => {
     const finance = useFinanceStore.getState();

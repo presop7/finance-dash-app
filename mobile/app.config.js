@@ -14,7 +14,7 @@ module.exports = {
     // Separate per variant so, with both installed, the browser hands the
     // sign-in back to the app that started it rather than asking which one.
     scheme: IS_DEV ? "fitrack-dev" : "fitrack",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",

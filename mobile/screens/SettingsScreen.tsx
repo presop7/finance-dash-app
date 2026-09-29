@@ -14,6 +14,7 @@ import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { DEV_TOOLS } from "../constants/devTools";
 import { generateDemoTransactions } from "../utils/demoTransactions";
 import * as Crypto from "expo-crypto";
+import Constants from "expo-constants";
 import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
@@ -592,7 +593,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             <View style={styles.rowInfo}>
               <Text style={styles.rowTitle}>Version</Text>
             </View>
-            <Text style={styles.rowSubtitle}>1.0.0</Text>
+            <Text style={styles.rowSubtitle}>{Constants.expoConfig?.version ?? "—"}</Text>
           </View>
         </View>
 

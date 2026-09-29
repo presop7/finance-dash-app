@@ -48,7 +48,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  currency: "BGN",
+  currency: "EUR",
   hideBalance: false,
   timeFormat: "24h",
   dateFormat: "DD/MM/YYYY",

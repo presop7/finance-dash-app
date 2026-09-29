@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Image,
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,8 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useAuthStore } from "../store/useAuthStore";
 
 type Mode = "sign-in" | "sign-up";
+
+const APP_ICON = require("../assets/icon.png");
 
 // Below this, a full-width form reads fine on a phone. At or above it
 // (iPad portrait and up), a full-width form looks stretched — narrow it.
@@ -114,10 +117,8 @@ export default function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brandSection}>
-          <View style={styles.logo}>
-            <Ionicons name="wallet" size={54} color={Colors.primary} />
-          </View>
-          <Text style={styles.brandTitle}>Finance Dash</Text>
+          <Image source={APP_ICON} style={styles.logo} accessibilityIgnoresInvertColors />
+          <Text style={styles.brandTitle}>Fi-Track</Text>
         </View>
 
         <View style={[styles.formSection, isWideScreen && styles.formSectionWide]}>
@@ -276,14 +277,12 @@ function createStyles(Colors: ColorsType) {
     width: "60%",
     alignSelf: "center",
   },
+  // The app's own icon, with the same rounded-square look as on the home screen.
   logo: {
     alignSelf: "center",
     width: 96,
     height: 96,
-    borderRadius: 48,
-    backgroundColor: Colors.surfaceSecondary,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 22,
     marginBottom: 15,
   },
   brandTitle: {
