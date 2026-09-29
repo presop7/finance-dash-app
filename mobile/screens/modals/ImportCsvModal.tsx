@@ -361,7 +361,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
       setImportResult(result);
       await hydrate();
     } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Something went wrong.");
+      setImportError(err instanceof Error ? err.message : t("common.somethingWrong"));
     }
     setStep("results");
   };

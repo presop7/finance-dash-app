@@ -363,6 +363,7 @@ const bg: Translations = {
   },
   pickers: {
     searchCategories: "Търсене на категории",
+    searchFunds: "Търсене на съхранения",
     noMatch: "Няма съвпадения за „{{query}}“",
   },
   installTip: {

@@ -364,6 +364,7 @@ const zh: Locale = {
   },
   pickers: {
     searchCategories: "搜索分类",
+    searchFunds: "搜索账户",
     noMatch: "没有与“{{query}}”匹配的结果",
   },
   installTip: {

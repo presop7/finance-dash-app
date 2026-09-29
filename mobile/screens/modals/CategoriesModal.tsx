@@ -437,6 +437,12 @@ export default function CategoriesModal({
             drives the push-up directly instead of assuming one exists. */}
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
+          // On web a plain empty View still captures clicks (unlike native,
+          // which lets them fall through to a sibling with no handler), so
+          // this otherwise-invisible full-screen wrapper was swallowing taps
+          // meant for the overlay behind it — box-none excludes itself from
+          // hit testing while keeping the sheet inside it tappable.
+          pointerEvents="box-none"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
@@ -487,7 +493,7 @@ export default function CategoriesModal({
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
-              placeholder={`Search ${activeType === "fund" ? "funds" : "categories"}`}
+              placeholder={activeType === "fund" ? t("pickers.searchFunds") : t("pickers.searchCategories")}
               placeholderTextColor={Colors.textMuted}
             />
             {search.length > 0 && (
@@ -635,14 +641,18 @@ export default function CategoriesModal({
                 );
               })}
             </View>
+          </ScrollView>
 
-            {!selectMode && (
+          {/* Outside the ScrollView so it stays put at the bottom of the
+              sheet instead of scrolling away with the grid. */}
+          {!selectMode && (
+            <View style={styles.addNewFooter}>
               <TouchableOpacity style={styles.addNewBtn} onPress={() => setEditTarget("new")}>
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.addNewText}>{t(`categories.addNew_${noun === "Fund" ? "fund" : "category"}`)}</Text>
               </TouchableOpacity>
-            )}
-          </ScrollView>
+            </View>
+          )}
         </View>
         </KeyboardAvoidingView>
       </View>
@@ -825,12 +835,16 @@ function createStyles(Colors: ColorsType) {
   countBadgeEmpty: { backgroundColor: Colors.border },
   countBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.primary },
   countBadgeTextEmpty: { color: Colors.textMuted },
+  addNewFooter: {
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+    padding: 16,
+  },
   addNewBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    margin: 16,
     padding: 14,
     borderRadius: 12,
     borderWidth: 1.5,

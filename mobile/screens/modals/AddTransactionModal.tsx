@@ -285,6 +285,12 @@ export default function AddTransactionModal({
             drives the push-up directly instead of assuming one exists. */}
         <KeyboardAvoidingView
           style={styles.keyboardAvoider}
+          // On web a plain empty View still captures clicks (unlike native,
+          // which lets them fall through to a sibling with no handler), so
+          // this otherwise-invisible full-screen wrapper was swallowing taps
+          // meant for the overlay behind it — box-none excludes itself from
+          // hit testing while keeping the sheet inside it tappable.
+          pointerEvents="box-none"
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
         <View

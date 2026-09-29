@@ -378,6 +378,7 @@ const ro: Locale = {
   },
   pickers: {
     searchCategories: "Caută categorii",
+    searchFunds: "Caută conturi",
     noMatch: "Nimic nu se potrivește cu „{{query}}”",
   },
   installTip: {

@@ -364,6 +364,7 @@ const ko: Locale = {
   },
   pickers: {
     searchCategories: "카테고리 검색",
+    searchFunds: "계좌 검색",
     noMatch: "\"{{query}}\"와(과) 일치하는 항목이 없어요",
   },
   installTip: {

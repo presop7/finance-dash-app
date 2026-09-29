@@ -364,6 +364,7 @@ const pt: Locale = {
   },
   pickers: {
     searchCategories: "Buscar categorias",
+    searchFunds: "Buscar contas",
     noMatch: "Nada corresponde a \"{{query}}\"",
   },
   installTip: {

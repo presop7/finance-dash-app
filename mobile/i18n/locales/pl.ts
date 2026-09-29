@@ -393,6 +393,7 @@ const pl: Locale = {
   },
   pickers: {
     searchCategories: "Szukaj kategorii",
+    searchFunds: "Szukaj kont",
     noMatch: "Nic nie pasuje do „{{query}}”",
   },
   installTip: {

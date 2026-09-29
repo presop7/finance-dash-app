@@ -364,6 +364,7 @@ const ja: Locale = {
   },
   pickers: {
     searchCategories: "カテゴリを検索",
+    searchFunds: "口座を検索",
     noMatch: "「{{query}}」に一致するものはありません",
   },
   installTip: {

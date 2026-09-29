@@ -362,6 +362,7 @@ const en = {
   },
   pickers: {
     searchCategories: "Search categories",
+    searchFunds: "Search funds",
     noMatch: "Nothing matches \"{{query}}\"",
   },
   installTip: {

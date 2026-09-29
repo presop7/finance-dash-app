@@ -363,6 +363,7 @@ const fr: Locale = {
   },
   pickers: {
     searchCategories: "Rechercher des catégories",
+    searchFunds: "Rechercher des comptes",
     noMatch: "Aucun résultat pour « {{query}} »",
   },
   installTip: {
