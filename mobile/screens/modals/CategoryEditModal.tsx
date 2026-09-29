@@ -22,6 +22,7 @@ import { FundCategory } from "../../constants/fundCategories";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "../../components/FieldIcon";
 
 export const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cart-outline",
@@ -162,7 +163,7 @@ export default function CategoryEditModal({
               <View style={styles.body}>
                 <Text style={styles.formLabel}>{t(`categories.name_${kind}`)}</Text>
                 <View style={styles.fieldContainer}>
-                  <Ionicons name="text-outline" size={16} color={Colors.textMuted} />
+                  <FieldIcon name="text-outline" />
                   <TextInput
                     style={styles.fieldInput}
                     placeholder={t(`categories.example_${kind}`)}

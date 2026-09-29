@@ -41,7 +41,7 @@ export default function CategoryDetailFields({
 
 function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
-    label: { width: "100%", fontSize: 10, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
+    label: { width: "100%", fontSize: 12, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
     amount: { width: "100%", fontSize: 11, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
     pct: { width: "100%", fontSize: 9, color: Colors.textMuted, marginTop: 1, textAlign: "center" },
     count: { width: "100%", fontSize: 8, color: Colors.textMuted, marginTop: 1, textAlign: "center" },

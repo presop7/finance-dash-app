@@ -22,6 +22,7 @@ import { confirmAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "../../components/FieldIcon";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
@@ -212,7 +213,7 @@ export default function AlertRuleModal({
                     // DateTimePicker has no web version; the browser's own time
                     // input opens the phone's clock/wheel picker instead.
                     <View style={styles.fieldContainer}>
-                      <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                      <FieldIcon name="time-outline" />
                       <input
                         type="time"
                         value={`${pad2(time.getHours())}:${pad2(time.getMinutes())}`}
@@ -239,7 +240,7 @@ export default function AlertRuleModal({
                       style={styles.fieldContainer}
                       onPress={() => setShowTimePicker(true)}
                     >
-                      <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+                      <FieldIcon name="time-outline" />
                       <Text style={styles.fieldInput}>
                         {time.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                       </Text>
@@ -262,7 +263,7 @@ export default function AlertRuleModal({
                 <>
                   <Text style={styles.formLabel}>{t("reminders.amount")}</Text>
                   <View style={styles.fieldContainer}>
-                    <Ionicons name="pricetag-outline" size={16} color={Colors.textMuted} />
+                    <FieldIcon name="pricetag-outline" />
                     <TextInput
                       style={styles.fieldInput}
                       placeholder="0.00"
@@ -335,6 +336,7 @@ export default function AlertRuleModal({
                         <Text
                           style={[
                             styles.typeChipText,
+                            styles.categoryChipText,
                             categoryId === cat.id && styles.typeChipTextActive,
                           ]}
                         >
@@ -449,6 +451,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   typeChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  categoryChipText: { fontSize: 14 }, // category names, +2 over the type chips
   typeChipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
   typeChipTextActive: { color: "#fff" },
   fieldContainer: {

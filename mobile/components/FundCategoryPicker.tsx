@@ -145,7 +145,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "22",
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.textSecondary,
     textAlign: "center",
   },

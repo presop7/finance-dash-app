@@ -590,7 +590,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
 
             <Text style={styles.sectionLabel}>{t("settings.currency")}</Text>
             <View style={styles.currencyToggleRow}>
-              <Text style={styles.mappingLabel}>{t("csv.alreadyIn", { currency: settings.currency })}</Text>
+              <Text style={[styles.mappingLabel, { flexShrink: 1, marginBottom: 0 }]}>{t("csv.alreadyIn", { currency: settings.currency })}</Text>
               <Switch
                 value={sameCurrency}
                 onValueChange={setSameCurrency}
@@ -684,7 +684,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                           style={[styles.chip, resolvedId === opt.id && styles.chipActive]}
                           onPress={() => resolveManually(item, opt.id)}
                         >
-                          <Text style={[styles.chipText, resolvedId === opt.id && styles.chipTextActive]}>
+                          <Text style={[styles.chipText, styles.categoryChipText, resolvedId === opt.id && styles.chipTextActive]}>
                             {"label" in opt ? opt.label : opt.name}
                           </Text>
                         </TouchableOpacity>
@@ -931,6 +931,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  categoryChipText: { fontSize: 14 }, // category/fund names, +2 over the other chips
   chipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
   chipTextActive: { color: "#fff" },
   createChip: {
@@ -956,7 +957,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.surfaceSecondary,
   },
   createChipText: { fontSize: 12, color: Colors.primary, fontWeight: "500" },
-  currencyToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  currencyToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 },
   rateInput: {
     padding: 12,
     backgroundColor: Colors.surfaceSecondary,

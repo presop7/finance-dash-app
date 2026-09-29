@@ -5,6 +5,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { currentLocale } from "../i18n";
+import FieldIcon from "./FieldIcon";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -47,11 +48,7 @@ export default function DateTimeFields({
             setShowDatePicker(true);
           }}
         >
-          <Ionicons
-            name="calendar-outline"
-            size={18}
-            color={Colors.textMuted}
-          />
+          <FieldIcon name="calendar-outline" />
           <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
         </TouchableOpacity>
 
@@ -63,7 +60,7 @@ export default function DateTimeFields({
             setShowTimePicker(true);
           }}
         >
-          <Ionicons name="time-outline" size={18} color={Colors.textMuted} />
+          <FieldIcon name="time-outline" />
           <Text style={styles.dateTimeText}>{formatTime(date)}</Text>
         </TouchableOpacity>
       </View>
@@ -109,8 +106,8 @@ function createStyles(Colors: ColorsType) {
   fieldContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 14, // same ~48px height as the typed fields
+    paddingHorizontal: 8,
+    paddingVertical: 14, // same ~48px height, and text start, as the typed fields
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
     borderWidth: 0.5,
@@ -124,6 +121,7 @@ function createStyles(Colors: ColorsType) {
     flex: 1,
   },
   dateTimeText: {
+    paddingHorizontal: 6,
     fontSize: 16,
     color: Colors.textPrimary,
   },

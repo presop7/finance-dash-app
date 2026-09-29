@@ -216,7 +216,7 @@ function createStyles(Colors: ColorsType) {
     list: { height: ROW_H * VISIBLE_ROWS },
     row: { marginBottom: ROW_GAP },
     rowHeader: { marginBottom: 6 },
-    rowLabel: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+    rowLabel: { fontSize: 15, fontWeight: "600", color: Colors.textPrimary },
     rowAmount: { fontSize: 12, color: Colors.textMuted },
     // No overflow:hidden here (unlike the track's plain-bar predecessor) —
     // the fill's own height grows past BAR_H on hold (see growStyle) and

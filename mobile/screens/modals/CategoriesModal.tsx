@@ -34,6 +34,7 @@ import ModalCloseButton from "../../components/ModalCloseButton";
 import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "../../components/FieldIcon";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -481,7 +482,7 @@ export default function CategoriesModal({
           </View>
 
           <View style={styles.searchBox}>
-            <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+            <FieldIcon name="search-outline" />
             <TextInput
               style={styles.searchInput}
               value={search}
@@ -735,7 +736,7 @@ function createStyles(Colors: ColorsType) {
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginHorizontal: 16,
     marginBottom: 12,
     ...FIELD_BOX,
@@ -810,7 +811,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
     justifyContent: "center",
   },
-  categoryChipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
+  categoryChipText: { fontSize: 14, color: Colors.textPrimary, fontWeight: "500" },
   // Transaction count per category — muted/gray when empty (0) so an empty
   // duplicate stands out at a glance instead of needing to be counted.
   countBadge: {

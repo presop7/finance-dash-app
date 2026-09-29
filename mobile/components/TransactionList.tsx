@@ -253,7 +253,7 @@ function createStyles(Colors: ColorsType) {
     color: Colors.textPrimary,
   },
   category: {
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.textMuted,
     marginTop: 2,
   },

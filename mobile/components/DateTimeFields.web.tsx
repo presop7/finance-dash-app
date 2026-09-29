@@ -12,6 +12,7 @@ import { ColorsType } from "../constants/colors";
 import { FIELD_BOX, FIELD_INPUT } from "../constants/styles";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { currentLocale } from "../i18n";
+import FieldIcon from "./FieldIcon";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -123,11 +124,7 @@ export default function DateTimeFields({
       <View style={styles.dateTimeRow}>
         {/* Date */}
         <View style={[styles.fieldContainer, styles.dateField]}>
-          <Ionicons
-            name="calendar-outline"
-            size={16}
-            color={Colors.textMuted}
-          />
+          <FieldIcon name="calendar-outline" />
           <TextInput
             style={styles.dateTimeInput}
             value={dateText}
@@ -155,7 +152,7 @@ export default function DateTimeFields({
 
         {/* Time */}
         <View style={[styles.fieldContainer, styles.timeField]}>
-          <Ionicons name="time-outline" size={16} color={Colors.textMuted} />
+          <FieldIcon name="time-outline" />
           <TextInput
             style={styles.dateTimeInput}
             value={timeText}
@@ -328,7 +325,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    gap: 6,
+    gap: 8,
     minWidth: 0,
   },
   dateField: {

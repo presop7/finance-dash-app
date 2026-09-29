@@ -35,6 +35,7 @@ import {
 } from "../../store/useTutorialStore";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "../../components/FieldIcon";
 
 type TransactionType = "expense" | "income";
 
@@ -366,11 +367,7 @@ export default function AddTransactionModal({
             <View ref={fieldsTargetRef} collapsable={false}>
             {/* Title Input */}
             <View style={styles.fieldContainer}>
-              <Ionicons
-                name="text-outline"
-                size={18}
-                color={Colors.textMuted}
-              />
+              <FieldIcon name="text-outline" />
               <TextInput
                 ref={titleInputRef}
                 style={styles.fieldInput}
@@ -392,11 +389,7 @@ export default function AddTransactionModal({
                 showNumpad && { borderColor: activeColor },
               ]}
             >
-              <Ionicons
-                name="cash-outline"
-                size={18}
-                color={amount ? activeColor : Colors.textMuted}
-              />
+              <FieldIcon name="cash-outline" color={amount ? activeColor : Colors.textMuted} />
               {amount ? (
                 <Text style={[styles.amountSign, { color: activeColor }]}>
                   {isExpense ? "-" : "+"}
@@ -559,12 +552,7 @@ export default function AddTransactionModal({
                 { marginBottom: 8 },
               ]}
             >
-              <Ionicons
-                name="create-outline"
-                size={18}
-                color={Colors.textMuted}
-                style={styles.noteIcon}
-              />
+              <FieldIcon name="create-outline" style={styles.noteIcon} />
               <TextInput
                 style={[styles.fieldInput, styles.noteInput]}
                 placeholder={t("addTx.notePlaceholder")}
@@ -728,7 +716,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "flex-start",
   },
   noteIcon: {
-    marginTop: 2,
+    marginTop: 8, // level with the first line of text (the field's own top padding)
   },
   noteInput: {
     minHeight: 40,
@@ -739,13 +727,10 @@ function createStyles(Colors: ColorsType) {
     color: Colors.textPrimary,
   },
   amountFieldText: {
-    ...FIELD_INPUT,
-    fontSize: 18,
-    fontWeight: "500",
+    ...FIELD_INPUT, // same size and weight as the other fields
   },
   amountSign: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 16,
   },
   amountSuffix: {
     fontSize: 14,

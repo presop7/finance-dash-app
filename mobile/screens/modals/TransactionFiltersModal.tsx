@@ -32,6 +32,7 @@ import {
 } from "../../utils/filterTransactions";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "../../components/FieldIcon";
 
 type TransactionFiltersModalProps = {
   visible: boolean;
@@ -247,7 +248,7 @@ export default function TransactionFiltersModal({
               {ready ? (
               <>
               <View style={styles.searchBox}>
-                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <FieldIcon name="search-outline" />
                 <TextInput
                   style={styles.searchInput}
                   value={fundSearch}
@@ -319,7 +320,7 @@ export default function TransactionFiltersModal({
               {ready ? (
               <>
               <View style={styles.searchBox}>
-                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <FieldIcon name="search-outline" />
                 <TextInput
                   style={styles.searchInput}
                   value={expenseSearch}
@@ -400,7 +401,7 @@ export default function TransactionFiltersModal({
               {ready ? (
               <>
               <View style={styles.searchBox}>
-                <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+                <FieldIcon name="search-outline" />
                 <TextInput
                   style={styles.searchInput}
                   value={incomeSearch}
@@ -600,7 +601,7 @@ function createStyles(Colors: ColorsType) {
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginBottom: 8,
     ...FIELD_BOX,
     backgroundColor: Colors.surfaceSecondary,
@@ -633,7 +634,7 @@ function createStyles(Colors: ColorsType) {
     marginRight: 8,
     marginBottom: 8,
   },
-  chipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
+  chipText: { fontSize: 14, color: Colors.textPrimary, fontWeight: "500" },
   chipTextActive: { color: "#fff" },
   footer: {
     paddingHorizontal: 16,

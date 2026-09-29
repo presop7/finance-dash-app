@@ -1339,12 +1339,14 @@ function createStyles(Colors: ColorsType) {
   },
   headerTopRow: {
     flexDirection: "row",
+    flexWrap: "wrap", // long translations: the buttons drop below the title
     alignItems: "center",
     justifyContent: "space-between",
+    rowGap: 8,
     marginBottom: 14,
   },
   headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
-  headerBtnGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerBtnGroup: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" },
   quickResetBtn: {
     width: 28,
     height: 28,

@@ -17,6 +17,7 @@ import { themedCategoryColor } from "../utils/color";
 import { useStagedCount } from "../hooks/useStagedCount";
 import HoldPressable from "./HoldPressable";
 import { useTranslation } from "react-i18next";
+import FieldIcon from "./FieldIcon";
 
 type CategoryPickerProps = {
   categories: Category[];
@@ -70,7 +71,7 @@ export default function CategoryPicker({
       {/* Scrolling through everything gets unwieldy once there are more than
           a handful of categories — searching narrows it down directly. */}
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+        <FieldIcon name="search-outline" />
         <TextInput
           ref={searchInputRef}
           style={styles.searchInput}
@@ -158,7 +159,7 @@ function createStyles(Colors: ColorsType) {
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginHorizontal: 16,
     marginBottom: 10,
     ...FIELD_BOX,
@@ -199,7 +200,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "22",
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.textSecondary,
     textAlign: "center",
   },

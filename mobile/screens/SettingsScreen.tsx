@@ -241,12 +241,14 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         <View ref={generalRef} collapsable={false}>
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.appearance")}</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Ionicons name="contrast-outline" size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.theme")}</Text>
+          <View style={styles.rowWrap}>
+            <View style={styles.rowHead}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="contrast-outline" size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.rowHeadInfo}>
+                <Text style={styles.rowTitle}>{t("settings.theme")}</Text>
+              </View>
             </View>
             <View style={styles.segmented}>
               {(["light", "dark", "system"] as ThemePreference[]).map((option) => (
@@ -319,13 +321,15 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.general")}</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Ionicons name="person-outline" size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.displayName")}</Text>
-              <Text style={styles.rowSubtitle}>{t("settings.displayNameHint")}</Text>
+          <View style={styles.rowWrap}>
+            <View style={styles.rowHead}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="person-outline" size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.rowHeadInfo}>
+                <Text style={styles.rowTitle}>{t("settings.displayName")}</Text>
+                <Text style={styles.rowSubtitle}>{t("settings.displayNameHint")}</Text>
+              </View>
             </View>
             <TextInput
               style={styles.nameInput}
@@ -386,15 +390,18 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
           <View style={styles.divider} />
 
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Ionicons name="eye-off-outline" size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.hideBalance")}</Text>
-              <Text style={styles.rowSubtitle}>{t("settings.hideBalanceHint")}</Text>
+          <View style={styles.rowWrap}>
+            <View style={styles.rowHead}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="eye-off-outline" size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.rowHeadInfo}>
+                <Text style={styles.rowTitle}>{t("settings.hideBalance")}</Text>
+                <Text style={styles.rowSubtitle}>{t("settings.hideBalanceHint")}</Text>
+              </View>
             </View>
             <Switch
+              style={{ marginLeft: "auto" }}
               value={settings.hideBalance}
               onValueChange={(v) => handleUpdateSettings({ hideBalance: v })}
               trackColor={{ false: Colors.border, true: Colors.primary }}
@@ -403,12 +410,14 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
           <View style={styles.divider} />
 
-          <View style={styles.row}>
-            <View style={styles.rowIcon}>
-              <Ionicons name="time-outline" size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.timeFormat")}</Text>
+          <View style={styles.rowWrap}>
+            <View style={styles.rowHead}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="time-outline" size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.rowHeadInfo}>
+                <Text style={styles.rowTitle}>{t("settings.timeFormat")}</Text>
+              </View>
             </View>
             <View style={styles.segmented}>
               <TouchableOpacity
@@ -708,18 +717,34 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   rowInfo: { flex: 1 },
+  // Rows with a control on the right (toggle, switch, input): when the title
+  // and the control don't both fit — long translations, narrow phones — the
+  // control moves to a second line instead of squeezing the title.
+  rowWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    padding: 12,
+    rowGap: 10,
+    columnGap: 10,
+  },
+  rowHead: { flexDirection: "row", alignItems: "center", gap: 10, flexGrow: 1, flexShrink: 1 },
+  rowHeadInfo: { flexShrink: 1 },
   rowTitle: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary },
   rowSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
   nameInput: {
+    flexGrow: 1,
+    flexBasis: 120,
     fontSize: 16,
     paddingHorizontal: 6,
     paddingVertical: 8,
     borderRadius: 6,
     color: Colors.textPrimary,
     textAlign: "right",
-    minWidth: 100,
+    minWidth: 120,
   },
   segmented: {
+    marginLeft: "auto", // stays on the right, on either line
     flexDirection: "row",
     backgroundColor: Colors.surfaceSecondary,
     borderRadius: 10,
