@@ -16,6 +16,7 @@ import {
 } from "../services/financeApi";
 import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
+import i18n from "../i18n";
 
 export type Transaction = {
   id: string;
@@ -163,6 +164,12 @@ type FinanceStore = {
   // Device preference, not account data — deliberately not part of Settings
   // (which round-trips to the backend) or namespaced per-user below.
   themePreference: ThemePreference;
+  // App language code ("bg", "en", ...), or null to follow the phone's
+  // own language. Device preference, like the theme.
+  language: string | null;
+  setLanguage: (language: string | null) => void;
+  // Re-translates the names of the locked "Unassigned" category/fund.
+  relabelLocked: () => void;
   setThemePreference: (pref: ThemePreference) => void;
   // Overrides the email-derived dashboard greeting name. Device-only for
   // now to save on backend/DB work — TODO: move into Settings (synced) if
@@ -193,6 +200,7 @@ const DEVICE_FIELDS: readonly string[] = [
   "dashboardCollapsedCards",
   "themePreference",
   "displayNameOverride",
+  "language",
 ];
 
 type PersistedBlob = {
@@ -277,7 +285,8 @@ const storage = {
 function mapCategory(c: ApiCategory): Category {
   return {
     id: c.id,
-    label: c.name,
+    // The shared "Unassigned" is stored in English; shown in the app's language.
+    label: c.user_id === null ? i18n.t("categories.unassigned") : c.name,
     icon: (c.icon ?? "ellipsis-horizontal-outline") as Category["icon"],
     color: c.color ?? undefined,
     locked: c.user_id === null,
@@ -287,7 +296,7 @@ function mapCategory(c: ApiCategory): Category {
 function mapFundCategory(f: ApiFundCategory): FundCategory {
   return {
     id: f.id,
-    name: f.name,
+    name: f.name === "Unassigned" ? i18n.t("categories.unassignedFund") : f.name,
     icon: f.icon ?? "wallet-outline",
     color: f.color ?? "#1D2B4F",
     locked: f.name === "Unassigned",
@@ -536,6 +545,7 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCollapsedCards: {},
       fundCardOrder: [],
       themePreference: "system",
+      language: null,
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
 
@@ -936,6 +946,19 @@ export const useFinanceStore = create<FinanceStore>()(
         })),
 
       setThemePreference: (pref) => set({ themePreference: pref }),
+      setLanguage: (language) => set({ language }),
+      relabelLocked: () =>
+        set((state) => ({
+          expenseCategories: state.expenseCategories.map((c) =>
+            c.locked ? { ...c, label: i18n.t("categories.unassigned") } : c,
+          ),
+          incomeCategories: state.incomeCategories.map((c) =>
+            c.locked ? { ...c, label: i18n.t("categories.unassigned") } : c,
+          ),
+          fundCategories: state.fundCategories.map((f) =>
+            f.locked ? { ...f, name: i18n.t("categories.unassignedFund") } : f,
+          ),
+        })),
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
       setFundCardOrder: (order) => set({ fundCardOrder: order }),
@@ -968,6 +991,7 @@ export const useFinanceStore = create<FinanceStore>()(
         dashboardCardOrder: state.dashboardCardOrder,
         dashboardCollapsedCards: state.dashboardCollapsedCards,
         themePreference: state.themePreference,
+        language: state.language,
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,

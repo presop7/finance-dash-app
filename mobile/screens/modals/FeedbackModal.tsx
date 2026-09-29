@@ -23,6 +23,7 @@ import { financeApi } from "../../services/financeApi";
 import { alertAsync, confirmAsyncWithLabel } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 // Mirrors the limits the backend enforces (routes/feedback.py) so the user
 // hears about a problem here instead of after an upload.
@@ -41,6 +42,7 @@ type FeedbackModalProps = {
 export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) {
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   const [title, setTitle] = useState("");
@@ -63,9 +65,9 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
     if (sending) return;
     if (hasContent) {
       const discard = await confirmAsyncWithLabel(
-        "Discard report?",
-        "What you've written here hasn't been sent yet.",
-        "Discard",
+        t("feedback.discardTitle"),
+        t("feedback.discardInfo"),
+        t("common.discard"),
       );
       if (!discard) return;
     }
@@ -98,14 +100,14 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
       setPictures((prev) => [...prev, ...accepted]);
       if (skipped > 0) {
         await alertAsync(
-          "Some pictures weren't added",
-          `Pictures must be images under ${MAX_PICTURE_BYTES / (1024 * 1024)} MB, and you can attach up to ${MAX_PICTURES}.`,
+          t("feedback.picturesSkipped"),
+          t("feedback.picturesRules", { mb: MAX_PICTURE_BYTES / (1024 * 1024), max: MAX_PICTURES }),
         );
       }
     } catch (err) {
       await alertAsync(
-        "Couldn't open the picker",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("feedback.pickerFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     }
   };
@@ -133,12 +135,12 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
         form.append("attachments", part as unknown as Blob);
       }
       await financeApi.sendFeedback(form);
-      await alertAsync("Thanks!", "Your report was sent — we'll take a look.");
+      await alertAsync(t("feedback.thanks"), t("feedback.sent"));
       onClose();
     } catch (err) {
       await alertAsync(
-        "Couldn't send your report",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("feedback.sendFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     } finally {
       setSending(false);
@@ -158,7 +160,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
             <View style={styles.handle} />
 
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Send Feedback</Text>
+              <Text style={styles.headerTitle}>{t("settings.feedback")}</Text>
               <ModalCloseButton onPress={handleClose} />
             </View>
 
@@ -169,14 +171,14 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
             >
               <View style={styles.body}>
                 <Text style={styles.intro}>
-                  Found a bug or have an idea? Tell us what happened — screenshots help a lot.
+                  {t("feedback.intro")}
                 </Text>
 
-                <Text style={styles.formLabel}>Title</Text>
+                <Text style={styles.formLabel}>{t("feedback.title")}</Text>
                 <View style={styles.fieldContainer}>
                   <TextInput
                     style={styles.fieldInput}
-                    placeholder="Short summary"
+                    placeholder={t("feedback.titlePlaceholder")}
                     placeholderTextColor={Colors.textMuted}
                     value={title}
                     onChangeText={setTitle}
@@ -186,11 +188,11 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
                   />
                 </View>
 
-                <Text style={styles.formLabel}>Description</Text>
+                <Text style={styles.formLabel}>{t("feedback.description")}</Text>
                 <View style={[styles.fieldContainer, styles.descriptionContainer]}>
                   <TextInput
                     style={[styles.fieldInput, styles.descriptionInput]}
-                    placeholder="What were you doing, what did you expect, and what happened instead?"
+                    placeholder={t("feedback.descriptionPlaceholder")}
                     placeholderTextColor={Colors.textMuted}
                     value={description}
                     onChangeText={setDescription}
@@ -205,7 +207,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
                 </Text>
 
                 <Text style={styles.formLabel}>
-                  Pictures ({pictures.length}/{MAX_PICTURES})
+                  {t("feedback.pictures", { count: pictures.length, max: MAX_PICTURES })}
                 </Text>
                 <View style={styles.pictureRow}>
                   {pictures.map((picture, index) => (
@@ -229,7 +231,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
                       activeOpacity={0.7}
                     >
                       <Ionicons name="image-outline" size={22} color={Colors.primary} />
-                      <Text style={styles.addPictureText}>Add</Text>
+                      <Text style={styles.addPictureText}>{t("common.add")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -240,7 +242,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
                     onPress={handleClose}
                     disabled={sending}
                   >
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                    <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
@@ -250,7 +252,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
                     {sending ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={styles.sendBtnText}>Send Report</Text>
+                      <Text style={styles.sendBtnText}>{t("feedback.send")}</Text>
                     )}
                   </TouchableOpacity>
                 </View>

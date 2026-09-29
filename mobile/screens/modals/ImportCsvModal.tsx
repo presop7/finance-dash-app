@@ -39,6 +39,7 @@ import {
   TypeResolution,
   MainType,
 } from "../../utils/csvImport";
+import { useTranslation } from "react-i18next";
 
 type ImportCsvModalProps = {
   visible: boolean;
@@ -49,14 +50,6 @@ type Step = "pick" | "mapping" | "review" | "preview" | "importing" | "results";
 
 type FieldKey = "date" | "title" | "amount" | "category" | "fund" | "note";
 const REQUIRED_FIELDS: Exclude<FieldKey, "note">[] = ["date", "title", "amount", "category", "fund"];
-const FIELD_LABELS: Record<FieldKey, string> = {
-  date: "Date",
-  title: "Title",
-  amount: "Amount",
-  category: "Category",
-  fund: "Fund / Account",
-  note: "Note",
-};
 const HEADER_HINTS: Record<FieldKey, string[]> = {
   date: ["date", "posted", "transaction date"],
   title: ["title", "description", "name", "payee"],
@@ -68,13 +61,8 @@ const HEADER_HINTS: Record<FieldKey, string[]> = {
 const EMPTY_MAPPING: ColumnMapping = { date: -1, title: -1, amount: -1, category: -1, fund: -1, note: -1 };
 
 type TypeMode = TypeResolution["mode"];
-const TYPE_MODE_OPTIONS: { mode: TypeMode; label: string }[] = [
-  { mode: "sign", label: "Negative = Expense" },
-  { mode: "sign-inverted", label: "Negative = Income" },
-  { mode: "all-expense", label: "Everything is Expense" },
-  { mode: "all-income", label: "Everything is Income" },
-  { mode: "column", label: "Use a column" },
-];
+// Labels are translation keys under csv.typeModes.
+const TYPE_MODE_OPTIONS: TypeMode[] = ["sign", "sign-inverted", "all-expense", "all-income", "column"];
 
 function guessMapping(headers: string[]): ColumnMapping {
   const mapping = { ...EMPTY_MAPPING };
@@ -104,6 +92,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
     hydrate,
   } = useFinanceStore();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   const [step, setStep] = useState<Step>("pick");
@@ -190,14 +179,14 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
       }
 
       if (!combinedHeaders || combinedRows.length === 0) {
-        await alertAsync("Empty file", "None of the selected files had any rows to import.");
+        await alertAsync(t("csv.emptyFile"), t("csv.emptyFileInfo"));
         return;
       }
 
       setFileName(
         result.assets.length === 1
           ? result.assets[0].name
-          : `${result.assets.length - skipped.length} files, ${combinedRows.length} rows`,
+          : t("csv.filesSummary", { files: result.assets.length - skipped.length, rows: combinedRows.length }),
       );
       setHeaders(combinedHeaders);
       setRows(combinedRows);
@@ -206,12 +195,12 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
 
       if (skipped.length > 0) {
         await alertAsync(
-          "Some files skipped",
-          `${skipped.join(", ")} ${skipped.length === 1 ? "was" : "were"} skipped (empty, or a different number of columns than the first file).`,
+          t("csv.filesSkipped"),
+          t("csv.filesSkippedInfo", { names: skipped.join(", "), count: skipped.length }),
         );
       }
     } catch (err) {
-      await alertAsync("Couldn't read file", err instanceof Error ? err.message : "Something went wrong.");
+      await alertAsync(t("csv.readFailed"), err instanceof Error ? err.message : t("common.somethingWrong"));
     }
   };
 
@@ -227,15 +216,15 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   const handleMappingContinue = () => {
     const missing = REQUIRED_FIELDS.filter((f) => mapping[f] === -1);
     if (missing.length > 0) {
-      alertAsync("Missing columns", `Please map: ${missing.map((f) => FIELD_LABELS[f]).join(", ")}`);
+      alertAsync(t("csv.missingColumns"), t("csv.missingColumnsInfo", { fields: missing.map((f) => t(`csv.fields.${f}`)).join(", ") }));
       return;
     }
     if (typeMode === "column" && typeColumn === -1) {
-      alertAsync("Missing column", "Pick which column tells income apart from expense.");
+      alertAsync(t("csv.missingTypeColumn"), t("csv.missingTypeColumnInfo"));
       return;
     }
     if (!sameCurrency && (!rateText || Number(rateText) <= 0)) {
-      alertAsync("Missing conversion rate", "Enter how many of your app's currency one unit of the CSV's currency is worth.");
+      alertAsync(t("csv.missingRate"), t("csv.missingRateInfo"));
       return;
     }
     const { unresolved: found, autoResolved } = resolveDistinctValues(
@@ -345,7 +334,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
         if (created) resolveManually(item, created.id);
       }
     } catch (err) {
-      await alertAsync("Couldn't create", err instanceof Error ? err.message : "Something went wrong.");
+      await alertAsync(t("csv.createFailed"), err instanceof Error ? err.message : t("common.somethingWrong"));
     } finally {
       setCreatingKeys((prev) => {
         const next = new Set(prev);
@@ -358,7 +347,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   const handleReviewContinue = () => {
     const allResolved = unresolved.every((u) => resolutionMap.has(u.key));
     if (!allResolved) {
-      alertAsync("Unresolved items", "Assign every category/fund below before continuing.");
+      alertAsync(t("csv.unresolved"), t("csv.unresolvedInfo"));
       return;
     }
     goToPreview(resolutionMap);
@@ -387,12 +376,12 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
   const previewExpense = validRows.reduce((s, r) => (r.ok && r.payload.type === "expense" ? s + r.payload.amount : s), 0);
 
   const titleForStep: Record<Step, string> = {
-    pick: "Import CSV",
-    mapping: "Map Columns",
-    review: "Match Categories",
-    preview: "Review Import",
-    importing: "Importing…",
-    results: "Import Complete",
+    pick: t("csv.steps.pick"),
+    mapping: t("csv.steps.mapping"),
+    review: t("csv.steps.review"),
+    preview: t("csv.steps.preview"),
+    importing: t("csv.steps.importing"),
+    results: t("csv.steps.results"),
   };
 
   return (
@@ -415,19 +404,17 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               <>
                 <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
                 <Text style={styles.blockedText}>
-                  Importing needs an internet connection. Reconnect and try again.
+                  {t("csv.needsInternet")}
                 </Text>
               </>
             ) : (
               <>
                 <Ionicons name="document-text-outline" size={40} color={Colors.primary} />
                 <Text style={styles.pickIntro}>
-                  Choose one or more CSV files exported from another app (they'll be combined,
-                  so they need the same columns in the same order). You'll be able to tell us
-                  which column is which before anything is imported.
+                  {t("csv.pickIntro")}
                 </Text>
                 <TouchableOpacity style={styles.primaryBtn} onPress={handlePickFile}>
-                  <Text style={styles.primaryBtnText}>Choose CSV File(s)</Text>
+                  <Text style={styles.primaryBtnText}>{t("csv.chooseFiles")}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -437,16 +424,16 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
         {step === "mapping" && (
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.body}>
             <Text style={styles.fileLabel}>{fileName}</Text>
-            <Text style={styles.sectionLabel}>Map Your Columns</Text>
+            <Text style={styles.sectionLabel}>{t("csv.mapColumns")}</Text>
             {(["date", "title", "amount", "category", "fund"] as FieldKey[]).map((field) => (
               <View key={field} style={styles.mappingRow}>
-                <Text style={styles.mappingLabel}>{FIELD_LABELS[field]}</Text>
+                <Text style={styles.mappingLabel}>{t(`csv.fields.${field}`)}</Text>
                 <TouchableOpacity
                   style={styles.mappingTrigger}
                   onPress={() => setOpenMappingField((f) => (f === field ? null : field))}
                 >
                   <Text style={styles.mappingTriggerText}>
-                    {mapping[field] >= 0 ? headers[mapping[field]] : "Select a column"}
+                    {mapping[field] >= 0 ? headers[mapping[field]] : t("csv.selectColumn")}
                   </Text>
                   <Ionicons
                     name={openMappingField === field ? "chevron-up" : "chevron-down"}
@@ -477,13 +464,13 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
             ))}
 
             <View style={styles.mappingRow}>
-              <Text style={styles.mappingLabel}>Note (optional)</Text>
+              <Text style={styles.mappingLabel}>{t("csv.noteOptional")}</Text>
               <TouchableOpacity
                 style={styles.mappingTrigger}
                 onPress={() => setOpenMappingField((f) => (f === "note" ? null : "note"))}
               >
                 <Text style={styles.mappingTriggerText}>
-                  {mapping.note >= 0 ? headers[mapping.note] : "None"}
+                  {mapping.note >= 0 ? headers[mapping.note] : t("csv.none")}
                 </Text>
                 <Ionicons
                   name={openMappingField === "note" ? "chevron-up" : "chevron-down"}
@@ -500,7 +487,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                       setOpenMappingField(null);
                     }}
                   >
-                    <Text style={styles.dropdownItemText}>None</Text>
+                    <Text style={styles.dropdownItemText}>{t("csv.none")}</Text>
                     {mapping.note === -1 && <Ionicons name="checkmark" size={14} color={Colors.primary} />}
                   </TouchableOpacity>
                   {headers.map((header, index) => (
@@ -520,29 +507,29 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               )}
             </View>
 
-            <Text style={styles.sectionLabel}>How to Tell Income From Expense</Text>
+            <Text style={styles.sectionLabel}>{t("csv.typeHow")}</Text>
             <View style={styles.chipRow}>
-              {TYPE_MODE_OPTIONS.map((opt) => (
+              {TYPE_MODE_OPTIONS.map((mode) => (
                 <TouchableOpacity
-                  key={opt.mode}
-                  style={[styles.chip, typeMode === opt.mode && styles.chipActive]}
-                  onPress={() => setTypeMode(opt.mode)}
+                  key={mode}
+                  style={[styles.chip, typeMode === mode && styles.chipActive]}
+                  onPress={() => setTypeMode(mode)}
                 >
-                  <Text style={[styles.chipText, typeMode === opt.mode && styles.chipTextActive]}>
-                    {opt.label}
+                  <Text style={[styles.chipText, typeMode === mode && styles.chipTextActive]}>
+                    {t(`csv.typeModes.${mode}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             {typeMode === "column" && (
               <View style={styles.mappingRow}>
-                <Text style={[styles.mappingLabel, { marginTop: 12 }]}>Type Column</Text>
+                <Text style={[styles.mappingLabel, { marginTop: 12 }]}>{t("csv.typeColumn")}</Text>
                 <TouchableOpacity
                   style={styles.mappingTrigger}
                   onPress={() => setTypeColumnDropdownOpen((v) => !v)}
                 >
                   <Text style={styles.mappingTriggerText}>
-                    {typeColumn >= 0 ? headers[typeColumn] : "Select a column"}
+                    {typeColumn >= 0 ? headers[typeColumn] : t("csv.selectColumn")}
                   </Text>
                   <Ionicons
                     name={typeColumnDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -568,17 +555,17 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                   </ScrollView>
                 )}
                 <Text style={[styles.mappingLabel, { marginTop: 12 }]}>
-                  If a value in that column isn't recognized, treat it as:
+                  {t("csv.typeFallback")}
                 </Text>
                 <View style={styles.chipRow}>
-                  {(["expense", "income"] as MainType[]).map((t) => (
+                  {(["expense", "income"] as MainType[]).map((kind) => (
                     <TouchableOpacity
-                      key={t}
-                      style={[styles.chip, typeFallback === t && styles.chipActive]}
-                      onPress={() => setTypeFallback(t)}
+                      key={kind}
+                      style={[styles.chip, typeFallback === kind && styles.chipActive]}
+                      onPress={() => setTypeFallback(kind)}
                     >
-                      <Text style={[styles.chipText, typeFallback === t && styles.chipTextActive]}>
-                        {t === "expense" ? "Expense" : "Income"}
+                      <Text style={[styles.chipText, typeFallback === kind && styles.chipTextActive]}>
+                        {kind === "expense" ? t("common.expense") : t("common.incomeOne")}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -586,7 +573,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               </View>
             )}
 
-            <Text style={styles.sectionLabel}>Date Format Used in the CSV</Text>
+            <Text style={styles.sectionLabel}>{t("csv.dateFormat")}</Text>
             <View style={styles.chipRow}>
               {DATE_FORMAT_PRESETS.map((preset) => (
                 <TouchableOpacity
@@ -601,9 +588,9 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               ))}
             </View>
 
-            <Text style={styles.sectionLabel}>Currency</Text>
+            <Text style={styles.sectionLabel}>{t("settings.currency")}</Text>
             <View style={styles.currencyToggleRow}>
-              <Text style={styles.mappingLabel}>Already in {settings.currency}?</Text>
+              <Text style={styles.mappingLabel}>{t("csv.alreadyIn", { currency: settings.currency })}</Text>
               <Switch
                 value={sameCurrency}
                 onValueChange={setSameCurrency}
@@ -644,8 +631,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
         {step === "review" && (
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.body}>
             <Text style={styles.pickIntro}>
-              These category/fund names from your CSV don't match anything you already have.
-              Assign each to an existing one, or create it.
+              {t("csv.reviewIntro")}
             </Text>
             {unresolved.map((item) => {
               const options =
@@ -669,8 +655,8 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
               return (
                 <View key={item.key} style={styles.reviewCard}>
                   <Text style={styles.reviewText}>
-                    "{item.text}" — used in {item.rowCount} row{item.rowCount === 1 ? "" : "s"}
-                    {item.kind === "category" ? ` (${item.mainType})` : ""}
+                    {t("csv.usedIn", { text: item.text, count: item.rowCount })}
+                    {item.kind === "category" ? ` (${item.mainType === "expense" ? t("common.expense") : t("common.incomeOne")})` : ""}
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.chipRow}>
@@ -689,7 +675,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                           />
                         )}
                         {!isCreating && !isResolved && (
-                          <Text style={styles.createChipText}>Create "{item.text}"</Text>
+                          <Text style={styles.createChipText}>{t("csv.create", { text: item.text })}</Text>
                         )}
                       </TouchableOpacity>
                       {orderedOptions.map((opt) => (
@@ -716,47 +702,45 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
             <View style={styles.summaryGrid}>
               <View style={styles.summaryCell}>
                 <Text style={styles.summaryValue}>{validRows.length}</Text>
-                <Text style={styles.summaryCellLabel}>Ready to import</Text>
+                <Text style={styles.summaryCellLabel}>{t("csv.ready")}</Text>
               </View>
               <View style={styles.summaryCell}>
                 <Text style={[styles.summaryValue, { color: Colors.income }]}>
                   +{previewIncome.toFixed(2)}
                 </Text>
-                <Text style={styles.summaryCellLabel}>Income</Text>
+                <Text style={styles.summaryCellLabel}>{t("common.income")}</Text>
               </View>
               <View style={styles.summaryCell}>
                 <Text style={[styles.summaryValue, { color: Colors.expense }]}>
                   -{previewExpense.toFixed(2)}
                 </Text>
-                <Text style={styles.summaryCellLabel}>Expenses</Text>
+                <Text style={styles.summaryCellLabel}>{t("common.expenses")}</Text>
               </View>
             </View>
 
             {failedRows.length > 0 && (
               <>
                 <Text style={styles.sectionLabel}>
-                  {failedRows.length} row{failedRows.length === 1 ? "" : "s"} will be skipped
+                  {t("csv.willSkip", { count: failedRows.length })}
                 </Text>
                 <View style={styles.noticeBox}>
                   <Ionicons name="warning-outline" size={18} color={Colors.warningText} />
                   <Text style={styles.noticeText}>
-                    These transactions have missing or unrecognized values. Check them below —
-                    fill in anything that should have data, or leave them as they are and the
-                    app will just skip those rows.
+                    {t("csv.skipInfo")}
                   </Text>
                 </View>
                 {failedRows.slice(0, 25).map((r) =>
                   r.ok ? null : (
                     <View key={r.rowIndex} style={styles.errorCard}>
                       <Text style={styles.errorCardTitle}>
-                        Row {r.rowIndex + 1}{r.title ? ` — "${r.title}"` : " — (no title)"}
+                        {t("csv.row", { n: r.rowIndex + 1 })}{r.title ? ` — "${r.title}"` : ` — ${t("csv.noTitle")}`}
                       </Text>
                       {r.issues.map((issue) => {
                         const editKey = `${r.rowIndex}:${issue.field}`;
                         return (
                           <View key={editKey} style={styles.errorCardIssue}>
                             <Text style={styles.errorCardReason}>
-                              {FIELD_LABELS[issue.field]} column ("{issue.header}") —{" "}
+                              {t("csv.issueColumn", { field: t(`csv.fields.${issue.field}`), header: issue.header })}{" "}
                               {issue.reason}
                             </Text>
                             <View style={styles.errorCardFixRow}>
@@ -766,7 +750,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                                 onChangeText={(text) =>
                                   setEditValues((prev) => ({ ...prev, [editKey]: text }))
                                 }
-                                placeholder={`Enter a ${FIELD_LABELS[issue.field].toLowerCase()}`}
+                                placeholder={t("csv.enterValue")}
                                 placeholderTextColor={Colors.textMuted}
                               />
                               <TouchableOpacity
@@ -775,7 +759,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                                   handleFixRow(r.rowIndex, issue, editValues[editKey] ?? issue.rawValue)
                                 }
                               >
-                                <Text style={styles.errorCardFixBtnText}>Fix</Text>
+                                <Text style={styles.errorCardFixBtnText}>{t("csv.fix")}</Text>
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -785,7 +769,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                   ),
                 )}
                 {failedRows.length > 25 && (
-                  <Text style={styles.failedRowText}>…and {failedRows.length - 25} more</Text>
+                  <Text style={styles.failedRowText}>{t("csv.andMore", { count: failedRows.length - 25 })}</Text>
                 )}
               </>
             )}
@@ -795,7 +779,7 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
         {step === "importing" && (
           <View style={styles.centerBody}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.pickIntro}>Importing your transactions…</Text>
+            <Text style={styles.pickIntro}>{t("csv.importing")}</Text>
           </View>
         )}
 
@@ -804,23 +788,23 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
             {importError ? (
               <>
                 <Ionicons name="alert-circle-outline" size={40} color={Colors.expense} />
-                <Text style={styles.pickIntro}>Import failed: {importError}</Text>
+                <Text style={styles.pickIntro}>{t("csv.importFailed", { error: importError })}</Text>
               </>
             ) : (
               <>
                 <Ionicons name="checkmark-circle-outline" size={40} color={Colors.income} />
-                <Text style={styles.summaryValue}>{importResult?.created.length ?? 0} imported</Text>
+                <Text style={styles.summaryValue}>{t("csv.imported", { count: importResult?.created.length ?? 0 })}</Text>
                 {(importResult?.skipped_duplicates ?? 0) > 0 && (
                   <Text style={styles.pickIntro}>
-                    {importResult?.skipped_duplicates} duplicate row{importResult?.skipped_duplicates === 1 ? "" : "s"} skipped.
+                    {t("csv.duplicates", { count: importResult?.skipped_duplicates ?? 0 })}
                   </Text>
                 )}
                 {(importResult?.failed.length ?? 0) > 0 && (
                   <>
-                    <Text style={styles.sectionLabel}>{importResult?.failed.length} rows failed</Text>
+                    <Text style={styles.sectionLabel}>{t("csv.rowsFailed", { count: importResult?.failed.length ?? 0 })}</Text>
                     {importResult?.failed.map((f) => (
                       <Text key={f.index} style={styles.failedRowText}>
-                        Row {f.index + 1}: {f.detail}
+                        {t("csv.row", { n: f.index + 1 })}: {f.detail}
                       </Text>
                     ))}
                   </>
@@ -834,20 +818,20 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
           {step === "mapping" && (
             <>
               <TouchableOpacity style={[styles.secondaryBtn, styles.footerBtn]} onPress={() => setStep("pick")}>
-                <Text style={styles.secondaryBtnText}>Back</Text>
+                <Text style={styles.secondaryBtnText}>{t("common.back")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.primaryBtn, styles.footerBtn]} onPress={handleMappingContinue}>
-                <Text style={styles.primaryBtnText}>Continue</Text>
+                <Text style={styles.primaryBtnText}>{t("csv.continue")}</Text>
               </TouchableOpacity>
             </>
           )}
           {step === "review" && (
             <>
               <TouchableOpacity style={[styles.secondaryBtn, styles.footerBtn]} onPress={() => setStep("mapping")}>
-                <Text style={styles.secondaryBtnText}>Back</Text>
+                <Text style={styles.secondaryBtnText}>{t("common.back")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.primaryBtn, styles.footerBtn]} onPress={handleReviewContinue}>
-                <Text style={styles.primaryBtnText}>Continue</Text>
+                <Text style={styles.primaryBtnText}>{t("csv.continue")}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -857,20 +841,20 @@ export default function ImportCsvModal({ visible, onClose }: ImportCsvModalProps
                 style={[styles.secondaryBtn, styles.footerBtn]}
                 onPress={() => setStep(unresolved.length > 0 ? "review" : "mapping")}
               >
-                <Text style={styles.secondaryBtnText}>Back</Text>
+                <Text style={styles.secondaryBtnText}>{t("common.back")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.primaryBtn, styles.footerBtn, validRows.length === 0 && styles.primaryBtnDisabled]}
                 onPress={handleImport}
                 disabled={validRows.length === 0}
               >
-                <Text style={styles.primaryBtnText}>Import {validRows.length} Transactions</Text>
+                <Text style={styles.primaryBtnText}>{t("csv.importN", { count: validRows.length })}</Text>
               </TouchableOpacity>
             </>
           )}
           {step === "results" && (
             <TouchableOpacity style={[styles.primaryBtn, styles.footerBtn]} onPress={handleDone}>
-              <Text style={styles.primaryBtnText}>Done</Text>
+              <Text style={styles.primaryBtnText}>{t("common.done")}</Text>
             </TouchableOpacity>
           )}
         </View>

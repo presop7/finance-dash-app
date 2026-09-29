@@ -20,6 +20,7 @@ import { formatCurrency } from "../utils/currency";
 import { themedCategoryColor } from "../utils/color";
 import { moveToSlot, Slots } from "../utils/reorder";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
+import { useTranslation } from "react-i18next";
 
 type FundsCardProps = {
   transactions: Transaction[];
@@ -46,6 +47,7 @@ export default function FundsCard({
   onNavigateToAnalytics,
 }: FundsCardProps) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
   const currency = useFinanceStore((s) => s.settings.currency);
@@ -171,7 +173,7 @@ export default function FundsCard({
                         { color: isUp ? Colors.income : Colors.expense },
                       ]}
                     >
-                      {Math.abs(trendPct)}% (30d)
+                      {t("dashboard.trend30", { pct: Math.abs(trendPct) })}
                     </Text>
                   </View>
                 )}

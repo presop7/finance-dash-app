@@ -19,6 +19,7 @@ import HoldPressable from "./HoldPressable";
 import CategoryDetailFields from "./CategoryDetailFields";
 import { perfTag } from "../utils/perfWatchdog";
 import { pushLog } from "../utils/perfLogSink";
+import { useTranslation } from "react-i18next";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
@@ -320,6 +321,7 @@ export default function CategoryPieChart({
   emptyLabel: string;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   // TEMPORARY diagnostic (see utils/perfWatchdog.ts) — this component fully
@@ -610,7 +612,7 @@ export default function CategoryPieChart({
           same `scale` — the running total by default, the tapped slice's
           detail once one's armed. */}
       <Animated.View style={[styles.hole, holeStyle, totalStyle]} pointerEvents="none">
-        <Text style={styles.holeLabel}>Total</Text>
+        <Text style={styles.holeLabel}>{t("charts.total")}</Text>
         <Text style={styles.holeAmount} numberOfLines={1} adjustsFontSizeToFit>
           {total.toFixed(0)} {currencyCode}
         </Text>

@@ -1,4 +1,5 @@
 import { Alert, Platform } from "react-native";
+import i18n from "../i18n";
 
 // react-native-web's Alert.alert() is a no-op, so a native-only confirm
 // silently does nothing on web. This branches to window.confirm there.
@@ -8,8 +9,8 @@ export function confirmAsync(title: string, message: string): Promise<boolean> {
   }
   return new Promise((resolve) => {
     Alert.alert(title, message, [
-      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-      { text: "Delete", style: "destructive", onPress: () => resolve(true) },
+      { text: i18n.t("common.cancel"), style: "cancel", onPress: () => resolve(false) },
+      { text: i18n.t("common.delete"), style: "destructive", onPress: () => resolve(true) },
     ]);
   });
 }
@@ -21,7 +22,7 @@ export function alertAsync(title: string, message: string): Promise<void> {
     return Promise.resolve();
   }
   return new Promise((resolve) => {
-    Alert.alert(title, message, [{ text: "OK", onPress: () => resolve() }]);
+    Alert.alert(title, message, [{ text: i18n.t("common.ok"), onPress: () => resolve() }]);
   });
 }
 
@@ -39,7 +40,7 @@ export function confirmAsyncWithLabel(
   }
   return new Promise((resolve) => {
     Alert.alert(title, message, [
-      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+      { text: i18n.t("common.cancel"), style: "cancel", onPress: () => resolve(false) },
       {
         text: confirmLabel,
         style: destructive ? "destructive" : "default",
@@ -66,7 +67,7 @@ export function confirmUnsavedChanges(
   return new Promise((resolve) => {
     Alert.alert(title, message, [
       { text: discardLabel, style: "destructive", onPress: () => resolve("discard") },
-      { text: "Cancel", style: "cancel", onPress: () => resolve("cancel") },
+      { text: i18n.t("common.cancel"), style: "cancel", onPress: () => resolve("cancel") },
       { text: applyLabel, onPress: () => resolve("apply") },
     ]);
   });

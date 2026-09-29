@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { isAppleMobileWeb, isPhoneBrowserTab } from "../utils/webPlatform";
+import { useTranslation } from "react-i18next";
 
 const DISMISSED_KEY = "fitrack.installTipDismissed";
 
@@ -23,6 +24,7 @@ const wasDismissed = () => {
 // phone apps, the installed home-screen app, or on a computer.
 export default function InstallTip() {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(() => isPhoneBrowserTab && !wasDismissed());
@@ -39,12 +41,12 @@ export default function InstallTip() {
     <View style={[styles.tip, { top: insets.top + 8 }]}>
       <Ionicons name="download-outline" size={20} color={Colors.primary} />
       <Text style={styles.text}>
-        <Text style={styles.bold}>Install Fi-Track: </Text>
+        <Text style={styles.bold}>{t("installTip.title")} </Text>
         {isAppleMobileWeb
-          ? "tap the Share button (the square with an arrow) in Safari, then \"Add to Home Screen\"."
-          : "open your browser's menu (⋮) and choose \"Install app\" or \"Add to Home screen\"."}
+          ? t("installTip.iphone")
+          : t("installTip.android")}
       </Text>
-      <TouchableOpacity onPress={dismiss} hitSlop={10} accessibilityLabel="Dismiss">
+      <TouchableOpacity onPress={dismiss} hitSlop={10} accessibilityLabel={t("common.close")}>
         <Ionicons name="close" size={18} color={Colors.textMuted} />
       </TouchableOpacity>
     </View>

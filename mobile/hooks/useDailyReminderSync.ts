@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { scheduleDailyReminder, cancelDailyReminder } from "../utils/notifications";
+import i18n from "../i18n";
 
 // Keeps the OS-scheduled daily reminder notifications in sync with the
 // "dailyReminder" alert rules — re-syncs whenever alertRules changes (add,
@@ -29,8 +30,8 @@ export function useDailyReminderSync() {
           rule.id,
           rule.hour,
           rule.minute,
-          "Log today's transactions",
-          "Don't forget to add any transactions from today.",
+          i18n.t("alerts.dailyTitle"),
+          i18n.t("alerts.dailyBody"),
         );
       } else {
         cancelDailyReminder(rule.id);

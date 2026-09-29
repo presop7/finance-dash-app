@@ -5,7 +5,7 @@ import { generateDemoTransactions, isDemoId } from "./demoTransactions";
 const expenseCats = [
   { id: "e1", label: "Food" },
   { id: "e2", label: "Transport" },
-  { id: "e0", label: "Unassigned" },
+  { id: "e0", label: "Unassigned", locked: true },
 ];
 const incomeCats = [{ id: "i1", label: "Salary" }];
 
@@ -22,7 +22,7 @@ test("40 transactions, 10% income, income total always above expenses", () => {
     expect(sum(incomes)).toBeGreaterThan(sum(expenses));
     expect(list.every((t) => t.amount > 0 && isDemoId(t.id))).toBe(true);
     expect(new Set(list.map((t) => t.id)).size).toBe(40);
-    expect(list.some((t) => t.category === "e0")).toBe(false); // never "Unassigned"
+    expect(list.some((t) => t.category === "e0")).toBe(false); // never the locked "Unassigned"
     expect(list.every((t) => t.date <= now)).toBe(true); // user's own entry stays on top
   }
 });

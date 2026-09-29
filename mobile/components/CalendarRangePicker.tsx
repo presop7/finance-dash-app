@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { useTranslation } from "react-i18next";
+import { currentLocale } from "../i18n";
 
 type CalendarRangePickerProps = {
   start: Date | null;
@@ -36,10 +38,11 @@ export default function CalendarRangePicker({ start, end, onChange }: CalendarRa
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
 
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   const days = getMonthGrid(viewYear, viewMonth);
-  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString("en-GB", {
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(currentLocale(), {
     month: "long",
     year: "numeric",
   });
@@ -123,7 +126,7 @@ export default function CalendarRangePicker({ start, end, onChange }: CalendarRa
       </View>
 
       <Text style={styles.hint}>
-        {!start ? "Tap a start date" : !end ? "Tap an end date" : "Tap to start a new selection"}
+        {!start ? t("calendar.pickStart") : !end ? t("calendar.pickEnd") : t("calendar.startOver")}
       </Text>
     </View>
   );

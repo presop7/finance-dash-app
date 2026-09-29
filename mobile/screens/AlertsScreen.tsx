@@ -14,6 +14,8 @@ import {
 } from "../utils/notifications";
 import AlertRuleModal from "./modals/AlertRuleModal";
 import { useTutorialTarget } from "../store/useTutorialStore";
+import { useTranslation } from "react-i18next";
+import { currentLocale } from "../i18n";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
@@ -35,6 +37,7 @@ export default function AlertsScreen() {
   } = useFinanceStore();
 
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   const [permissionGranted, setPermissionGranted] = useState(true);
@@ -56,24 +59,24 @@ export default function AlertsScreen() {
     const amount = formatCurrency(rule.amount, settings.currency);
     switch (rule.type) {
       case "lowBalance":
-        return `Notify when balance drops below ${amount}`;
+        return t("reminders.desc.lowBalance", { amount });
       case "balanceAbove":
-        return `Notify when balance rises above ${amount}`;
+        return t("reminders.desc.balanceAbove", { amount });
       case "monthlyExpenseOver":
-        return `Notify when monthly expenses exceed ${amount}`;
+        return t("reminders.desc.monthlyExpenseOver", { amount });
       case "monthlyIncomeOver":
-        return `Notify when monthly income exceeds ${amount}`;
+        return t("reminders.desc.monthlyIncomeOver", { amount });
       case "categoryAmount": {
         const categories = rule.categoryType === "income" ? incomeCategories : expenseCategories;
-        const label = categories.find((c) => c.id === rule.categoryId)?.label ?? "Category";
-        return `Notify when ${label} exceeds ${amount} this month`;
+        const label = categories.find((c) => c.id === rule.categoryId)?.label ?? t("addTx.category");
+        return t("reminders.desc.categoryAmount", { category: label, amount });
       }
       case "dailyReminder": {
-        if (rule.hour === undefined || rule.minute === undefined) return "Daily at a set time";
+        if (rule.hour === undefined || rule.minute === undefined) return t("reminders.desc.dailyUnset");
         const d = new Date();
         d.setHours(rule.hour, rule.minute, 0, 0);
-        const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-        return `Remind me to add a transaction every day at ${time}`;
+        const time = d.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
+        return t("reminders.desc.dailyReminder", { time });
       }
     }
   };
@@ -81,22 +84,22 @@ export default function AlertsScreen() {
   const ruleTitle = (rule: AlertRule): string => {
     switch (rule.type) {
       case "lowBalance":
-        return "Low Balance";
+        return t("reminders.types.lowBalance");
       case "balanceAbove":
-        return "Balance Above";
+        return t("reminders.types.balanceAbove");
       case "monthlyExpenseOver":
-        return "Monthly Expenses Over";
+        return t("reminders.types.monthlyExpenseOver");
       case "monthlyIncomeOver":
-        return "Monthly Income Over";
+        return t("reminders.types.monthlyIncomeOver");
       case "categoryAmount":
-        return "Category Amount";
+        return t("reminders.types.categoryAmount");
       case "dailyReminder":
-        return "Daily Transaction Reminder";
+        return t("reminders.types.dailyReminder");
     }
   };
 
   const handleDelete = async (rule: AlertRule) => {
-    const ok = await confirmAsync("Delete Reminder", "Delete this reminder?");
+    const ok = await confirmAsync(t("reminders.deleteTitle"), t("reminders.deleteConfirm"));
     if (!ok) return;
     deleteAlertRule(rule.id);
   };
@@ -105,7 +108,7 @@ export default function AlertsScreen() {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
-          <Text style={styles.headerTitle}>Reminders</Text>
+          <Text style={styles.headerTitle}>{t("nav.reminders")}</Text>
           <View ref={addRef} collapsable={false}>
             <TouchableOpacity
               style={styles.addBtn}
@@ -115,7 +118,7 @@ export default function AlertsScreen() {
               }}
             >
               <Ionicons name="add" size={16} color="#fff" />
-              <Text style={styles.addBtnText}>Add Reminder</Text>
+              <Text style={styles.addBtnText}>{t("reminders.add")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -125,8 +128,8 @@ export default function AlertsScreen() {
             <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
               {Platform.OS === "web"
-                ? "The web version can't send notifications — your reminders still keep track here, and the phone app will notify you."
-                : "Reminders still track your spending here, but device notifications aren't available in Expo Go — they need a development build."}
+                ? t("reminders.webNoNotifications")
+                : t("reminders.expoGoNoNotifications")}
             </Text>
           </View>
         ) : (
@@ -134,22 +137,22 @@ export default function AlertsScreen() {
             <View style={[styles.banner, GlobalStyles.screenPadding]}>
               <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
               <Text style={styles.bannerText}>
-                Enable notifications to get reminders about your finances
+                {t("reminders.enableInfo")}
               </Text>
               <TouchableOpacity style={styles.enableBtn} onPress={handleEnable}>
-                <Text style={styles.enableBtnText}>Enable</Text>
+                <Text style={styles.enableBtnText}>{t("reminders.enable")}</Text>
               </TouchableOpacity>
             </View>
           )
         )}
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Reminders</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("reminders.listLabel")}</Text>
 
         <View style={styles.list} ref={listRef} collapsable={false}>
           {alertRules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>No reminders set yet</Text>
+              <Text style={styles.emptyText}>{t("reminders.empty")}</Text>
             </View>
           ) : (
             alertRules.map((rule) => (
@@ -168,7 +171,7 @@ export default function AlertsScreen() {
                 <View style={styles.ruleInfo}>
                   <Text style={styles.ruleTitle}>{ruleTitle(rule)}</Text>
                   <Text style={styles.ruleDescription}>{describeRule(rule)}</Text>
-                  <Text style={styles.ruleHint}>Tap to edit</Text>
+                  <Text style={styles.ruleHint}>{t("reminders.tapToEdit")}</Text>
                 </View>
                 <Switch
                   value={rule.enabled}

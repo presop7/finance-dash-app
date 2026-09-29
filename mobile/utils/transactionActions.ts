@@ -1,5 +1,6 @@
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { confirmAsync, alertAsync } from "./confirm";
+import i18n from "../i18n";
 
 // Shared by TransactionDetailModal's own delete button and
 // SwipeableTransactionRow's swipe-to-delete, so the two entry points can't
@@ -9,8 +10,8 @@ export async function confirmAndDeleteTransaction(
   fallbackLabel?: string,
 ): Promise<boolean> {
   const ok = await confirmAsync(
-    "Delete Transaction",
-    `Delete "${transaction.title || fallbackLabel || "this transaction"}"? This can't be undone.`,
+    i18n.t("transaction.deleteTitle"),
+    i18n.t("transaction.deleteConfirm", { title: transaction.title || fallbackLabel || i18n.t("transaction.thisOne") }),
   );
   if (!ok) return false;
   try {
@@ -18,8 +19,8 @@ export async function confirmAndDeleteTransaction(
     return true;
   } catch (err) {
     await alertAsync(
-      "Couldn't delete transaction",
-      err instanceof Error ? err.message : "Something went wrong.",
+      i18n.t("transaction.deleteFailed"),
+      err instanceof Error ? err.message : i18n.t("common.somethingWrong"),
     );
     return false;
   }

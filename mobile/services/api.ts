@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import i18n from "../i18n";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 
@@ -43,6 +44,9 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${session.access_token}`,
+      // Lets the server create a new account's default categories in the
+      // user's language.
+      "Accept-Language": i18n.language || "en",
       ...options.headers,
     },
   });

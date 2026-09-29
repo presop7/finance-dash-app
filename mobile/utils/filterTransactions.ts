@@ -1,6 +1,7 @@
 import { Transaction } from "../store/useFinanceStore";
 import { isWithinRange } from "./dateRanges";
 import { formatDate, DateFormat } from "./formatDateTime";
+import i18n from "../i18n";
 
 export type DateRangePreset =
   | "thisMonth"
@@ -12,16 +13,18 @@ export type DateRangePreset =
   | "all"
   | "custom";
 
-export const DATE_RANGE_LABELS: Record<DateRangePreset, string> = {
-  thisMonth: "This Month",
-  last30Days: "Last 30 Days",
-  lastMonth: "Last Month",
-  "3m": "3 Months",
-  "6m": "6 Months",
-  thisYear: "This Year",
-  all: "All Time",
-  custom: "Custom date range",
+// Translation key (under "ranges.") for each preset.
+const DATE_RANGE_KEYS: Record<DateRangePreset, string> = {
+  thisMonth: "month",
+  last30Days: "30d",
+  lastMonth: "lastMonth",
+  "3m": "3m",
+  "6m": "6m",
+  thisYear: "year",
+  all: "all",
+  custom: "custom",
 };
+export const dateRangeLabel = (preset: DateRangePreset) => i18n.t(`ranges.${DATE_RANGE_KEYS[preset]}`);
 
 export const DATE_RANGE_PRESETS: DateRangePreset[] = [
   "thisMonth",
@@ -42,7 +45,7 @@ export function getDateRangeLabel(filters: TransactionFilters, dateFormat: DateF
   if (filters.dateRangePreset === "custom" && filters.customStart && filters.customEnd) {
     return `${formatDate(filters.customStart, dateFormat)} - ${formatDate(filters.customEnd, dateFormat)}`;
   }
-  return DATE_RANGE_LABELS[filters.dateRangePreset];
+  return dateRangeLabel(filters.dateRangePreset);
 }
 
 export type TransactionFilters = {

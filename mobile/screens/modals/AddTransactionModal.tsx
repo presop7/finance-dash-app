@@ -33,6 +33,7 @@ import {
   useTutorialTarget,
 } from "../../store/useTutorialStore";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 type TransactionType = "expense" | "income";
 
@@ -70,6 +71,7 @@ export default function AddTransactionModal({
   const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings } =
     useFinanceStore();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   const isEditing = Boolean(editTransaction);
@@ -200,8 +202,8 @@ export default function AddTransactionModal({
       handleClose();
     } catch (err) {
       await alertAsync(
-        "Couldn't save transaction",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("addTx.saveFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     } finally {
       setSaving(false);
@@ -211,8 +213,8 @@ export default function AddTransactionModal({
   const handleDelete = async () => {
     if (!editTransaction) return;
     const ok = await confirmAsync(
-      "Delete Transaction",
-      `Delete "${editTransaction.title || "this transaction"}"? This can't be undone.`,
+      t("transaction.deleteTitle"),
+      t("transaction.deleteConfirm", { title: editTransaction.title || t("transaction.thisOne") }),
     );
     if (!ok) return;
     try {
@@ -220,8 +222,8 @@ export default function AddTransactionModal({
       handleClose();
     } catch (err) {
       await alertAsync(
-        "Couldn't delete transaction",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("transaction.deleteFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     }
   };
@@ -297,7 +299,7 @@ export default function AddTransactionModal({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>
-              {isEditing ? "Edit Transaction" : "New Transaction"}
+              {isEditing ? t("addTx.editTitle") : t("addTx.newTitle")}
             </Text>
             <ModalCloseButton onPress={handleClose} />
           </View>
@@ -330,7 +332,7 @@ export default function AddTransactionModal({
                       : styles.toggleInactiveText,
                   ]}
                 >
-                  Expense
+                  {t("common.expense")}
                 </Text>
               </TouchableOpacity>
 
@@ -354,7 +356,7 @@ export default function AddTransactionModal({
                       : styles.toggleInactiveText,
                   ]}
                 >
-                  Income
+                  {t("common.incomeOne")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -371,7 +373,7 @@ export default function AddTransactionModal({
               <TextInput
                 ref={titleInputRef}
                 style={styles.fieldInput}
-                placeholder="Transaction title"
+                placeholder={t("addTx.titlePlaceholder")}
                 placeholderTextColor={Colors.textMuted}
                 value={title}
                 onChangeText={setTitle}
@@ -405,7 +407,7 @@ export default function AddTransactionModal({
                   styles.amountFieldText,
                   { color: amount ? activeColor : Colors.textMuted },
                 ]}
-                placeholder="Tap to enter amount"
+                placeholder={t("addTx.amountPlaceholder")}
                 placeholderTextColor={Colors.textMuted}
                 keyboardType="decimal-pad"
                 value={amount}
@@ -449,7 +451,7 @@ export default function AddTransactionModal({
               <InputAccessoryView nativeID={AMOUNT_ACCESSORY_ID}>
                 <View style={styles.accessoryBar}>
                   <TouchableOpacity onPress={() => categorySearchRef.current?.focus()}>
-                    <Text style={[styles.accessoryNextText, { color: activeColor }]}>Next</Text>
+                    <Text style={[styles.accessoryNextText, { color: activeColor }]}>{t("common.next")}</Text>
                   </TouchableOpacity>
                 </View>
               </InputAccessoryView>
@@ -482,7 +484,7 @@ export default function AddTransactionModal({
                   style={[styles.numpadDone, { backgroundColor: activeColor }]}
                   onPress={() => setShowNumpad(false)}
                 >
-                  <Text style={styles.numpadDoneText}>Done</Text>
+                  <Text style={styles.numpadDoneText}>{t("common.done")}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -490,13 +492,13 @@ export default function AddTransactionModal({
             {/* Category */}
             <View ref={categoryTargetRef} collapsable={false}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>Category</Text>
+              <Text style={styles.sectionLabel}>{t("addTx.category")}</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
                 onPress={() => onOpenManageCategories(setSelectedCategory)}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
-                <Text style={styles.manageCatText}>New</Text>
+                <Text style={styles.manageCatText}>{t("addTx.newCategory")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -516,13 +518,13 @@ export default function AddTransactionModal({
             {/* Fund Category */}
             <View ref={fundTargetRef} collapsable={false}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>Fund</Text>
+              <Text style={styles.sectionLabel}>{t("addTx.fund")}</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
                 onPress={() => onOpenManageFundCategories(setSelectedFundCategory)}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
-                <Text style={styles.manageCatText}>New</Text>
+                <Text style={styles.manageCatText}>{t("addTx.newFund")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -564,7 +566,7 @@ export default function AddTransactionModal({
               />
               <TextInput
                 style={[styles.fieldInput, styles.noteInput]}
-                placeholder="Add a note (optional)"
+                placeholder={t("addTx.notePlaceholder")}
                 placeholderTextColor={Colors.textMuted}
                 value={note}
                 onChangeText={setNote}
@@ -596,7 +598,7 @@ export default function AddTransactionModal({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.saveBtnText}>
-                  {isEditing ? "Save Changes" : `Save ${isExpense ? "Expense" : "Income"}`}
+                  {isEditing ? t("addTx.saveChanges") : isExpense ? t("addTx.saveExpense") : t("addTx.saveIncome")}
                 </Text>
               )}
             </TouchableOpacity>

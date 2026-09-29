@@ -20,6 +20,7 @@ import { Category } from "../../constants/categories";
 import { FundCategory } from "../../constants/fundCategories";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 export const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cart-outline",
@@ -94,6 +95,9 @@ export default function CategoryEditModal({
 }: CategoryEditModalProps) {
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
+  // "category" or "fund": some languages word these differently (gender).
+  const kind = noun === "Fund" ? "fund" : "category";
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
@@ -149,18 +153,18 @@ export default function CategoryEditModal({
             <View style={styles.handle} />
 
             <View style={styles.header}>
-              <Text style={styles.title}>{item ? `Edit ${noun}` : `New ${noun}`}</Text>
+              <Text style={styles.title}>{item ? t(`categories.edit_${kind}`) : t(`categories.new_${kind}`)}</Text>
               <ModalCloseButton onPress={onClose} />
             </View>
 
             <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
               <View style={styles.body}>
-                <Text style={styles.formLabel}>{noun} Name</Text>
+                <Text style={styles.formLabel}>{t(`categories.name_${kind}`)}</Text>
                 <View style={styles.fieldContainer}>
                   <Ionicons name="text-outline" size={16} color={Colors.textMuted} />
                   <TextInput
                     style={styles.fieldInput}
-                    placeholder={noun === "Fund" ? "e.g. Bank Account" : "e.g. Groceries"}
+                    placeholder={t(`categories.example_${kind}`)}
                     placeholderTextColor={Colors.textMuted}
                     value={name}
                     onChangeText={setName}
@@ -168,7 +172,7 @@ export default function CategoryEditModal({
                   />
                 </View>
 
-                <Text style={styles.formLabel}>Icon</Text>
+                <Text style={styles.formLabel}>{t("categories.icon")}</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -196,7 +200,7 @@ export default function CategoryEditModal({
                   ))}
                 </ScrollView>
 
-                <Text style={styles.formLabel}>Color</Text>
+                <Text style={styles.formLabel}>{t("categories.color")}</Text>
                 <View style={styles.colorGrid}>
                   {AVAILABLE_COLORS.map((color) => (
                     <TouchableOpacity
@@ -213,13 +217,13 @@ export default function CategoryEditModal({
                   ))}
                 </View>
 
-                <Text style={styles.formLabel}>Preview</Text>
+                <Text style={styles.formLabel}>{t("categories.preview")}</Text>
                 <View style={styles.preview}>
                   <View style={[styles.previewIcon, { backgroundColor: selectedColor + "22" }]}>
                     <Ionicons name={selectedIcon} size={24} color={displayColor} />
                   </View>
                   <Text style={[styles.previewLabel, { color: displayColor }]}>
-                    {name || `${noun} Name`}
+                    {name || t(`categories.name_${kind}`)}
                   </Text>
                 </View>
 
@@ -230,7 +234,7 @@ export default function CategoryEditModal({
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                    <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.saveBtn, (!name.trim() || saving) && styles.saveBtnDisabled]}
@@ -238,7 +242,7 @@ export default function CategoryEditModal({
                     disabled={!name.trim() || saving}
                   >
                     <Text style={styles.saveBtnText}>
-                      {saving ? "Saving…" : item ? "Save Changes" : `Save ${noun}`}
+                      {saving ? t("categories.saving") : item ? t("addTx.saveChanges") : t(`categories.save_${kind}`)}
                     </Text>
                   </TouchableOpacity>
                 </View>

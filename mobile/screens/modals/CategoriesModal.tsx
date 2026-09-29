@@ -32,6 +32,7 @@ import HoldPressable from "../../components/HoldPressable";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -76,6 +77,7 @@ export default function CategoriesModal({
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
   const ready = useDeferredReady(visible);
@@ -304,16 +306,19 @@ export default function CategoriesModal({
       setEditTarget(null);
     } catch (err) {
       await alertAsync(
-        "Couldn't save",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("categories.saveFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     }
   };
 
   const handleFormDelete = async () => {
     if (!editTarget || editTarget === "new") return;
-    const noun = activeType === "fund" ? "Fund" : "Category";
-    const ok = await confirmAsync(`Delete ${noun}`, `Delete "${getLabel(editTarget)}"?`);
+    const kind = activeType === "fund" ? "fund" : "category";
+    const ok = await confirmAsync(
+      t(`categories.delete_${kind}`),
+      t("categories.deleteConfirm", { name: getLabel(editTarget) }),
+    );
     if (!ok) return;
 
     const deleteFn =
@@ -332,11 +337,9 @@ export default function CategoriesModal({
         const detail = (err.body as { detail?: DeleteConflictDetail })?.detail;
         const count = detail?.transaction_count ?? 0;
         const confirmAgain = await confirmAsyncWithLabel(
-          `Delete ${noun}`,
-          `${count} transaction${count === 1 ? "" : "s"} ${count === 1 ? "uses" : "use"} this ${noun.toLowerCase()}. Deleting it will move ${
-            count === 1 ? "that transaction" : "them"
-          } to "Unassigned".`,
-          "Delete Anyway",
+          t(`categories.delete_${kind}`),
+          t(`categories.inUse_${kind}`, { count }),
+          t("categories.deleteAnyway"),
         );
         if (!confirmAgain) return;
         try {
@@ -344,14 +347,14 @@ export default function CategoriesModal({
           setEditTarget(null);
         } catch (err2) {
           await alertAsync(
-            "Couldn't delete",
-            err2 instanceof Error ? err2.message : "Something went wrong.",
+            t("categories.deleteFailed"),
+            err2 instanceof Error ? err2.message : t("common.somethingWrong"),
           );
         }
       } else {
         await alertAsync(
-          "Couldn't delete",
-          err instanceof Error ? err.message : "Something went wrong.",
+          t("categories.deleteFailed"),
+          err instanceof Error ? err.message : t("common.somethingWrong"),
         );
       }
     }
@@ -360,12 +363,12 @@ export default function CategoriesModal({
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    const noun = activeType === "fund" ? "funds" : "categories";
+    const kind = activeType === "fund" ? "fund" : "category";
 
     const ok = await confirmAsyncWithLabel(
-      `Delete ${ids.length} ${noun}`,
-      `Delete ${ids.length} selected ${noun}? This cannot be undone.`,
-      "Delete",
+      t(`categories.bulkDelete_${kind}`, { count: ids.length }),
+      t(`categories.bulkDeleteConfirm_${kind}`, { count: ids.length }),
+      t("common.delete"),
     );
     if (!ok) return;
 
@@ -394,9 +397,9 @@ export default function CategoriesModal({
     // a batch instead of asked N times.
     if (conflicted.length > 0) {
       const confirmAgain = await confirmAsyncWithLabel(
-        "Some still have transactions",
-        `${conflicted.length} of the selected still have transactions attached. Delete them anyway? Their transactions will move to "Unassigned".`,
-        "Delete Anyway",
+        t("categories.someInUse"),
+        t("categories.someInUseInfo", { count: conflicted.length }),
+        t("categories.deleteAnyway"),
       );
       if (confirmAgain) {
         const retryResults = await Promise.allSettled(conflicted.map((id) => apiDelete(id, true)));
@@ -413,8 +416,8 @@ export default function CategoriesModal({
 
     if (failed.length > 0) {
       await alertAsync(
-        "Some deletions failed",
-        `${failed.length} couldn't be deleted — try again.`,
+        t("settings.someDeletesFailed"),
+        t("categories.deletesFailed", { count: failed.length }),
       );
     }
   };
@@ -438,7 +441,7 @@ export default function CategoriesModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Manage Categories</Text>
+            <Text style={styles.title}>{t("settings.manageCategories")}</Text>
             <ModalCloseButton onPress={onClose} />
           </View>
 
@@ -470,7 +473,7 @@ export default function CategoriesModal({
                     activeType === type ? styles.toggleActiveText : styles.toggleInactiveText,
                   ]}
                 >
-                  {type === "expense" ? "Expense" : type === "income" ? "Income" : "Funds"}
+                  {type === "expense" ? t("common.expenses") : type === "income" ? t("common.income") : t("filters.funds")}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -494,10 +497,10 @@ export default function CategoriesModal({
 
           {selectMode && (
             <View style={styles.selectBar}>
-              <Text style={styles.selectBarText}>{selectedIds.size} selected</Text>
+              <Text style={styles.selectBarText}>{t("categories.selected", { count: selectedIds.size })}</Text>
               <View style={styles.selectBarActions}>
                 <TouchableOpacity onPress={exitSelectMode} style={styles.selectBarCancelBtn}>
-                  <Text style={styles.selectBarCancelText}>Cancel</Text>
+                  <Text style={styles.selectBarCancelText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -509,7 +512,7 @@ export default function CategoriesModal({
                 >
                   <Ionicons name="trash-outline" size={14} color="#fff" />
                   <Text style={styles.selectBarDeleteText}>
-                    {bulkDeleting ? "Deleting…" : "Delete"}
+                    {bulkDeleting ? t("categories.deleting") : t("common.delete")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -527,7 +530,7 @@ export default function CategoriesModal({
                   skipped, so they wait for a skeleton to hold the space. */}
               {!ready && <ChipGridSkeleton />}
               {ready && filteredItems.length === 0 && (
-                <Text style={styles.emptySearchText}>No matches for "{search.trim()}"</Text>
+                <Text style={styles.emptySearchText}>{t("pickers.noMatch", { query: search.trim() })}</Text>
               )}
               {ready && filteredItems.slice(0, visibleCount).map((item) => {
                 const count = countsById.get(item.id) ?? 0;
@@ -634,7 +637,7 @@ export default function CategoriesModal({
             {!selectMode && (
               <TouchableOpacity style={styles.addNewBtn} onPress={() => setEditTarget("new")}>
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-                <Text style={styles.addNewText}>Add New {noun}</Text>
+                <Text style={styles.addNewText}>{t(`categories.addNew_${noun === "Fund" ? "fund" : "category"}`)}</Text>
               </TouchableOpacity>
             )}
           </ScrollView>

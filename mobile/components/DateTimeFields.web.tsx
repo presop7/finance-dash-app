@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { currentLocale } from "../i18n";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -202,7 +203,7 @@ export default function DateTimeFields({
               />
             </TouchableOpacity>
             <Text style={styles.calendarMonthLabel}>
-              {viewMonth.toLocaleDateString("en-GB", {
+              {viewMonth.toLocaleDateString(currentLocale(), {
                 month: "long",
                 year: "numeric",
               })}

@@ -20,15 +20,7 @@ import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanc
 import { confirmAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
-
-const TYPE_LABELS: Record<AlertRuleType, string> = {
-  lowBalance: "Low Balance",
-  balanceAbove: "Balance Above",
-  monthlyExpenseOver: "Monthly Expenses Over",
-  monthlyIncomeOver: "Monthly Income Over",
-  categoryAmount: "Category Amount",
-  dailyReminder: "Daily Transaction Reminder",
-};
+import { useTranslation } from "react-i18next";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
@@ -68,6 +60,7 @@ export default function AlertRuleModal({
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const resolvedScheme = useResolvedScheme();
 
@@ -153,7 +146,7 @@ export default function AlertRuleModal({
 
   const handleDelete = async () => {
     if (!editingRule) return;
-    const ok = await confirmAsync("Delete Reminder", "Delete this reminder?");
+    const ok = await confirmAsync(t("reminders.deleteTitle"), t("reminders.deleteConfirm"));
     if (!ok) return;
     deleteAlertRule(editingRule.id);
     onClose();
@@ -183,27 +176,27 @@ export default function AlertRuleModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>{editingRule ? "Edit Reminder" : "Add Reminder"}</Text>
+            <Text style={styles.title}>{editingRule ? t("reminders.edit") : t("reminders.add")}</Text>
             <ModalCloseButton onPress={onClose} />
           </View>
 
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             <View style={styles.body}>
-              <Text style={styles.formLabel}>Reminder Type</Text>
+              <Text style={styles.formLabel}>{t("reminders.type")}</Text>
               <View style={styles.typeGrid}>
-                {ALL_TYPES.map((t) => (
+                {ALL_TYPES.map((ruleType) => (
                   <TouchableOpacity
-                    key={t}
-                    style={[styles.typeChip, type === t && styles.typeChipActive]}
-                    onPress={() => setType(t)}
+                    key={ruleType}
+                    style={[styles.typeChip, type === ruleType && styles.typeChipActive]}
+                    onPress={() => setType(ruleType)}
                   >
                     <Ionicons
-                      name={TYPE_ICONS[t]}
+                      name={TYPE_ICONS[ruleType]}
                       size={16}
-                      color={type === t ? "#fff" : Colors.textMuted}
+                      color={type === ruleType ? "#fff" : Colors.textMuted}
                     />
-                    <Text style={[styles.typeChipText, type === t && styles.typeChipTextActive]}>
-                      {TYPE_LABELS[t]}
+                    <Text style={[styles.typeChipText, type === ruleType && styles.typeChipTextActive]}>
+                      {t(`reminders.types.${ruleType}`)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -211,7 +204,7 @@ export default function AlertRuleModal({
 
               {type === "dailyReminder" ? (
                 <>
-                  <Text style={styles.formLabel}>Reminder Time</Text>
+                  <Text style={styles.formLabel}>{t("reminders.time")}</Text>
                   <TouchableOpacity
                     style={styles.fieldContainer}
                     onPress={() => setShowTimePicker(true)}
@@ -236,7 +229,7 @@ export default function AlertRuleModal({
                 </>
               ) : (
                 <>
-                  <Text style={styles.formLabel}>Amount</Text>
+                  <Text style={styles.formLabel}>{t("reminders.amount")}</Text>
                   <View style={styles.fieldContainer}>
                     <Ionicons name="pricetag-outline" size={16} color={Colors.textMuted} />
                     <TextInput
@@ -253,7 +246,7 @@ export default function AlertRuleModal({
 
               {type === "categoryAmount" && (
                 <>
-                  <Text style={styles.formLabel}>Category Type</Text>
+                  <Text style={styles.formLabel}>{t("reminders.categoryType")}</Text>
                   <View style={styles.typeToggle}>
                     <TouchableOpacity
                       style={[
@@ -271,7 +264,7 @@ export default function AlertRuleModal({
                           categoryType === "expense" ? styles.toggleActiveText : styles.toggleInactiveText,
                         ]}
                       >
-                        Expense
+                        {t("common.expense")}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -290,12 +283,12 @@ export default function AlertRuleModal({
                           categoryType === "income" ? styles.toggleActiveText : styles.toggleInactiveText,
                         ]}
                       >
-                        Income
+                        {t("common.incomeOne")}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.formLabel}>Category</Text>
+                  <Text style={styles.formLabel}>{t("addTx.category")}</Text>
                   <View style={styles.typeGrid}>
                     {categories.map((cat) => (
                       <TouchableOpacity
@@ -329,14 +322,14 @@ export default function AlertRuleModal({
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t("common.cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
                   onPress={handleSave}
                   disabled={!canSave}
                 >
-                  <Text style={styles.saveBtnText}>{editingRule ? "Save Changes" : "Add Reminder"}</Text>
+                  <Text style={styles.saveBtnText}>{editingRule ? t("addTx.saveChanges") : t("reminders.add")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -14,6 +14,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { CategorySlice } from "../hooks/useCategoryBreakdown";
 import CategoryDetailFields from "./CategoryDetailFields";
+import { useTranslation } from "react-i18next";
 
 // One row's total height (header line + gap, bar, gap to next row) — used
 // to size the fixed visible window below (VISIBLE_ROWS) so the card never
@@ -50,6 +51,7 @@ function CategoryBarRow({
   onHoldCategory?: (key: string) => void;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const widthPct = Math.max(2, (slice.amount / maxAmount) * 100);
   const holdProgress = useSharedValue(0);
@@ -129,6 +131,7 @@ export default function CategoryBarChart({
   onOpenCategory?: (key: string) => void;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const [overlayKey, setOverlayKey] = useState<string | null>(null);
 
@@ -195,7 +198,7 @@ export default function CategoryBarChart({
                 }}
               >
                 <Ionicons name="filter-outline" size={14} color="#fff" />
-                <Text style={styles.openBtnText}>Open Category</Text>
+                <Text style={styles.openBtnText}>{t("charts.openCategory")}</Text>
               </TouchableOpacity>
             )}
           </Pressable>

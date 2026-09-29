@@ -18,6 +18,7 @@ import { formatCurrency } from "../../utils/currency";
 import { formatDate, formatTime } from "../../utils/formatDateTime";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 type TransactionDetailModalProps = {
   transaction: Transaction | null;
@@ -34,6 +35,7 @@ export default function TransactionDetailModal({
     useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
@@ -70,7 +72,7 @@ export default function TransactionDetailModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Transaction Details</Text>
+            <Text style={styles.title}>{t("details.title")}</Text>
             <ModalCloseButton onPress={onClose} />
           </View>
 
@@ -99,28 +101,28 @@ export default function TransactionDetailModal({
                 {formatCurrency(transaction.amount, settings.currency)}
               </Text>
               <Text style={styles.transactionTitle}>
-                {transaction.title || category?.label || "Transaction"}
+                {transaction.title || category?.label || t("details.transaction")}
               </Text>
             </View>
 
             {/* Details */}
             <View style={styles.detailsList}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Category</Text>
+                <Text style={styles.detailLabel}>{t("addTx.category")}</Text>
                 <Text style={styles.detailValue}>
-                  {category?.label ?? "Unknown"}
+                  {category?.label ?? t("details.unknown")}
                 </Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Fund</Text>
-                <Text style={styles.detailValue}>{fund?.name ?? "Unknown"}</Text>
+                <Text style={styles.detailLabel}>{t("addTx.fund")}</Text>
+                <Text style={styles.detailValue}>{fund?.name ?? t("details.unknown")}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Date</Text>
+                <Text style={styles.detailLabel}>{t("details.date")}</Text>
                 <Text style={styles.detailValue}>{formattedDate}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Time</Text>
+                <Text style={styles.detailLabel}>{t("details.time")}</Text>
                 <Text style={styles.detailValue}>{formattedTime}</Text>
               </View>
             </View>
@@ -128,7 +130,7 @@ export default function TransactionDetailModal({
             {/* Note */}
             {transaction.note ? (
               <View style={styles.noteBlock}>
-                <Text style={styles.noteLabel}>Note</Text>
+                <Text style={styles.noteLabel}>{t("details.note")}</Text>
                 <Text style={styles.noteText}>{transaction.note}</Text>
               </View>
             ) : null}
@@ -149,7 +151,7 @@ export default function TransactionDetailModal({
               onPress={() => onEdit(transaction)}
             >
               <Ionicons name="pencil" size={16} color="#fff" />
-              <Text style={styles.editBtnText}>Edit Transaction</Text>
+              <Text style={styles.editBtnText}>{t("addTx.editTitle")}</Text>
             </TouchableOpacity>
           </View>
         </View>

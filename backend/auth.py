@@ -1,12 +1,12 @@
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from config import settings
 from database import get_db
-from default_categories import add_default_categories
+from default_categories import add_default_categories, language_from_header
 from models.fund_category import FundCategory
 from models.user import User
 
@@ -20,6 +20,7 @@ _bearer_scheme = HTTPBearer()
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
+    accept_language: str | None = Header(default=None),
 ) -> User:
     token = credentials.credentials
     try:
@@ -79,7 +80,7 @@ def get_current_user(
                     ),
                 ]
             )
-            add_default_categories(db, user.id)
+            add_default_categories(db, user.id, language_from_header(accept_language))
             db.commit()
         except IntegrityError:
             # Lost a race with a concurrent request auto-provisioning the same

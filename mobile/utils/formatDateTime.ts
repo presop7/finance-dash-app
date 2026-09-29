@@ -1,3 +1,5 @@
+import { currentLocale } from "../i18n";
+
 export type DateFormat = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD" | "D MMM YYYY";
 export type TimeFormat = "12h" | "24h";
 
@@ -30,7 +32,9 @@ export function formatDate(date: Date, format: DateFormat): string {
     case "YYYY-MM-DD":
       return `${y}-${m}-${d}`;
     case "D MMM YYYY":
-      return `${date.getDate()} ${MONTH_ABBR[date.getMonth()]} ${y}`;
+      // Month name in the app's language (CSV parsing below still expects
+      // English abbreviations, which is what exported files use).
+      return date.toLocaleDateString(currentLocale(), { day: "numeric", month: "short", year: "numeric" });
   }
 }
 
@@ -106,7 +110,7 @@ export function parseDateString(value: string, format: DateFormat): Date | null 
 }
 
 export function formatDateLong(date: Date): string {
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleDateString(currentLocale(), {
     weekday: "long",
     day: "numeric",
     month: "long",

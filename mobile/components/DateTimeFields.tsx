@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
+import { currentLocale } from "../i18n";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -26,7 +27,7 @@ export default function DateTimeFields({
   const resolvedScheme = useResolvedScheme();
 
   const formatDate = (d: Date) =>
-    d.toLocaleDateString("en-GB", {
+    d.toLocaleDateString(currentLocale(), {
       day: "numeric",
       month: "short",
       year: "numeric",

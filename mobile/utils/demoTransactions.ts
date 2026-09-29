@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 // Example transactions shown during the app tour, so the charts and cards
 // have something to show for a brand-new account. They only ever live in
 // memory on the phone (never synced or saved) and are removed when the tour
@@ -6,7 +8,7 @@
 export const DEMO_ID_PREFIX = "demo-";
 export const isDemoId = (id: string) => id.startsWith(DEMO_ID_PREFIX);
 
-type CategoryRef = { id: string; label: string };
+type CategoryRef = { id: string; label: string; icon?: string; locked?: boolean };
 
 type DemoTransaction = {
   id: string;
@@ -23,22 +25,30 @@ const DEMO_COUNT = 40;
 const INCOME_COUNT = DEMO_COUNT / 10; // 10% income, 90% expenses
 const DAYS_BACK = 60;
 
-// Friendly titles for the default categories; anything else uses its label.
+// Example titles (translation keys under "demo.") for the default
+// categories, recognised by icon — their names differ per language and can
+// be renamed. Any other category uses its own name as the title.
 const TITLES: Record<string, string[]> = {
-  Food: ["Groceries", "Supermarket", "Bakery", "Fruit and veg"],
-  Restaurant: ["Lunch", "Coffee", "Dinner out", "Pizza"],
-  Transport: ["Fuel", "Bus ticket", "Taxi", "Parking"],
-  Entertainment: ["Cinema", "Concert", "Streaming", "Books"],
-  Other: ["Pharmacy", "Gift", "Haircut", "Phone bill"],
-  Salary: ["Monthly salary"],
-  Freelance: ["Freelance project"],
-  Investment: ["Dividends"],
+  "cart-outline": ["groceries", "supermarket", "bakery", "fruitVeg"],
+  "cafe-outline": ["lunch", "coffee", "dinnerOut", "pizza"],
+  "car-outline": ["fuel", "busTicket", "taxi", "parking"],
+  "game-controller-outline": ["cinema", "concert", "streaming", "books"],
+  "ellipsis-horizontal-outline": ["pharmacy", "gift", "haircut", "phoneBill"],
+  "business-outline": ["salary"],
+  "briefcase-outline": ["freelance"],
+  "trending-up-outline": ["dividends"],
 };
 
 const between = (min: number, max: number, random: () => number) =>
   Math.round((min + random() * (max - min)) * 100) / 100;
 
 const pick = <T,>(items: T[], random: () => number) => items[Math.floor(random() * items.length)];
+
+function titleFor(category: CategoryRef | undefined, random: () => number): string {
+  const keys = category?.icon ? TITLES[category.icon] : undefined;
+  if (keys) return i18n.t(`demo.${pick(keys, random)}`);
+  return category?.label ?? i18n.t("details.transaction");
+}
 
 export function generateDemoTransactions(
   expenseCategories: CategoryRef[],
@@ -47,9 +57,9 @@ export function generateDemoTransactions(
   now: Date = new Date(),
   random: () => number = Math.random,
 ): DemoTransaction[] {
-  // "Unassigned" is a fallback bucket, not something to showcase.
+  // The locked "Unassigned" is a fallback bucket, not something to showcase.
   const usable = (list: CategoryRef[]) => {
-    const real = list.filter((c) => c.label !== "Unassigned");
+    const real = list.filter((c) => !c.locked);
     return real.length > 0 ? real : list;
   };
   const expenseCats = usable(expenseCategories);
@@ -66,7 +76,7 @@ export function generateDemoTransactions(
     if (date > now) date.setDate(date.getDate() - 1);
     return {
       id: `${DEMO_ID_PREFIX}${i}`,
-      title: pick(TITLES[category?.label] ?? [category?.label ?? "Example"], random),
+      title: titleFor(category, random),
       type,
       amount,
       category: category?.id ?? "",

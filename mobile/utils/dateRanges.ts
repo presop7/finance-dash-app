@@ -1,14 +1,5 @@
 export type TimeframePreset = "7d" | "30d" | "90d" | "month" | "year" | "all";
 
-export const TIMEFRAME_LABELS: Record<TimeframePreset, string> = {
-  "7d": "Last 7 Days",
-  "30d": "Last 30 Days",
-  "90d": "Last 90 Days",
-  month: "This Month",
-  year: "This Year",
-  all: "All Time",
-};
-
 export const TIMEFRAME_PRESETS: TimeframePreset[] = [
   "7d",
   "30d",

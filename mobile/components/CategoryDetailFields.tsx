@@ -1,6 +1,7 @@
 import { Text, StyleSheet } from "react-native";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { useTranslation } from "react-i18next";
 
 // The name/amount/percent/count block shown for a single category — shared
 // by the pie chart's center callout and the bar chart's tap overlay, so the
@@ -20,6 +21,7 @@ export default function CategoryDetailFields({
   count: number;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   return (
     <>
@@ -29,9 +31,9 @@ export default function CategoryDetailFields({
       <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
         {amount.toFixed(2)} {currencyCode}
       </Text>
-      <Text style={styles.pct}>{pct.toFixed(1)}% of total</Text>
+      <Text style={styles.pct}>{t("charts.pctOfTotal", { pct: pct.toFixed(1) })}</Text>
       <Text style={styles.count}>
-        {count} {count === 1 ? "transaction" : "transactions"}
+        {t("charts.transactions", { count })}
       </Text>
     </>
   );

@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useAuthStore } from "../store/useAuthStore";
+import { useTranslation } from "react-i18next";
 
 type Mode = "sign-in" | "sign-up";
 
@@ -29,6 +30,7 @@ const WIDE_SCREEN_BREAKPOINT = 768;
 export default function AuthScreen() {
   const { signIn, signUp, signInWithGoogle, error, clearError } = useAuthStore();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const { width } = useWindowDimensions();
   const isWideScreen = width >= WIDE_SCREEN_BREAKPOINT;
@@ -126,34 +128,34 @@ export default function AuthScreen() {
             style={{ opacity: fadeAnim, transform: [{ translateY: translateAnim }] }}
           >
             <Text style={styles.modeHeading}>
-              {signedUpEmail ? "Almost there" : mode === "sign-in" ? "Sign In" : "Sign Up"}
+              {signedUpEmail ? t("auth.almostThere") : mode === "sign-in" ? t("auth.signIn") : t("auth.signUp")}
             </Text>
             <Text style={styles.subtitle}>
               {signedUpEmail
-                ? "One more step to activate your account"
+                ? t("auth.oneMoreStep")
                 : mode === "sign-in"
-                  ? "Sign in to your account"
-                  : "Create a new account"}
+                  ? t("auth.signInSubtitle")
+                  : t("auth.signUpSubtitle")}
             </Text>
 
             {signedUpEmail ? (
               <View style={styles.confirmBox}>
                 <Ionicons name="mail-outline" size={22} color={Colors.income} />
                 <Text style={styles.confirmText}>
-                  Check {signedUpEmail} for a confirmation link, then sign in below.
+                  {t("auth.checkEmail", { email: signedUpEmail })}
                 </Text>
                 <TouchableOpacity onPress={() => switchMode("sign-in")}>
-                  <Text style={styles.switchLink}>Back to sign in</Text>
+                  <Text style={styles.switchLink}>{t("auth.backToSignIn")}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
                 {mode === "sign-up" && (
                   <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>What should we call you?</Text>
+                    <Text style={styles.fieldLabel}>{t("auth.nameLabel")}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Your name"
+                      placeholder={t("auth.namePlaceholder")}
                       placeholderTextColor={Colors.textMuted}
                       value={displayName}
                       onChangeText={setDisplayName}
@@ -165,7 +167,7 @@ export default function AuthScreen() {
                 )}
 
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Email</Text>
+                  <Text style={styles.fieldLabel}>{t("auth.email")}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="you@example.com"
@@ -179,10 +181,10 @@ export default function AuthScreen() {
                 </View>
 
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Password</Text>
+                  <Text style={styles.fieldLabel}>{t("auth.password")}</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="At least 6 characters"
+                    placeholder={t("auth.passwordPlaceholder")}
                     placeholderTextColor={Colors.textMuted}
                     value={password}
                     onChangeText={setPassword}
@@ -192,7 +194,7 @@ export default function AuthScreen() {
                   />
                 </View>
 
-                {error && <Text style={styles.errorText}>{error}</Text>}
+                {error && <Text style={styles.errorText}>{translateAuthError(error, t)}</Text>}
 
                 <TouchableOpacity
                   style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
@@ -204,14 +206,14 @@ export default function AuthScreen() {
                     <ActivityIndicator color={Colors.surface} />
                   ) : (
                     <Text style={styles.submitButtonText}>
-                      {mode === "sign-in" ? "Sign In" : "Sign Up"}
+                      {mode === "sign-in" ? t("auth.signIn") : t("auth.signUp")}
                     </Text>
                   )}
                 </TouchableOpacity>
 
                 <View style={styles.dividerRow}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
+                  <Text style={styles.dividerText}>{t("auth.or")}</Text>
                   <View style={styles.dividerLine} />
                 </View>
 
@@ -222,16 +224,14 @@ export default function AuthScreen() {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="logo-google" size={18} color={Colors.textPrimary} />
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  <Text style={styles.googleButtonText}>{t("auth.google")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => switchMode(mode === "sign-in" ? "sign-up" : "sign-in")}
                 >
                   <Text style={styles.switchLink}>
-                    {mode === "sign-in"
-                      ? "Don't have an account? Sign up"
-                      : "Already have an account? Sign in"}
+                    {mode === "sign-in" ? t("auth.toSignUp") : t("auth.toSignIn")}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -401,4 +401,19 @@ function createStyles(Colors: ColorsType) {
     lineHeight: 19,
   },
   });
+}
+
+// Supabase answers in English; show the common cases in the app's language.
+const AUTH_ERRORS: Record<string, string> = {
+  "Invalid login credentials": "auth.errors.invalidCredentials",
+  "Email not confirmed": "auth.errors.emailNotConfirmed",
+  "User already registered": "auth.errors.alreadyRegistered",
+  "Password should be at least 6 characters.": "auth.errors.weakPassword",
+  "Unable to validate email address: invalid format": "auth.errors.invalidEmail",
+  "Google sign-in needs an app update": "auth.errors.googleNeedsUpdate",
+  "Google sign-in failed": "auth.errors.googleFailed",
+};
+function translateAuthError(message: string, t: (key: string) => string): string {
+  const key = AUTH_ERRORS[message];
+  return key ? t(key) : message;
 }

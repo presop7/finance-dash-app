@@ -15,6 +15,7 @@ import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
 import { useStagedCount } from "../hooks/useStagedCount";
 import HoldPressable from "./HoldPressable";
+import { useTranslation } from "react-i18next";
 
 type CategoryPickerProps = {
   categories: Category[];
@@ -39,6 +40,7 @@ export default function CategoryPicker({
 }: CategoryPickerProps) {
   const [search, setSearch] = useState("");
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
   const trimmed = search.trim().toLowerCase();
@@ -73,7 +75,7 @@ export default function CategoryPicker({
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Search categories"
+          placeholder={t("pickers.searchCategories")}
           placeholderTextColor={Colors.textMuted}
         />
         {search.length > 0 && (
@@ -90,7 +92,7 @@ export default function CategoryPicker({
         contentContainerStyle={styles.container}
       >
         {filtered.length === 0 ? (
-          <Text style={styles.emptyText}>No categories match "{search.trim()}"</Text>
+          <Text style={styles.emptyText}>{t("pickers.noMatch", { query: search.trim() })}</Text>
         ) : (
           filtered.slice(0, visibleCount).map((category) => {
             const isSelected = category.id === selected;

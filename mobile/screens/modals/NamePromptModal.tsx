@@ -15,6 +15,7 @@ import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { accountName, nameFromEmail } from "../../utils/greeting";
+import { useTranslation } from "react-i18next";
 
 // Shown once to accounts that have no name yet — email sign-ups from before
 // the sign-up form asked for one. Google accounts already carry a name, and
@@ -25,6 +26,7 @@ export default function NamePromptModal() {
   const setDisplayName = useAuthStore((s) => s.setDisplayName);
   const localName = useFinanceStore((s) => s.displayNameOverride);
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   // Pre-filled with the name the app already uses, so keeping it is one tap.
@@ -42,7 +44,7 @@ export default function NamePromptModal() {
     try {
       await setDisplayName(name.trim());
     } catch {
-      setError("Couldn't save — check your connection and try again.");
+      setError(t("namePrompt.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -57,14 +59,14 @@ export default function NamePromptModal() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.dialog}>
-          <Text style={styles.title}>What should we call you?</Text>
-          <Text style={styles.subtitle}>This is how the app will greet you.</Text>
+          <Text style={styles.title}>{t("auth.nameLabel")}</Text>
+          <Text style={styles.subtitle}>{t("namePrompt.subtitle")}</Text>
 
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Your name"
+            placeholder={t("auth.namePlaceholder")}
             placeholderTextColor={Colors.textMuted}
             autoCapitalize="words"
             autoComplete="given-name"
@@ -85,7 +87,7 @@ export default function NamePromptModal() {
             {saving ? (
               <ActivityIndicator color={Colors.surface} />
             ) : (
-              <Text style={styles.buttonText}>Save</Text>
+              <Text style={styles.buttonText}>{t("common.save")}</Text>
             )}
           </TouchableOpacity>
         </View>

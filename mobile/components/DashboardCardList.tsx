@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import CollapsibleCard from "./CollapsibleCard";
+import { useTranslation } from "react-i18next";
 
 export type DashboardCardDef = {
   id: string;
@@ -36,6 +37,7 @@ export default function DashboardCardList({
   const [reorderMode, setReorderMode] = useState(false);
   const [draftOrder, setDraftOrder] = useState(order);
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
 
   // Layout props (margin/padding/border/radius) can only ever animate on
@@ -179,11 +181,11 @@ export default function DashboardCardList({
         <Animated.View style={[styles.reorderHeader, { opacity: fadeAnim }]}>
           <TouchableOpacity style={styles.discardBtn} onPress={discardReorder}>
             <Ionicons name="close-circle" size={18} color={Colors.expense} />
-            <Text style={styles.discardText}>Discard</Text>
+            <Text style={styles.discardText}>{t("common.discard")}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.saveBtn} onPress={confirmReorder}>
             <Ionicons name="checkmark-circle" size={18} color={Colors.income} />
-            <Text style={styles.saveText}>Save Order</Text>
+            <Text style={styles.saveText}>{t("dashboard.saveOrder")}</Text>
           </TouchableOpacity>
         </Animated.View>
       )}

@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { isDesktopWeb } from "../utils/webPlatform";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { useTranslation } from "react-i18next";
 
 // Plain paged ScrollView rather than a FlatList — there are only ever a
 // handful of pages (chart types), so virtualization buys nothing and a
@@ -38,6 +39,7 @@ export default function Carousel({
   onIndexChange?: (index: number) => void;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
@@ -198,7 +200,7 @@ export default function Carousel({
               onPress={() => goTo(index - 1)}
               disabled={index === 0}
               style={[styles.arrow, index === 0 && styles.arrowDisabled]}
-              accessibilityLabel="Previous"
+              accessibilityLabel={t("common.previous")}
             >
               <Ionicons name="chevron-back" size={16} color={Colors.textSecondary} />
             </Pressable>
@@ -218,7 +220,7 @@ export default function Carousel({
               onPress={() => goTo(index + 1)}
               disabled={index === pages.length - 1}
               style={[styles.arrow, index === pages.length - 1 && styles.arrowDisabled]}
-              accessibilityLabel="Next"
+              accessibilityLabel={t("common.next")}
             >
               <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
             </Pressable>

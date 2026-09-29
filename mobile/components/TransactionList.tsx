@@ -8,13 +8,14 @@ import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/use
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
+import { useTranslation } from "react-i18next";
+import { currentLocale } from "../i18n";
 
 export type { Transaction };
 
 // Same output as toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 // ("10 Sept", "28 Aug") without constructing an Intl formatter — which is
 // slow enough on Hermes to matter when a list mounts a batch of rows at once.
-const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
 
 export type CategoryDetails = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -61,6 +62,7 @@ function toDetails(category: Category, Colors: ColorsType, isDark: boolean): Cat
 export function useCategoryDetailsMap(): Map<string, CategoryDetails> {
   const { expenseCategories, incomeCategories } = useFinanceStore();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const isDark = useResolvedScheme() === "dark";
   return useMemo(() => {
     const map = new Map<string, CategoryDetails>();
@@ -96,13 +98,14 @@ export function getTransactionDetails(
 
 export function TransactionEmptyState() {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   return (
     <View style={styles.emptyContainer}>
       <Ionicons name="receipt-outline" size={40} color={Colors.textMuted} />
-      <Text style={styles.emptyText}>No transactions yet</Text>
+      <Text style={styles.emptyText}>{t("dashboard.noTransactions")}</Text>
       <Text style={styles.emptySubtext}>
-        Tap the + button to add your first one
+        {t("dashboard.addFirst")}
       </Text>
     </View>
   );
@@ -140,9 +143,11 @@ export const TransactionRow = memo(function TransactionRow({
   selected?: boolean;
 }) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const date = new Date(transaction.date);
-  const formattedDate = `${date.getDate()} ${SHORT_MONTHS[date.getMonth()]}`;
+  // Day and short month in the app's language ("27 Sept" / "27.09" / "9月27日").
+  const formattedDate = date.toLocaleDateString(currentLocale(), { day: "numeric", month: "short" });
 
   return (
     <TouchableOpacity
@@ -186,7 +191,7 @@ export const TransactionRow = memo(function TransactionRow({
         {transaction.isPending ? (
           <View style={styles.noteHint}>
             <Ionicons name="time-outline" size={10} color={Colors.textMuted} />
-            <Text style={styles.noteHintText}>Waiting to sync</Text>
+            <Text style={styles.noteHintText}>{t("dashboard.waitingToSync")}</Text>
           </View>
         ) : null}
         {transaction.note ? (
@@ -196,7 +201,7 @@ export const TransactionRow = memo(function TransactionRow({
               size={10}
               color={Colors.textMuted}
             />
-            <Text style={styles.noteHintText}>Open to read note</Text>
+            <Text style={styles.noteHintText}>{t("dashboard.openToReadNote")}</Text>
           </View>
         ) : null}
       </View>

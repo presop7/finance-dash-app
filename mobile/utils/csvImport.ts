@@ -4,6 +4,7 @@ import { Category } from "../constants/categories";
 import { FundCategory } from "../constants/fundCategories";
 import { DateFormat, parseDateString } from "./formatDateTime";
 import { ApiTransactionCreate } from "../services/financeApi";
+import i18n from "../i18n";
 
 export type ParsedCsv = {
   headers: string[];
@@ -227,8 +228,8 @@ export function buildImportPayload(
         header: headers[mapping.date] ?? "Date",
         rawValue: dateRaw,
         reason: dateRaw.trim()
-          ? `Doesn't match the selected date format (${dateFormat})`
-          : "This cell is empty",
+          ? i18n.t("csv.reasons.dateFormat", { format: dateFormat })
+          : i18n.t("csv.reasons.empty"),
       });
     }
 
@@ -239,7 +240,7 @@ export function buildImportPayload(
         field: "amount",
         header: headers[mapping.amount] ?? "Amount",
         rawValue: amountRaw,
-        reason: amountRaw.trim() ? "Not recognized as a number" : "This cell is empty",
+        reason: amountRaw.trim() ? i18n.t("csv.reasons.notNumber") : i18n.t("csv.reasons.empty"),
       });
     }
     // Category matching is type-scoped (expense vs. income categories are
@@ -254,14 +255,14 @@ export function buildImportPayload(
         field: "category",
         header: headers[mapping.category] ?? "Category",
         rawValue: "",
-        reason: "This cell is empty",
+        reason: i18n.t("csv.reasons.empty"),
       });
     } else if (mainType && !resolutionMap.has(categoryKey(mainType, categoryText))) {
       issues.push({
         field: "category",
         header: headers[mapping.category] ?? "Category",
         rawValue: categoryText,
-        reason: `"${categoryText}" wasn't matched to a category`,
+        reason: i18n.t("csv.reasons.noCategory", { text: categoryText }),
       });
     }
 
@@ -271,14 +272,14 @@ export function buildImportPayload(
         field: "fund",
         header: headers[mapping.fund] ?? "Fund/Account",
         rawValue: "",
-        reason: "This cell is empty",
+        reason: i18n.t("csv.reasons.empty"),
       });
     } else if (!resolutionMap.has(fundKey(fundText))) {
       issues.push({
         field: "fund",
         header: headers[mapping.fund] ?? "Fund/Account",
         rawValue: fundText,
-        reason: `"${fundText}" wasn't matched to a fund/account`,
+        reason: i18n.t("csv.reasons.noFund", { text: fundText }),
       });
     }
 
@@ -291,7 +292,7 @@ export function buildImportPayload(
     return {
       ok: true,
       payload: {
-        title: title || "Imported transaction",
+        title: title || i18n.t("csv.importedTitle"),
         fund_category_id: resolutionMap.get(fundKey(fundText))!,
         category_id: resolutionMap.get(categoryKey(mainType!, categoryText))!,
         amount: Math.abs(amount!) * conversionRate,

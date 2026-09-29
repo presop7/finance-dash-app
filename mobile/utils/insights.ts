@@ -2,6 +2,7 @@ import { Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { daysAgo, percentageChange } from "./dateRanges";
 import { formatCurrency } from "./currency";
+import i18n from "../i18n";
 
 function inLast(transactions: Transaction[], days: number, now: Date) {
   const since = daysAgo(days, now);
@@ -15,7 +16,7 @@ export function getInsights(
   currency: string = "EUR",
 ): string[] {
   if (transactions.length === 0) {
-    return ["Add your first transaction to get started!"];
+    return [i18n.t("insights.first")];
   }
 
   const insights: string[] = [];
@@ -26,11 +27,11 @@ export function getInsights(
   );
   if (totalSavings >= 0) {
     insights.push(
-      `You've saved ${formatCurrency(totalSavings, currency)} in total. Great job keeping your finances in check!`,
+      i18n.t("insights.savedTotal", { amount: formatCurrency(totalSavings, currency) }),
     );
   } else {
     insights.push(
-      `You're ${formatCurrency(Math.abs(totalSavings), currency)} in the red overall — time to review your spending.`,
+      i18n.t("insights.inRed", { amount: formatCurrency(Math.abs(totalSavings), currency) }),
     );
   }
 
@@ -40,7 +41,7 @@ export function getInsights(
     .reduce((sum, t) => sum + t.amount, 0);
   if (income30 > 0) {
     insights.push(
-      `You've earned ${formatCurrency(income30, currency)} in the last 30 days.`,
+      i18n.t("insights.earned30", { amount: formatCurrency(income30, currency) }),
     );
   }
 
@@ -57,14 +58,14 @@ export function getInsights(
       expenseCategories.find((c) => c.id === topCategoryId)?.label ??
       topCategoryId;
     insights.push(
-      `Your biggest spending category in the last 30 days is ${label} at ${formatCurrency(topCategoryAmount, currency)}.`,
+      i18n.t("insights.topCategory", { category: label, amount: formatCurrency(topCategoryAmount, currency) }),
     );
 
     const biggestExpense = [...expenses30].sort(
       (a, b) => b.amount - a.amount,
     )[0];
     insights.push(
-      `Your biggest single expense in the last 30 days was "${biggestExpense.title || label}" at ${formatCurrency(biggestExpense.amount, currency)}.`,
+      i18n.t("insights.biggestExpense", { title: biggestExpense.title || label, amount: formatCurrency(biggestExpense.amount, currency) }),
     );
   }
 
@@ -82,11 +83,11 @@ export function getInsights(
     const change = percentageChange(currExpense30, prevExpense30);
     if (change > 0) {
       insights.push(
-        `Your spending is up ${change}% compared to the previous 30 days. Keep an eye on it!`,
+        i18n.t("insights.spendingUp", { pct: change }),
       );
     } else if (change < 0) {
       insights.push(
-        `Your spending is down ${Math.abs(change)}% compared to the previous 30 days. Nice work!`,
+        i18n.t("insights.spendingDown", { pct: Math.abs(change) }),
       );
     }
   }
@@ -101,7 +102,7 @@ export function getInsights(
     );
     if (daysSince >= 2) {
       insights.push(
-        `It's been ${daysSince} days since your last expense — nice no-spend streak!`,
+        i18n.t("insights.noSpend", { count: daysSince }),
       );
     }
   }

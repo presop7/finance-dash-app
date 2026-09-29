@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { ColorsType } from "../constants/colors";
 import { TUTORIAL_STEPS, TutorialStep } from "../constants/tutorialSteps";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -44,6 +45,7 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
   const back = useTutorialStore((s) => s.back);
   const finish = useTutorialStore((s) => s.finish);
 
+  const { t } = useTranslation();
   const rootRef = useRef<View>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [rect, setRect] = useState<Rect | null>(null);
@@ -244,13 +246,13 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
           style={[styles.box, boxPosition, { maxHeight: Math.max(160, safeBottom - safeTop) }]}
           onLayout={(e) => setBoxHeight(e.nativeEvent.layout.height)}
         >
-          <Text style={styles.title}>{step.title}</Text>
+          <Text style={styles.title}>{t(`tour.${step.id}.title`)}</Text>
           {/* Long text on a small screen (or with large system text)
               scrolls, so Next below always stays on screen. */}
           <ScrollView style={styles.textScroll} showsVerticalScrollIndicator={false} bounces={false}>
-            <Text style={styles.text}>{step.text}</Text>
+            <Text style={styles.text}>{t(`tour.${step.id}.text`)}</Text>
             {step.tryIt && hasHole && (
-              <Text style={styles.tryIt}>Try it, then tap Next.</Text>
+              <Text style={styles.tryIt}>{t("tour.tryIt")}</Text>
             )}
           </ScrollView>
           <View style={styles.footer}>
@@ -260,17 +262,17 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
             <View style={styles.buttons}>
             {canGoBack(index) && (
               <TouchableOpacity style={styles.backBtn} onPress={back} activeOpacity={0.7}>
-                <Text style={styles.backText}>Back</Text>
+                <Text style={styles.backText}>{t("common.back")}</Text>
               </TouchableOpacity>
             )}
             {showNext ? (
               <TouchableOpacity style={styles.nextBtn} onPress={next} activeOpacity={0.8}>
                 <Text style={styles.nextText}>
-                  {index === 0 ? "Let's go" : isLast ? "Finish" : "Next"}
+                  {index === 0 ? t("tour.letsGo") : isLast ? t("tour.finish") : t("common.next")}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.hint}>Tap the highlighted spot</Text>
+              <Text style={styles.hint}>{t("tour.tapSpot")}</Text>
             )}
             </View>
           </View>
@@ -283,7 +285,7 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
             activeOpacity={0.7}
             hitSlop={8}
           >
-            <Text style={styles.skipText}>Skip tour</Text>
+            <Text style={styles.skipText}>{t("tour.skip")}</Text>
           </TouchableOpacity>
         )}
       </Animated.View>

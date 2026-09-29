@@ -17,6 +17,7 @@ import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/us
 import { GlobalStyles } from "../constants/styles";
 import { getGreeting, firstNameFromUser } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
+import { useTranslation } from "react-i18next";
 
 type DashboardScreenProps = {
   onTransactionPress: (transaction: Transaction) => void;
@@ -44,6 +45,7 @@ function DashboardScreen({
   } = useFinanceStore();
   const session = useAuthStore((s) => s.session);
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const { refreshing, onRefresh } = usePullToRefresh();
   const scrollRef = useRef<ScrollView>(null);
@@ -61,7 +63,7 @@ function DashboardScreen({
   const cards: DashboardCardDef[] = [
     {
       id: "insights",
-      title: "Insights",
+      title: t("dashboard.insights"),
       content: (
         <InsightBanner
           transactions={transactions}
@@ -71,7 +73,7 @@ function DashboardScreen({
     },
     {
       id: "topExpenses",
-      title: "Top Expenses",
+      title: t("dashboard.topExpenses"),
       content: (
         <TopExpensesCard
           transactions={transactions}
@@ -82,7 +84,7 @@ function DashboardScreen({
     },
     {
       id: "funds",
-      title: "Your Funds",
+      title: t("dashboard.yourFunds"),
       content: (
         <FundsCard
           transactions={transactions}
@@ -93,8 +95,8 @@ function DashboardScreen({
     },
     {
       id: "transactions",
-      title: "Recent Transactions",
-      subtitle: `${transactions.length} total`,
+      title: t("dashboard.recentTransactions"),
+      subtitle: t("dashboard.total", { count: transactions.length }),
       content: (
         <TransactionList
           transactions={recentTransactions}

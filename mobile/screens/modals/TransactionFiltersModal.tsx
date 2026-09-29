@@ -25,11 +25,12 @@ import type { CategoryTabType } from "./CategoriesModal";
 import {
   TransactionFilters,
   DATE_RANGE_PRESETS,
-  DATE_RANGE_LABELS,
+  dateRangeLabel,
   DEFAULT_FILTERS,
   getDateRangeLabel,
 } from "../../utils/filterTransactions";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
+import { useTranslation } from "react-i18next";
 
 type TransactionFiltersModalProps = {
   visible: boolean;
@@ -56,6 +57,7 @@ export default function TransactionFiltersModal({
     useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
 
@@ -132,10 +134,10 @@ export default function TransactionFiltersModal({
       return;
     }
     const choice = await confirmUnsavedChanges(
-      "Unapplied Filters",
-      "You changed some filters but didn't apply them. Apply them now, or discard the changes?",
-      "Apply Filters",
-      "Discard",
+      t("filters.unappliedTitle"),
+      t("filters.unappliedInfo"),
+      t("filters.apply"),
+      t("common.discard"),
     );
     if (choice === "apply") {
       onApply(draft);
@@ -159,10 +161,10 @@ export default function TransactionFiltersModal({
           <View style={styles.handle} />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Filters</Text>
+            <Text style={styles.title}>{t("analytics.filters")}</Text>
             <View style={styles.headerRight}>
               <TouchableOpacity onPress={handleReset}>
-                <Text style={styles.resetText}>Reset all</Text>
+                <Text style={styles.resetText}>{t("filters.resetAll")}</Text>
               </TouchableOpacity>
               <ModalCloseButton onPress={handleRequestClose} />
             </View>
@@ -173,7 +175,7 @@ export default function TransactionFiltersModal({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.body}>
-              <Text style={styles.sectionLabel}>Date Range</Text>
+              <Text style={styles.sectionLabel}>{t("filters.dateRange")}</Text>
               <TouchableOpacity
                 style={styles.dateDropdownTrigger}
                 onPress={() => setDateDropdownOpen((v) => !v)}
@@ -210,7 +212,7 @@ export default function TransactionFiltersModal({
                             styles.dropdownItemTextActive,
                         ]}
                       >
-                        {DATE_RANGE_LABELS[p]}
+                        {dateRangeLabel(p)}
                       </Text>
                       {p === draft.dateRangePreset && (
                         <Ionicons
@@ -240,7 +242,7 @@ export default function TransactionFiltersModal({
                 </View>
               )}
 
-              <Text style={styles.sectionLabel}>Fund Location</Text>
+              <Text style={styles.sectionLabel}>{t("filters.funds")}</Text>
               {ready ? (
               <>
               <View style={styles.searchBox}>
@@ -249,7 +251,7 @@ export default function TransactionFiltersModal({
                   style={styles.searchInput}
                   value={fundSearch}
                   onChangeText={setFundSearch}
-                  placeholder="Search funds"
+                  placeholder={t("filters.searchFunds")}
                   placeholderTextColor={Colors.textMuted}
                 />
                 {fundSearch.length > 0 && (
@@ -259,7 +261,7 @@ export default function TransactionFiltersModal({
                 )}
               </View>
               {filteredFunds.length === 0 ? (
-                <Text style={styles.emptySearchText}>No matching funds.</Text>
+                <Text style={styles.emptySearchText}>{t("filters.noFunds")}</Text>
               ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
@@ -312,7 +314,7 @@ export default function TransactionFiltersModal({
                 <PillRowsSkeleton perRow={3} />
               )}
 
-              <Text style={styles.sectionLabel}>Expense Categories</Text>
+              <Text style={styles.sectionLabel}>{t("filters.expenseCategories")}</Text>
               {ready ? (
               <>
               <View style={styles.searchBox}>
@@ -321,7 +323,7 @@ export default function TransactionFiltersModal({
                   style={styles.searchInput}
                   value={expenseSearch}
                   onChangeText={setExpenseSearch}
-                  placeholder="Search expense categories"
+                  placeholder={t("filters.searchExpense")}
                   placeholderTextColor={Colors.textMuted}
                 />
                 {expenseSearch.length > 0 && (
@@ -331,7 +333,7 @@ export default function TransactionFiltersModal({
                 )}
               </View>
               {filteredExpenseCategories.length === 0 ? (
-                <Text style={styles.emptySearchText}>No matching categories.</Text>
+                <Text style={styles.emptySearchText}>{t("filters.noCategories")}</Text>
               ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
@@ -393,7 +395,7 @@ export default function TransactionFiltersModal({
                 <PillRowsSkeleton />
               )}
 
-              <Text style={styles.sectionLabel}>Income Categories</Text>
+              <Text style={styles.sectionLabel}>{t("filters.incomeCategories")}</Text>
               {ready ? (
               <>
               <View style={styles.searchBox}>
@@ -402,7 +404,7 @@ export default function TransactionFiltersModal({
                   style={styles.searchInput}
                   value={incomeSearch}
                   onChangeText={setIncomeSearch}
-                  placeholder="Search income categories"
+                  placeholder={t("filters.searchIncome")}
                   placeholderTextColor={Colors.textMuted}
                 />
                 {incomeSearch.length > 0 && (
@@ -412,7 +414,7 @@ export default function TransactionFiltersModal({
                 )}
               </View>
               {filteredIncomeCategories.length === 0 ? (
-                <Text style={styles.emptySearchText}>No matching categories.</Text>
+                <Text style={styles.emptySearchText}>{t("filters.noCategories")}</Text>
               ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
@@ -481,7 +483,7 @@ export default function TransactionFiltersModal({
             ]}
           >
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
-              <Text style={styles.applyBtnText}>Apply Filters</Text>
+              <Text style={styles.applyBtnText}>{t("filters.apply")}</Text>
             </TouchableOpacity>
           </View>
 

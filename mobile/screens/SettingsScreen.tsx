@@ -12,6 +12,8 @@ import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { firstNameFromUser } from "../utils/greeting";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
 import { DEV_TOOLS } from "../constants/devTools";
+import { useTranslation } from "react-i18next";
+import { LANGUAGES } from "../i18n";
 import { generateDemoTransactions } from "../utils/demoTransactions";
 import * as Crypto from "expo-crypto";
 import Constants from "expo-constants";
@@ -46,6 +48,10 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const [creatingTestCategories, setCreatingTestCategories] = useState(false);
   const [addingSamples, setAddingSamples] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const language = useFinanceStore((s) => s.language);
+  const setLanguage = useFinanceStore((s) => s.setLanguage);
+  const { t } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
   const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view), []);
   const generalRef = useTutorialTarget("settings:general", scrollTo);
@@ -60,20 +66,16 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
     if (pendingOps.length > 0) {
       const n = pendingOps.length;
       const proceed = await confirmAsyncWithLabel(
-        "Unsynced changes",
-        `You have ${n} change${n === 1 ? "" : "s"} that haven't synced yet. ${
-          n === 1 ? "It's" : "They're"
-        } saved on this device and won't be lost, but ${
-          n === 1 ? "it" : "they"
-        } won't finish syncing until you're back online and signed in. Sign out anyway?`,
-        "Sign Out Anyway",
+        t("settings.unsyncedTitle"),
+        t("settings.unsyncedSignOut", { count: n }),
+        t("settings.signOutAnyway"),
       );
       if (!proceed) return;
       await signOut();
       return;
     }
 
-    const ok = await confirmAsyncWithLabel("Sign Out", "Are you sure you want to sign out?", "Sign Out");
+    const ok = await confirmAsyncWithLabel(t("settings.signOut"), t("settings.signOutConfirm"), t("settings.signOut"));
     if (!ok) return;
     await signOut();
   };
@@ -83,8 +85,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       await updateSettings(changes);
     } catch (err) {
       await alertAsync(
-        "Couldn't save setting",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("settings.saveFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     }
   };
@@ -95,19 +97,19 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   // queue isn't built for deleting in bulk.
   const handleClearAllTransactions = async () => {
     if (!isConnected) {
-      await alertAsync("You're offline", "Clearing transactions needs an internet connection.");
+      await alertAsync(t("common.offlineTitle"), t("settings.needsInternet"));
       return;
     }
     if (transactions.length === 0) {
-      await alertAsync("Nothing to clear", "You don't have any transactions yet.");
+      await alertAsync(t("settings.nothingToClear"), t("settings.noTransactionsYet"));
       return;
     }
 
     const count = transactions.length;
     const proceed = await confirmAsyncWithLabel(
-      "Clear All Transactions",
-      `This will permanently delete all ${count} transaction${count === 1 ? "" : "s"}. This cannot be undone.`,
-      "Delete All",
+      t("settings.clearAll"),
+      t("settings.clearAllConfirm", { count }),
+      t("settings.deleteAll"),
     );
     if (!proceed) return;
 
@@ -120,8 +122,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       await hydrate();
       if (failedCount > 0) {
         await alertAsync(
-          "Some deletions failed",
-          `${failedCount} transaction${failedCount === 1 ? "" : "s"} couldn't be deleted — try again.`,
+          t("settings.someDeletesFailed"),
+          t("settings.deletesFailed", { count: failedCount }),
         );
       }
     } finally {
@@ -134,14 +136,13 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   // the account for real, so they can be edited and deleted like any other.
   const handleAddSampleTransactions = async () => {
     if (!isConnected) {
-      await alertAsync("You're offline", "Adding sample transactions needs an internet connection.");
+      await alertAsync(t("common.offlineTitle"), t("settings.needsInternet"));
       return;
     }
     const proceed = await confirmAsyncWithLabel(
-      "Add Sample Transactions",
-      "Add 40 random example transactions (4 incomes and 36 expenses) spread over the last two months? " +
-        "They're saved to your account like real ones, so you can change or delete them later.",
-      "Add",
+      t("settings.addSamples"),
+      t("settings.addSamplesConfirm"),
+      t("common.add"),
       { destructive: false },
     );
     if (!proceed) return;
@@ -170,15 +171,15 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       );
       await hydrate();
       await alertAsync(
-        "Sample transactions added",
+        t("settings.samplesAdded"),
         result.failed.length > 0
-          ? `Added ${result.created.length}; ${result.failed.length} couldn't be added.`
-          : `Added ${result.created.length} example transactions.`,
+          ? t("settings.samplesPartly", { added: result.created.length, failed: result.failed.length })
+          : t("settings.samplesAll", { count: result.created.length }),
       );
     } catch (err) {
       await alertAsync(
-        "Couldn't add sample transactions",
-        err instanceof Error ? err.message : "Something went wrong.",
+        t("settings.samplesFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
       );
     } finally {
       setAddingSamples(false);
@@ -230,18 +231,18 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
     <View style={styles.container}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, GlobalStyles.screenPadding]}>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>{t("nav.settings")}</Text>
         </View>
 
         <View ref={generalRef} collapsable={false}>
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Appearance</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.appearance")}</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Ionicons name="contrast-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Theme</Text>
+              <Text style={styles.rowTitle}>{t("settings.theme")}</Text>
             </View>
             <View style={styles.segmented}>
               {(["light", "dark", "system"] as ThemePreference[]).map((option) => (
@@ -256,29 +257,77 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
                       themePreference === option && styles.segmentTextActive,
                     ]}
                   >
-                    {option === "light" ? "Light" : option === "dark" ? "Dark" : "System"}
+                    {t(`settings.theme_${option}`)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setLanguageOpen((v) => !v)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowIcon}>
+              <Ionicons name="language-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{t("settings.language")}</Text>
+              <Text style={styles.rowSubtitle}>
+                {language
+                  ? (LANGUAGES.find((l) => l.code === language)?.name ?? language)
+                  : t("settings.languageAuto")}
+              </Text>
+            </View>
+            <Ionicons
+              name={languageOpen ? "chevron-up" : "chevron-forward"}
+              size={16}
+              color={Colors.textMuted}
+            />
+          </TouchableOpacity>
+
+          {languageOpen && (
+            <View style={styles.dropdown}>
+              {[{ code: null as string | null, name: t("settings.languageAuto") }, ...LANGUAGES].map((l) => {
+                const active = l.code === language;
+                return (
+                  <TouchableOpacity
+                    key={l.code ?? "auto"}
+                    style={[styles.dropdownItem, active && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setLanguage(l.code);
+                      setLanguageOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]}>
+                      {l.name}
+                    </Text>
+                    {active && <Ionicons name="checkmark" size={14} color={Colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>General</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.general")}</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Ionicons name="person-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Display Name</Text>
-              <Text style={styles.rowSubtitle}>Used for the dashboard greeting</Text>
+              <Text style={styles.rowTitle}>{t("settings.displayName")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.displayNameHint")}</Text>
             </View>
             <TextInput
               style={styles.nameInput}
               value={displayNameOverride ?? ""}
               onChangeText={(text) => setDisplayNameOverride(text.trim() ? text : null)}
-              placeholder={firstNameFromUser(session?.user) ?? "Name"}
+              placeholder={firstNameFromUser(session?.user) ?? t("settings.name")}
               placeholderTextColor={Colors.textMuted}
             />
           </View>
@@ -294,7 +343,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="cash-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Currency</Text>
+              <Text style={styles.rowTitle}>{t("settings.currency")}</Text>
               <Text style={styles.rowSubtitle}>{settings.currency}</Text>
             </View>
             <Ionicons
@@ -321,7 +370,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
                       c.code === settings.currency && styles.dropdownItemTextActive,
                     ]}
                   >
-                    {c.code} — {c.label}
+                    {c.code} — {t(`currencies.${c.code}`, { defaultValue: c.label })}
                   </Text>
                   {c.code === settings.currency && (
                     <Ionicons name="checkmark" size={14} color={Colors.primary} />
@@ -338,8 +387,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="eye-off-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Hide Balance</Text>
-              <Text style={styles.rowSubtitle}>Fog the balance until held</Text>
+              <Text style={styles.rowTitle}>{t("settings.hideBalance")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.hideBalanceHint")}</Text>
             </View>
             <Switch
               value={settings.hideBalance}
@@ -355,7 +404,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="time-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Time Format</Text>
+              <Text style={styles.rowTitle}>{t("settings.timeFormat")}</Text>
             </View>
             <View style={styles.segmented}>
               <TouchableOpacity
@@ -398,7 +447,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Date Format</Text>
+              <Text style={styles.rowTitle}>{t("settings.dateFormat")}</Text>
               <Text style={styles.rowSubtitle}>{settings.dateFormat}</Text>
             </View>
             <Ionicons
@@ -437,7 +486,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         </View>
         </View>
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Categories & Storage</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.categoriesStorage")}</Text>
         <View style={styles.card} ref={categoriesRef} collapsable={false}>
           <TouchableOpacity
             style={styles.row}
@@ -448,8 +497,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="pricetags-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Manage Categories</Text>
-              <Text style={styles.rowSubtitle}>Expenses, income and funds</Text>
+              <Text style={styles.rowTitle}>{t("settings.manageCategories")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.manageCategoriesHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
@@ -461,14 +510,14 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Import Transactions from CSV</Text>
-              <Text style={styles.rowSubtitle}>Bring in history from another app</Text>
+              <Text style={styles.rowTitle}>{t("settings.importCsv")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.importCsvHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Danger Zone</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.dangerZone")}</Text>
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.row}
@@ -481,9 +530,9 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
             <View style={styles.rowInfo}>
               <Text style={[styles.rowTitle, { color: Colors.expense }]}>
-                {clearingTransactions ? "Clearing…" : "Clear All Transactions"}
+                {clearingTransactions ? t("settings.clearing") : t("settings.clearAll")}
               </Text>
-              <Text style={styles.rowSubtitle}>Permanently deletes every transaction</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.clearAllHint")}</Text>
             </View>
           </TouchableOpacity>
 
@@ -500,9 +549,9 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
             <View style={styles.rowInfo}>
               <Text style={styles.rowTitle}>
-                {addingSamples ? "Adding…" : "Add Sample Transactions"}
+                {addingSamples ? t("settings.adding") : t("settings.addSamples")}
               </Text>
-              <Text style={styles.rowSubtitle}>40 random incomes and expenses, for testing</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.addSamplesHint")}</Text>
             </View>
           </TouchableOpacity>
 
@@ -530,14 +579,14 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
           )}
         </View>
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>Account</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.account")}</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.rowIcon}>
               <Ionicons name="person-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Signed in as</Text>
+              <Text style={styles.rowTitle}>{t("settings.signedInAs")}</Text>
               <Text style={styles.rowSubtitle}>{session?.user.email}</Text>
             </View>
           </View>
@@ -549,12 +598,12 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="log-out-outline" size={18} color={Colors.expense} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={[styles.rowTitle, { color: Colors.expense }]}>Sign Out</Text>
+              <Text style={[styles.rowTitle, { color: Colors.expense }]}>{t("settings.signOut")}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>About</Text>
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.about")}</Text>
         <View style={styles.card} ref={aboutRef} collapsable={false}>
           <TouchableOpacity
             style={styles.row}
@@ -565,8 +614,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Send Feedback</Text>
-              <Text style={styles.rowSubtitle}>Report a problem or suggest an idea</Text>
+              <Text style={styles.rowTitle}>{t("settings.feedback")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.feedbackHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
@@ -578,8 +627,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="school-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Take the Tour Again</Text>
-              <Text style={styles.rowSubtitle}>A quick walk through the whole app</Text>
+              <Text style={styles.rowTitle}>{t("settings.replayTour")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.replayTourHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
@@ -591,7 +640,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>Version</Text>
+              <Text style={styles.rowTitle}>{t("settings.version")}</Text>
             </View>
             <Text style={styles.rowSubtitle}>{Constants.expoConfig?.version ?? "—"}</Text>
           </View>

@@ -6,16 +6,9 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { Transaction } from "../store/useFinanceStore";
 import { getTopExpenses } from "../utils/insights";
 import TransactionList from "./SwipeableTransactionList";
+import { useTranslation } from "react-i18next";
 
 type RangePreset = "7d" | "30d" | "90d" | "365d" | "all";
-
-const RANGE_LABELS: Record<RangePreset, string> = {
-  "7d": "Last 7 Days",
-  "30d": "Last 30 Days",
-  "90d": "Last 90 Days",
-  "365d": "Last 365 Days",
-  all: "All Time",
-};
 
 const RANGE_DAYS: Record<RangePreset, number | null> = {
   "7d": 7,
@@ -39,6 +32,7 @@ export default function TopExpensesCard({
   onEditTransaction,
 }: TopExpensesCardProps) {
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const [range, setRange] = useState<RangePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -55,7 +49,7 @@ export default function TopExpensesCard({
         onPress={() => setDropdownOpen((v) => !v)}
         activeOpacity={0.7}
       >
-        <Text style={styles.rangeText}>{RANGE_LABELS[range]}</Text>
+        <Text style={styles.rangeText}>{t(`ranges.${range}`)}</Text>
         <Ionicons
           name={dropdownOpen ? "chevron-up" : "chevron-down"}
           size={14}
@@ -83,7 +77,7 @@ export default function TopExpensesCard({
                   p === range && styles.dropdownItemTextActive,
                 ]}
               >
-                {RANGE_LABELS[p]}
+                {t(`ranges.${p}`)}
               </Text>
               {p === range && (
                 <Ionicons name="checkmark" size={14} color={Colors.primary} />
@@ -101,7 +95,7 @@ export default function TopExpensesCard({
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No expenses in this range yet.</Text>
+          <Text style={styles.emptyText}>{t("dashboard.noExpensesInRange")}</Text>
         </View>
       )}
     </View>

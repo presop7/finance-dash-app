@@ -1,5 +1,6 @@
 import { AlertRule, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
+import i18n from "../i18n";
 
 export type TriggeredAlert = {
   rule: AlertRule;
@@ -50,8 +51,8 @@ export function evaluateAlerts(
         if (newKey !== rule.lastTriggeredKey) {
           triggered.push({
             rule,
-            title: "Low Balance",
-            body: `Your balance dropped below ${rule.amount.toFixed(2)}.`,
+            title: i18n.t("alerts.lowBalance"),
+            body: i18n.t("alerts.lowBalanceBody", { amount: rule.amount.toFixed(2) }),
             newKey,
             notify: crossed,
           });
@@ -64,8 +65,8 @@ export function evaluateAlerts(
         if (newKey !== rule.lastTriggeredKey) {
           triggered.push({
             rule,
-            title: "Balance Above Target",
-            body: `Your balance is now above ${rule.amount.toFixed(2)}.`,
+            title: i18n.t("alerts.balanceAbove"),
+            body: i18n.t("alerts.balanceAboveBody", { amount: rule.amount.toFixed(2) }),
             newKey,
             notify: crossed,
           });
@@ -78,8 +79,8 @@ export function evaluateAlerts(
         if (spent > rule.amount && rule.lastTriggeredKey !== key) {
           triggered.push({
             rule,
-            title: "Monthly Expenses Over Budget",
-            body: `You've spent ${spent.toFixed(2)} this month, over your ${rule.amount.toFixed(2)} limit.`,
+            title: i18n.t("alerts.monthlyExpense"),
+            body: i18n.t("alerts.monthlyExpenseBody", { spent: spent.toFixed(2), limit: rule.amount.toFixed(2) }),
             newKey: key,
             notify: true,
           });
@@ -92,8 +93,8 @@ export function evaluateAlerts(
         if (earned > rule.amount && rule.lastTriggeredKey !== key) {
           triggered.push({
             rule,
-            title: "Monthly Income Over Target",
-            body: `You've earned ${earned.toFixed(2)} this month, over your ${rule.amount.toFixed(2)} target.`,
+            title: i18n.t("alerts.monthlyIncome"),
+            body: i18n.t("alerts.monthlyIncomeBody", { earned: earned.toFixed(2), target: rule.amount.toFixed(2) }),
             newKey: key,
             notify: true,
           });
@@ -112,11 +113,11 @@ export function evaluateAlerts(
         if (spent > rule.amount && rule.lastTriggeredKey !== key) {
           const categories =
             rule.categoryType === "expense" ? expenseCategories : incomeCategories;
-          const label = categories.find((c) => c.id === rule.categoryId)?.label ?? "Category";
+          const label = categories.find((c) => c.id === rule.categoryId)?.label ?? i18n.t("addTx.category");
           triggered.push({
             rule,
-            title: "Category Limit Reached",
-            body: `${label} reached ${spent.toFixed(2)}, over your ${rule.amount.toFixed(2)} limit.`,
+            title: i18n.t("alerts.categoryLimit"),
+            body: i18n.t("alerts.categoryLimitBody", { category: label, spent: spent.toFixed(2), limit: rule.amount.toFixed(2) }),
             newKey: key,
             notify: true,
           });

@@ -6,7 +6,6 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import {
-  TIMEFRAME_LABELS,
   TIMEFRAME_PRESETS,
   TimeframePreset,
   getRangeForPreset,
@@ -16,6 +15,7 @@ import {
 import { formatCurrency } from "../utils/currency";
 import HoldPressable from "./HoldPressable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
+import { useTranslation } from "react-i18next";
 
 // How long the card must be held before a hidden balance is shown.
 const REVEAL_HOLD_MS = 300;
@@ -28,6 +28,7 @@ type BalanceCardProps = {
 export default function BalanceCard({ transactions, onNavigateToAnalytics }: BalanceCardProps) {
   const settings = useFinanceStore((s) => s.settings);
   const Colors = useThemeColors();
+  const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const [preset, setPreset] = useState<TimeframePreset>("30d");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -129,7 +130,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
         onPressOut={() => setRevealed(false)}
       >
       {/* Main Balance */}
-      <Text style={styles.balanceLabel}>Total Balance</Text>
+      <Text style={styles.balanceLabel}>{t("dashboard.totalBalance")}</Text>
       <Animated.Text style={[styles.balanceAmount, { opacity: fadeAnim }]}>
         {displayedMasked ? "•••••" : formatCurrency(balance, settings.currency)}
       </Animated.Text>
@@ -143,7 +144,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
         onPress={() => setDropdownOpen((v) => !v)}
         activeOpacity={0.7}
       >
-        <Text style={styles.timeframeText}>{TIMEFRAME_LABELS[preset]}</Text>
+        <Text style={styles.timeframeText}>{t(`ranges.${preset}`)}</Text>
         <Ionicons
           name={dropdownOpen ? "chevron-up" : "chevron-down"}
           size={14}
@@ -171,7 +172,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
                   p === preset && styles.dropdownItemTextActive,
                 ]}
               >
-                {TIMEFRAME_LABELS[p]}
+                {t(`ranges.${p}`)}
               </Text>
               {p === preset && (
                 <Ionicons name="checkmark" size={14} color="#fff" />
@@ -189,7 +190,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
           disabled={!onNavigateToAnalytics}
           onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "income" })}
         >
-          <Text style={styles.colLabel}>Income</Text>
+          <Text style={styles.colLabel}>{t("common.income")}</Text>
           <Animated.Text style={[styles.colAmount, { opacity: fadeAnim }]}>
             {displayedMasked ? "•••" : `+${stats.income.toFixed(2)}`}
           </Animated.Text>
@@ -208,7 +209,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
           disabled={!onNavigateToAnalytics}
           onHoldComplete={() => onNavigateToAnalytics?.({ mainType: "expense" })}
         >
-          <Text style={styles.colLabel}>Expenses</Text>
+          <Text style={styles.colLabel}>{t("common.expenses")}</Text>
           <Animated.Text style={[styles.colAmount, styles.expenseAmount, { opacity: fadeAnim }]}>
             {displayedMasked ? "•••" : `-${stats.expense.toFixed(2)}`}
           </Animated.Text>
@@ -222,7 +223,7 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
         <View style={styles.separator} />
 
         <View style={styles.col}>
-          <Text style={styles.colLabel}>Savings</Text>
+          <Text style={styles.colLabel}>{t("dashboard.savings")}</Text>
           <Animated.Text
             style={[
               styles.colAmount,

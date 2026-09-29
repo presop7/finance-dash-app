@@ -1,3 +1,5 @@
+// Translations — initialised before anything renders.
+import "./i18n";
 import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -51,6 +53,8 @@ import {
 import type { TutorialEvent } from "./constants/tutorialSteps";
 import { accountName } from "./utils/greeting";
 import { DEV_TOOLS } from "./constants/devTools";
+import { useTranslation } from "react-i18next";
+import { applyLanguage } from "./i18n";
 import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
@@ -114,25 +118,25 @@ const NAV_ITEMS: {
 }[] = [
   {
     name: "Dashboard",
-    label: "Dashboard",
+    label: "nav.dashboard",
     icon: "home-outline",
     activeIcon: "home",
   },
   {
     name: "Analytics",
-    label: "Analytics",
+    label: "nav.analytics",
     icon: "bar-chart-outline",
     activeIcon: "bar-chart",
   },
   {
     name: "Alerts",
-    label: "Reminders",
+    label: "nav.reminders",
     icon: "notifications-outline",
     activeIcon: "notifications",
   },
   {
     name: "Settings",
-    label: "Settings",
+    label: "nav.settings",
     icon: "settings-outline",
     activeIcon: "settings",
   },
@@ -204,6 +208,14 @@ function RootNavigator() {
   // moment — e.g. a settings toggle landing locally just before a stale
   // in-flight hydrate() overwrites it back.
   const userId = session?.user.id ?? null;
+  const { t } = useTranslation();
+
+  // The saved language (or the phone's, when none is chosen).
+  const language = useFinanceStore((s) => s.language);
+  useEffect(() => {
+    applyLanguage(language);
+    useFinanceStore.getState().relabelLocked();
+  }, [language]);
 
   useEffect(wakeBackend, []);
 
@@ -255,7 +267,7 @@ function RootNavigator() {
         <ActivityIndicator color={Colors.primary} />
         {slowLoad && (
           <Text style={styles.errorText}>
-            Starting up — the first load can take up to a minute.
+            {t("app.startingUp")}
           </Text>
         )}
       </View>
@@ -266,9 +278,9 @@ function RootNavigator() {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.errorText}>{syncError ?? "Couldn't load your data"}</Text>
+        <Text style={styles.errorText}>{syncError ?? t("app.loadFailed")}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={hydrate}>
-          <Text style={styles.retryBtnText}>Retry</Text>
+          <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -276,13 +288,6 @@ function RootNavigator() {
 
   return <AppContent />;
 }
-
-const unsyncedAdvice = (count: number) =>
-  `Your changes are saved on this phone and will sync automatically as soon as you're back online.\n\n` +
-  `Until ${count === 1 ? "it syncs" : "they sync"}:\n` +
-  `• ${count === 1 ? "It exists" : "They exist"} only on this device — not on your other devices yet.\n` +
-  `• Avoid signing out, uninstalling, or clearing the app's data. That's the only way unsynced changes can be lost.\n\n` +
-  `You can keep adding, editing and deleting transactions as normal — everything is queued and sent in order once you reconnect.`;
 
 // Status line above the tab bar. Offline and failed states get a colour so they
 // actually get noticed, and are tappable for an explanation of what's at risk;
@@ -295,6 +300,7 @@ function SyncIndicator() {
   const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
+  const { t } = useTranslation();
 
   if (!isConnected) {
     return (
@@ -303,18 +309,18 @@ function SyncIndicator() {
         activeOpacity={0.7}
         onPress={() =>
           alertAsync(
-            "You're offline",
+            t("common.offlineTitle"),
             pendingCount > 0
-              ? unsyncedAdvice(pendingCount)
-              : "Anything you add, edit or delete while offline is saved on this phone and syncs automatically once you're back online.\n\nJust avoid signing out or uninstalling the app before it syncs — that's the only way unsynced changes can be lost.",
+              ? t("app.unsyncedInfo", { count: pendingCount })
+              : t("app.offlineInfo"),
           )
         }
       >
         <Ionicons name="cloud-offline-outline" size={13} color={Colors.warningText} />
         <Text style={[styles.syncText, styles.syncTextWarning]}>
           {pendingCount > 0
-            ? `You're offline — ${pendingCount} change${pendingCount === 1 ? "" : "s"} waiting to sync`
-            : "You're offline — changes will sync when reconnected"}
+            ? t("app.offlineBar", { count: pendingCount })
+            : t("app.offlineBarEmpty")}
         </Text>
         <Ionicons name="information-circle-outline" size={13} color={Colors.warningText} />
       </TouchableOpacity>
@@ -327,17 +333,12 @@ function SyncIndicator() {
         style={[styles.syncBar, styles.syncBarError]}
         activeOpacity={0.7}
         onPress={() =>
-          alertAsync(
-            "Some changes haven't synced",
-            `${failedCount} change${failedCount === 1 ? "" : "s"} couldn't reach the server yet.\n\n` +
-              unsyncedAdvice(failedCount) +
-              `\n\nThe app retries automatically whenever it syncs — reopening it is usually enough.`,
-          )
+          alertAsync(t("app.failedTitle"), t("app.failedInfo", { count: failedCount }))
         }
       >
         <Ionicons name="alert-circle-outline" size={13} color={Colors.errorText} />
         <Text style={[styles.syncText, styles.syncTextError]}>
-          {failedCount} change{failedCount === 1 ? "" : "s"} couldn't sync — tap to learn more
+          {t("app.failedBar", { count: failedCount })}
         </Text>
       </TouchableOpacity>
     );
@@ -347,7 +348,7 @@ function SyncIndicator() {
     return (
       <View style={styles.syncBar}>
         <Text style={styles.syncText}>
-          Syncing {pendingCount} change{pendingCount === 1 ? "" : "s"}…
+          {t("app.syncingCount", { count: pendingCount })}
         </Text>
       </View>
     );
@@ -356,7 +357,7 @@ function SyncIndicator() {
   if (status === "refreshing") {
     return (
       <View style={styles.syncBar}>
-        <Text style={styles.syncText}>Syncing…</Text>
+        <Text style={styles.syncText}>{t("app.syncing")}</Text>
       </View>
     );
   }
@@ -364,7 +365,7 @@ function SyncIndicator() {
   if (syncError && status === "loaded") {
     return (
       <View style={styles.syncBar}>
-        <Text style={styles.syncText}>Showing saved data — sync failed, will retry</Text>
+        <Text style={styles.syncText}>{t("app.showingSaved")}</Text>
       </View>
     );
   }
@@ -381,6 +382,7 @@ function CustomTabBar({
   onAddPress,
 }: BottomTabBarProps & { onAddPress: () => void }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
 
@@ -416,7 +418,7 @@ function CustomTabBar({
           color={isFocused ? Colors.primary : Colors.textMuted}
         />
         <Text style={[styles.navLabel, isFocused && styles.navLabelActive]}>
-          {item.label}
+          {t(item.label)}
         </Text>
       </TouchableOpacity>
     );

@@ -68,19 +68,21 @@ import {
 } from "../utils/filterTransactions";
 import { getCurrency } from "../constants/currencies";
 import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { useTranslation } from "react-i18next";
 
 // Roughly a screenful of rows below the header — enough that the first
 // commit after a filter change looks complete while the rest streams in.
 const FIRST_SLICE_ROWS = 6;
 
-const MAIN_TYPE_OPTIONS: { key: MainTypeFilter; label: string }[] = [
-  { key: "expense", label: "Expenses" },
-  { key: "income", label: "Income" },
-  { key: "all", label: "All" },
+// Translation keys; the labels are looked up at render (language can change).
+const MAIN_TYPE_OPTION_KEYS: { key: MainTypeFilter; labelKey: string }[] = [
+  { key: "expense", labelKey: "common.expenses" },
+  { key: "income", labelKey: "common.income" },
+  { key: "all", labelKey: "common.all" },
 ];
 
 // Indexed by the Summary card's carousel page (0 = totals bars, 1 = pie).
-const SUMMARY_CARD_TITLES = ["Summary", "Category Breakdown", "Category Breakdown"];
+const SUMMARY_CARD_TITLE_KEYS = ["analytics.summary", "analytics.breakdown", "analytics.breakdown"];
 
 export type AnalyticsInitialFilter = {
   mainType?: MainTypeFilter;
@@ -110,6 +112,11 @@ function AnalyticsScreen({
 }: AnalyticsScreenProps) {
   const { transactions, settings } = useFinanceStore();
   const Colors = useThemeColors();
+  const { t } = useTranslation();
+  const mainTypeOptions = useMemo(
+    () => MAIN_TYPE_OPTION_KEYS.map((o) => ({ key: o.key, label: t(o.labelKey) })),
+    [t],
+  );
   const styles = getThemedStyles(createStyles, Colors);
   // Same referential-stability reasoning as before these were theme-aware
   // module-scope constants: recomputed only when styles itself changes
@@ -685,9 +692,9 @@ function AnalyticsScreen({
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     const ok = await confirmAsyncWithLabel(
-      `Delete ${ids.length} Transaction${ids.length === 1 ? "" : "s"}`,
-      `Delete ${ids.length} selected transaction${ids.length === 1 ? "" : "s"}? This cannot be undone.`,
-      "Delete",
+      t("analytics.bulkDeleteTitle", { count: ids.length }),
+      t("analytics.bulkDeleteConfirm", { count: ids.length }),
+      t("common.delete"),
     );
     if (!ok) return;
 
@@ -715,28 +722,28 @@ function AnalyticsScreen({
     const sharedType = selectedTypes.size === 1 ? [...selectedTypes][0] : null;
 
     Alert.alert(
-      "Bulk Edit",
-      `Apply to ${selectedIds.size} selected transaction${selectedIds.size === 1 ? "" : "s"}`,
+      t("analytics.bulkEdit"),
+      t("analytics.bulkEditApply", { count: selectedIds.size }),
       [
         {
-          text: "Change Fund",
+          text: t("analytics.changeFund"),
           onPress: () => onOpenCategoryPicker?.("fund", (id) => applyBulkField("fund_category_id", id)),
         },
         sharedType
           ? {
-              text: "Change Category",
+              text: t("analytics.changeCategory"),
               onPress: () =>
                 onOpenCategoryPicker?.(sharedType, (id) => applyBulkField("category_id", id)),
             }
           : {
-              text: "Change Category",
+              text: t("analytics.changeCategory"),
               onPress: () =>
                 alertAsync(
-                  "Can't bulk-change category",
-                  "The selected transactions are a mix of expense and income, which use separate category lists — select transactions of just one type to change their category together.",
+                  t("analytics.mixedTitle"),
+                  t("analytics.mixedInfo"),
                 ),
             },
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
       ],
     );
   };
@@ -772,10 +779,10 @@ function AnalyticsScreen({
   // Shared by the pie and bar chart pages — same wording either way.
   const chartEmptyLabel =
     mainType === "income"
-      ? "No income in this range"
+      ? t("analytics.emptyIncome")
       : mainType === "expense"
-      ? "No expenses in this range"
-      : "No transactions in this range";
+      ? t("analytics.emptyExpenses")
+      : t("analytics.emptyAll");
 
   // Bars grow from empty and amounts count up from 0 to the real value
   // whenever the summary changes (switching the Expense/Income/All tab,
@@ -874,7 +881,7 @@ function AnalyticsScreen({
     <View style={styles.container}>
       <View style={[styles.header, GlobalStyles.screenPadding]}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.headerTitle}>Analytics</Text>
+          <Text style={styles.headerTitle}>{t("nav.analytics")}</Text>
           <View style={styles.headerBtnGroup}>
             {/* Quick undo for the wedge-hold category shortcut (and any
                 other active filter) without a trip through the filters
@@ -885,7 +892,7 @@ function AnalyticsScreen({
                 style={styles.quickResetBtn}
                 onPress={handleQuickResetFilters}
                 hitSlop={6}
-                accessibilityLabel="Clear filters"
+                accessibilityLabel={t("analytics.clearFilters")}
               >
                 <Ionicons name="close-outline" size={16} color={Colors.textMuted} />
               </TouchableOpacity>
@@ -897,7 +904,7 @@ function AnalyticsScreen({
               >
                 <Ionicons name="options-outline" size={14} color={Colors.primary} />
                 <Text style={styles.filterBtnText}>
-                  Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                  {t("analytics.filters")}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -906,7 +913,7 @@ function AnalyticsScreen({
 
         <View ref={toggleTargetRef} collapsable={false}>
           <SlidingToggle
-            options={MAIN_TYPE_OPTIONS}
+            options={mainTypeOptions}
             value={toggleType}
             onChange={handleTypeChange}
             loading={isTypePending || (!showAll && !animStarted)}
@@ -943,7 +950,7 @@ function AnalyticsScreen({
               onPress={exitSelectMode}
               style={styles.selectDiscardBtn}
             >
-              <Text style={styles.selectDiscardText}>Discard</Text>
+              <Text style={styles.selectDiscardText}>{t("common.discard")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleBulkEdit}
@@ -954,7 +961,7 @@ function AnalyticsScreen({
               disabled={selectedIds.size === 0}
             >
               <Ionicons name="pricetag-outline" size={14} color={Colors.primary} />
-              <Text style={styles.selectEditText}>Bulk Edit</Text>
+              <Text style={styles.selectEditText}>{t("analytics.bulkEdit")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleBulkDelete}
@@ -965,7 +972,7 @@ function AnalyticsScreen({
               disabled={selectedIds.size === 0}
             >
               <Ionicons name="trash-outline" size={14} color="#fff" />
-              <Text style={styles.selectDeleteText}>Delete</Text>
+              <Text style={styles.selectDeleteText}>{t("common.delete")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1098,7 +1105,7 @@ function AnalyticsScreen({
           <>
             <View ref={summaryTargetRef} collapsable={false}>
             <CollapsibleCard
-              title={SUMMARY_CARD_TITLES[summaryPage] ?? SUMMARY_CARD_TITLES[0]}
+              title={t(SUMMARY_CARD_TITLE_KEYS[summaryPage] ?? SUMMARY_CARD_TITLE_KEYS[0])}
               reorderable={false}
               collapsed={summaryCollapsed}
               onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
@@ -1113,7 +1120,7 @@ function AnalyticsScreen({
                       <View style={styles.barRow}>
                         <View style={styles.barLabelRow}>
                           <View style={[styles.dot, { backgroundColor: Colors.income }]} />
-                          <Text style={styles.barLabel}>Income</Text>
+                          <Text style={styles.barLabel}>{t("common.income")}</Text>
                           <CountUpAmount
                             target={incomeTarget}
                             progress={summaryProgress}
@@ -1134,7 +1141,7 @@ function AnalyticsScreen({
                       <View style={styles.barRow}>
                         <View style={styles.barLabelRow}>
                           <View style={[styles.dot, { backgroundColor: Colors.expense }]} />
-                          <Text style={styles.barLabel}>Expenses</Text>
+                          <Text style={styles.barLabel}>{t("common.expenses")}</Text>
                           <CountUpAmount
                             target={expenseTarget}
                             progress={summaryProgress}
@@ -1153,7 +1160,7 @@ function AnalyticsScreen({
 
                     <View style={styles.netRow}>
                       <Text style={styles.netLabel}>
-                        {mainType === "expense" ? "Expenses" : mainType === "income" ? "Incomes" : "Net"}
+                        {mainType === "expense" ? t("common.expenses") : mainType === "income" ? t("common.income") : t("analytics.net")}
                       </Text>
                       <CountUpAmount
                         target={netTarget}
@@ -1188,7 +1195,7 @@ function AnalyticsScreen({
             </View>
 
             <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
-              All Transactions ({filtered.length})
+              {t("analytics.allTransactions", { count: filtered.length })}
             </Text>
           </>
         }
