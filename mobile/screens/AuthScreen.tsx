@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -40,6 +40,21 @@ export default function AuthScreen() {
   const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [signedUpEmail, setSignedUpEmail] = useState<string | null>(null);
+  // Landed here from an email link (signup confirmation, or a web Google
+  // return) opened in a different browser/app than the one that started it —
+  // common on iPhone, where the installed web app and Safari keep separate
+  // storage, so the session this link may have set up elsewhere isn't here.
+  // The confirmation itself already happened server-side regardless, so this
+  // just points the user at the sign-in form instead of leaving them looking
+  // at a plain, unexplained sign-in screen.
+  const [confirmedFromEmail, setConfirmedFromEmail] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (!new URLSearchParams(window.location.search).has("code")) return;
+    setConfirmedFromEmail(true);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const translateAnim = useRef(new Animated.Value(0)).current;
@@ -150,6 +165,13 @@ export default function AuthScreen() {
               </View>
             ) : (
               <>
+                {confirmedFromEmail && (
+                  <View style={styles.confirmBox}>
+                    <Ionicons name="checkmark-circle-outline" size={22} color={Colors.income} />
+                    <Text style={styles.confirmText}>{t("auth.confirmedFromEmail")}</Text>
+                  </View>
+                )}
+
                 {mode === "sign-up" && (
                   <View style={styles.field}>
                     <Text style={styles.fieldLabel}>{t("auth.nameLabel")}</Text>
@@ -254,24 +276,20 @@ function createStyles(Colors: ColorsType) {
   },
   scrollContent: {
     flexGrow: 1,
-    minHeight: "100%",
   },
-  // Centered within the upper half, above the form below the midline.
+  // Sized to its content (not flexed to half the screen — that pushed
+  // everything below the fold on a form with this many fields) with a
+  // modest, fixed clearance from the status bar.
   brandSection: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    paddingTop: 32,
     paddingBottom: 20,
   },
-  // Top-anchored within the lower half — the interactive content lives
-  // below center, inset from the edges so it clears Android's side/bottom
-  // gesture zones and stays reachable with one thumb.
+  // Inset from the edges so it clears Android's side/bottom gesture zones
+  // and stays reachable with one thumb.
   formSection: {
-    flex: 1,
-    justifyContent: "flex-start",
-    paddingTop: 20,
     paddingHorizontal: 28,
-    paddingBottom: 56,
+    paddingBottom: 32,
   },
   formSectionWide: {
     width: "60%",
@@ -280,10 +298,10 @@ function createStyles(Colors: ColorsType) {
   // The app's own icon, with the same rounded-square look as on the home screen.
   logo: {
     alignSelf: "center",
-    width: 96,
-    height: 96,
-    borderRadius: 22,
-    marginBottom: 15,
+    width: 80,
+    height: 80,
+    borderRadius: 18,
+    marginBottom: 12,
   },
   brandTitle: {
     fontSize: 26,
@@ -304,7 +322,7 @@ function createStyles(Colors: ColorsType) {
     color: Colors.textSecondary,
     textAlign: "center",
     marginTop: 6,
-    marginBottom: 32,
+    marginBottom: 22,
   },
   field: {
     marginBottom: 16,

@@ -9,6 +9,7 @@
 import "intl-pluralrules"; // plural rules for engines without Intl.PluralRules (Hermes)
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { getLocales } from "expo-localization";
 import en from "./locales/en";
 
 // Shown in the Settings language picker, in their own language.
@@ -44,10 +45,16 @@ const LOADERS: Record<string, () => Promise<{ default: object }>> = {
 const supported = (code: string) => LANGUAGES.some((l) => l.code === code);
 
 // The phone's (or browser's) own language, if the app has it; else English.
+// getLocales() reads the OS setting directly (Localization on native, the
+// browser on web) — Hermes' own Intl locale isn't reliable on Android and
+// can report "en" regardless of the device's real language, which is what
+// this replaced. Locales come back in the user's own preference order, so a
+// second- or third-choice language is used before falling back to English.
 export function deviceLanguage(): string {
-  const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? "en";
-  const code = locale.split(/[-_]/)[0].toLowerCase();
-  return supported(code) ? code : "en";
+  for (const { languageCode } of getLocales()) {
+    if (languageCode && supported(languageCode.toLowerCase())) return languageCode.toLowerCase();
+  }
+  return "en";
 }
 
 i18n.use(initReactI18next).init({
