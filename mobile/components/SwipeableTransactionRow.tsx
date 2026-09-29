@@ -35,13 +35,15 @@ type SwipeableTransactionRowProps = {
 
 // The action panels are purely visual now — there's no tap target, only a
 // full swipe triggers anything. Dragged less than this and releasing just
-// snaps back. Kept just past the action icon's own 80px box (ACTION_WIDTH)
-// rather than requiring a near-edge-of-screen drag — "armed" feedback below
-// (the icon growing further, a darkening overlay) kicks in at that same box
-// boundary, so crossing it reads as one deliberate "you've gone far enough"
-// moment instead of the visual cue and the actual trigger disagreeing.
+// snaps back. It was 100px; cut by a quarter because a full drag that long
+// was hard for some people to finish.
 const ACTION_WIDTH = 80;
-const FULL_SWIPE_DISTANCE = ACTION_WIDTH + 20;
+const FULL_SWIPE_DISTANCE = 75;
+// progress (see below) is measured in panel widths, so this is where the
+// trigger sits on that scale. The "armed" cue — icon at full size, the
+// darkening overlay — lands exactly here, so what the row shows and what
+// releasing will do always agree.
+const ARMED = FULL_SWIPE_DISTANCE / ACTION_WIDTH;
 
 // A swipe only starts from the outer quarter of the row on either side, so a
 // drag that starts in the middle half is always free to scroll the list.
@@ -66,11 +68,11 @@ function ActiveSwipeActionPanel({
 }) {
   const scaleStyle = useAnimatedStyle(() => ({
     transform: [
-      { scale: interpolate(progress.value, [0, 1, 1.3], [0.5, 1, 1.3], Extrapolation.CLAMP) },
+      { scale: interpolate(progress.value, [0, ARMED, ARMED + 0.3], [0.5, 1, 1.3], Extrapolation.CLAMP) },
     ],
   }));
   const overlayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.85, 1], [0, 0.18], Extrapolation.CLAMP),
+    opacity: interpolate(progress.value, [ARMED - 0.15, ARMED], [0, 0.18], Extrapolation.CLAMP),
   }));
 
   return (
@@ -176,7 +178,38 @@ function SwipeableTransactionRow({
 
   // Flips once, on this row's first drag, and stays — see SwipeActionPanel.
   const [panelsActive, setPanelsActive] = useState(false);
-  const activatePanels = useCallback(() => setPanelsActive(true), []);
+  const draggedRef = useRef(false);
+  const handleDragStart = useCallback(() => {
+    draggedRef.current = true;
+    setPanelsActive(true);
+  }, []);
+
+  // Swipeable only springs the row back in its own pan's onEnd. When that
+  // pan is interrupted instead of ending normally — the browser taking the
+  // touch over to scroll, the list re-rendering mid-drag — the row could be
+  // left sitting half-open. This watches the finger itself, alongside the
+  // swipe rather than competing with it, and once it lifts, closes the row.
+  // Always correct: a row never stays open (a completed swipe fires its
+  // action and closes anyway), so closing again is at most a no-op.
+  const releaseGuard = useMemo(
+    () =>
+      Gesture.Manual()
+        .runOnJS(true)
+        .onTouchesUp((_e, manager) => {
+          manager.fail(); // never activates: it only watches
+          if (!draggedRef.current) return;
+          draggedRef.current = false;
+          swipeableRef.current?.close();
+        })
+        .onTouchesCancelled((_e, manager) => {
+          manager.fail(); // never activates: it only watches
+          if (!draggedRef.current) return;
+          draggedRef.current = false;
+          swipeableRef.current?.close();
+        }),
+    [],
+  );
+  const rowGestures = useMemo(() => Gesture.Simultaneous(edgeGate, releaseGuard), [edgeGate, releaseGuard]);
 
   const renderLeftActions = (progress: SharedValue<number>) => (
     <SwipeActionPanel
@@ -201,7 +234,7 @@ function SwipeableTransactionRow({
     // none`, which stops the browser scrolling when a finger starts on a
     // row — the "scroll" then reads as a hold. pan-y keeps vertical
     // scrolling with the browser, same as Swipeable's own detector.
-    <GestureDetector gesture={edgeGate} touchAction="pan-y">
+    <GestureDetector gesture={rowGestures} touchAction="pan-y">
     <View
       collapsable={false}
       onLayout={(e) => {
@@ -211,9 +244,10 @@ function SwipeableTransactionRow({
     <Swipeable
       ref={swipeableRef}
       requireExternalGestureToFail={edgeGate}
+      simultaneousWithExternalGesture={releaseGuard}
       renderLeftActions={renderLeftActions}
       renderRightActions={renderRightActions}
-      onSwipeableOpenStartDrag={activatePanels}
+      onSwipeableOpenStartDrag={handleDragStart}
       // Below this, releasing always springs back closed — nothing settles
       // "open" short of a genuine full swipe.
       leftThreshold={FULL_SWIPE_DISTANCE}

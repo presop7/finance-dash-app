@@ -46,6 +46,7 @@ export default function SwipeableTransactionList({
           onPress={onTransactionPress}
           onEdit={onEdit}
           isLast={index === transactions.length - 1}
+          style={styles.row}
         />
       ))}
     </View>
@@ -66,6 +67,11 @@ function createStyles(Colors: ColorsType) {
     // bottom edge.
     overflow: "hidden",
     ...GlobalStyles.shadow,
+  },
+  // A solid row, like Analytics' — slides over the action panel as one strip.
+  // Left transparent, the panel's color showed through the text mid-swipe.
+  row: {
+    backgroundColor: Colors.surface,
   },
   });
 }

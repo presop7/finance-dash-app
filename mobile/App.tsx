@@ -103,6 +103,33 @@ function navigateToAnalytics(filter: AnalyticsInitialFilter) {
   if (navigationRef.isReady()) navigationRef.navigate("Analytics", { filter });
 }
 
+// Web: the browser's back button / Android's back gesture returns to the
+// Dashboard from any other tab, like the phone apps, instead of leaving the
+// app. Switching tabs adds no browser history on its own, so there was
+// nothing inside the app for "back" to go to. Leaving the Dashboard adds one
+// history entry (same URL); back consumes it and shows the Dashboard, and
+// from the Dashboard back leaves as usual. Returning to the Dashboard by tab
+// removes the entry again, so it never takes two backs to exit.
+let webBackEntry = false;
+function syncWebBack() {
+  if (Platform.OS !== "web") return;
+  const onDashboard = navigationRef.getCurrentRoute()?.name === "Dashboard";
+  if (!onDashboard && !webBackEntry) {
+    window.history.pushState(null, "");
+    webBackEntry = true;
+  } else if (onDashboard && webBackEntry) {
+    webBackEntry = false; // before back(): the popstate it causes is ours
+    window.history.back();
+  }
+}
+if (Platform.OS === "web" && typeof window !== "undefined") {
+  window.addEventListener("popstate", () => {
+    if (!webBackEntry) return;
+    webBackEntry = false;
+    if (navigationRef.isReady()) navigationRef.navigate("Dashboard");
+  });
+}
+
 const SLOW_LOAD_MS = 4000;
 
 // 250ms crossfade, as opposed to the library's 150ms default.
@@ -166,7 +193,7 @@ export default function App() {
         <ThemedStatusBar />
         <SafeAreaProvider>
           <DesktopFrame>
-            <NavigationContainer ref={navigationRef}>
+            <NavigationContainer ref={navigationRef} onStateChange={syncWebBack}>
               <RootNavigator />
             </NavigationContainer>
           </DesktopFrame>
