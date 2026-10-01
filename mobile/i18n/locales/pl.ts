@@ -416,7 +416,9 @@ const pl: Locale = {
   },
   installTip: {
     title: "Zainstaluj Fi-Track:",
-    iphone: "dotknij przycisku Udostępnij (kwadrat ze strzałką) w Safari, a potem „Do ekranu początkowego”.",
+    iphone: "w Safari dotknij ··· obok paska adresu (na starszych iPhone’ach — przycisku Udostępnij na dole), potem Udostępnij → „Do ekranu początkowego”.",
+    oneTap: "otwieraj ją jak aplikację — na pełnym ekranie, z ekranu głównego.",
+    install: "Zainstaluj",
     android: "otwórz menu przeglądarki (⋮) i wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”.",
   },
   details: {

@@ -386,7 +386,9 @@ const it: Locale = {
   },
   installTip: {
     title: "Installa Fi-Track:",
-    iphone: "tocca il pulsante Condividi (il quadrato con la freccia) in Safari, poi «Aggiungi alla schermata Home».",
+    iphone: "in Safari tocca ··· accanto alla barra degli indirizzi (sui vecchi iPhone, il pulsante Condividi in basso), poi Condividi → «Aggiungi alla schermata Home».",
+    oneTap: "aprila come un'app, a schermo intero dalla schermata Home.",
+    install: "Installa",
     android: "apri il menu del browser (⋮) e scegli «Installa app» o «Aggiungi a schermata Home».",
   },
   details: {

@@ -387,7 +387,9 @@ const ko: Locale = {
   },
   installTip: {
     title: "Fi-Track 설치:",
-    iphone: "Safari에서 공유 버튼(화살표가 있는 사각형)을 탭한 뒤 \"홈 화면에 추가\"를 선택하세요.",
+    iphone: "Safari에서 주소창 옆 ···을 탭하고(이전 iPhone은 하단의 공유 버튼) 공유 → \"홈 화면에 추가\"를 선택하세요.",
+    oneTap: "홈 화면에서 앱처럼 전체 화면으로 열 수 있어요.",
+    install: "설치",
     android: "브라우저 메뉴(⋮)를 열고 \"앱 설치\" 또는 \"홈 화면에 추가\"를 선택하세요.",
   },
   details: {

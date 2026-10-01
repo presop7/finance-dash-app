@@ -387,7 +387,9 @@ const zh: Locale = {
   },
   installTip: {
     title: "安装 Fi-Track：",
-    iphone: "在 Safari 中点按“分享”按钮（带箭头的方框），然后选择“添加到主屏幕”。",
+    iphone: "在 Safari 中轻点地址栏旁的 ···（较旧的 iPhone 为底部的“分享”按钮），然后选择 分享 →“添加到主屏幕”。",
+    oneTap: "像应用一样从主屏幕全屏打开。",
+    install: "安装",
     android: "打开浏览器菜单（⋮），选择“安装应用”或“添加到主屏幕”。",
   },
   details: {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,34 +7,48 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { isAppleMobileWeb, isPhoneBrowserTab } from "../utils/webPlatform";
 import { useTranslation } from "react-i18next";
 
-const DISMISSED_KEY = "fitrack.installTipDismissed";
-
-// Remembered per browser; storage can be unavailable (private mode) — then
-// the tip just shows again next time, which is harmless.
-const wasDismissed = () => {
-  try {
-    return window.localStorage.getItem(DISMISSED_KEY) === "1";
-  } catch {
-    return false;
-  }
-};
+// Android browsers (Chrome, Brave, Samsung Internet, Edge) offer their own
+// install prompt to a site that asks for it. The event fires early — often
+// before this component mounts — so it's caught here, at import, and kept.
+type InstallPromptEvent = Event & { prompt: () => Promise<void> };
+let installPrompt: InstallPromptEvent | null = null;
+const promptListeners = new Set<() => void>();
+if (isPhoneBrowserTab) {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault(); // shown from our tip's button instead
+    installPrompt = event as InstallPromptEvent;
+    promptListeners.forEach((fn) => fn());
+  });
+}
 
 // Web version opened in a phone's browser tab: suggests installing it to the
-// home screen, where it opens full screen like an app. Never shown in the
-// phone apps, the installed home-screen app, or on a computer.
+// home screen, where it opens full screen like an app. Shown on every visit
+// (closing it hides it until the app is next opened) — never in the phone
+// apps, the installed home-screen app, or on a computer.
 export default function InstallTip() {
   const Colors = useThemeColors();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(() => isPhoneBrowserTab && !wasDismissed());
+  const [visible, setVisible] = useState(isPhoneBrowserTab);
+  const [canPrompt, setCanPrompt] = useState(installPrompt !== null);
+
+  useEffect(() => {
+    const update = () => setCanPrompt(installPrompt !== null);
+    promptListeners.add(update);
+    return () => {
+      promptListeners.delete(update);
+    };
+  }, []);
+
   if (!visible) return null;
 
-  const dismiss = () => {
-    setVisible(false);
-    try {
-      window.localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {}
+  const install = async () => {
+    const event = installPrompt;
+    if (!event) return;
+    installPrompt = null; // a prompt can only be shown once
+    setCanPrompt(false);
+    await event.prompt().catch(() => {});
   };
 
   return (
@@ -42,11 +56,14 @@ export default function InstallTip() {
       <Ionicons name="download-outline" size={20} color={Colors.primary} />
       <Text style={styles.text}>
         <Text style={styles.bold}>{t("installTip.title")} </Text>
-        {isAppleMobileWeb
-          ? t("installTip.iphone")
-          : t("installTip.android")}
+        {canPrompt ? t("installTip.oneTap") : isAppleMobileWeb ? t("installTip.iphone") : t("installTip.android")}
       </Text>
-      <TouchableOpacity onPress={dismiss} hitSlop={10} accessibilityLabel={t("common.close")}>
+      {canPrompt && (
+        <TouchableOpacity style={styles.installButton} onPress={install} activeOpacity={0.8}>
+          <Text style={styles.installText}>{t("installTip.install")}</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={() => setVisible(false)} hitSlop={10} accessibilityLabel={t("common.close")}>
         <Ionicons name="close" size={18} color={Colors.textMuted} />
       </TouchableOpacity>
     </View>
@@ -75,5 +92,12 @@ function createStyles(Colors: ColorsType) {
     },
     text: { flex: 1, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
     bold: { fontWeight: "700", color: Colors.textPrimary },
+    installButton: {
+      backgroundColor: Colors.primary,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    installText: { color: Colors.surface, fontSize: 14, fontWeight: "600" },
   });
 }

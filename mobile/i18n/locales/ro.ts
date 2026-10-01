@@ -401,7 +401,9 @@ const ro: Locale = {
   },
   installTip: {
     title: "Instalează Fi-Track:",
-    iphone: "atinge butonul Partajare (pătratul cu săgeată) în Safari, apoi „Adaugă pe ecranul principal”.",
+    iphone: "în Safari atinge ··· lângă bara de adresă (pe iPhone-urile mai vechi, butonul Partajare de jos), apoi Partajare → „Adaugă pe ecranul principal”.",
+    oneTap: "deschide-o ca pe o aplicație, pe tot ecranul, de pe ecranul principal.",
+    install: "Instalează",
     android: "deschide meniul browserului (⋮) și alege „Instalează aplicația” sau „Adaugă pe ecranul de pornire”.",
   },
   details: {

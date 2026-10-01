@@ -385,7 +385,9 @@ const en = {
   },
   installTip: {
     title: "Install Fi-Track:",
-    iphone: "tap the Share button (the square with an arrow) in Safari, then \"Add to Home Screen\".",
+    iphone: "in Safari tap ··· next to the address bar (on older iPhones, the Share button at the bottom), then Share → \"Add to Home Screen\".",
+    oneTap: "open it like an app, full screen and from your home screen.",
+    install: "Install",
     android: "open your browser's menu (⋮) and choose \"Install app\" or \"Add to Home screen\".",
   },
   details: {

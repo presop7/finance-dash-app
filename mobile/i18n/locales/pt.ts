@@ -387,7 +387,9 @@ const pt: Locale = {
   },
   installTip: {
     title: "Instale o Fi-Track:",
-    iphone: "toque no botão Compartilhar (o quadrado com uma seta) no Safari e depois em \"Adicionar à Tela de Início\".",
+    iphone: "no Safari, toque em ··· ao lado da barra de endereço (em iPhones mais antigos, no botão Compartilhar embaixo) e depois Compartilhar → \"Adicionar à Tela de Início\".",
+    oneTap: "abra como um app, em tela cheia, direto da tela inicial.",
+    install: "Instalar",
     android: "abra o menu do navegador (⋮) e escolha \"Instalar app\" ou \"Adicionar à tela inicial\".",
   },
   details: {

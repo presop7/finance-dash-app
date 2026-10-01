@@ -386,7 +386,9 @@ const de: Locale = {
   },
   installTip: {
     title: "Fi-Track installieren:",
-    iphone: "Tippe in Safari auf Teilen (das Quadrat mit Pfeil), dann auf „Zum Home-Bildschirm“.",
+    iphone: "tippe in Safari auf ··· neben der Adressleiste (auf älteren iPhones unten auf Teilen), dann Teilen → „Zum Home-Bildschirm“.",
+    oneTap: "öffne es wie eine App — im Vollbild, direkt vom Home-Bildschirm.",
+    install: "Installieren",
     android: "Öffne das Browsermenü (⋮) und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.",
   },
   details: {

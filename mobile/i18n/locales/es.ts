@@ -386,7 +386,9 @@ const es: Locale = {
   },
   installTip: {
     title: "Instala Fi-Track:",
-    iphone: "toca el botón Compartir (el cuadrado con una flecha) en Safari y luego «Añadir a pantalla de inicio».",
+    iphone: "en Safari toca ··· junto a la barra de direcciones (en iPhone antiguos, el botón Compartir de abajo) y luego Compartir → «Añadir a pantalla de inicio».",
+    oneTap: "ábrela como una app, a pantalla completa y desde tu pantalla de inicio.",
+    install: "Instalar",
     android: "abre el menú del navegador (⋮) y elige «Instalar aplicación» o «Añadir a pantalla de inicio».",
   },
   details: {

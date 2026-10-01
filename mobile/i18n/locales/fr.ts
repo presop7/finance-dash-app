@@ -386,7 +386,9 @@ const fr: Locale = {
   },
   installTip: {
     title: "Installer Fi-Track :",
-    iphone: "touchez le bouton Partager (le carré avec une flèche) dans Safari, puis « Sur l'écran d'accueil ».",
+    iphone: "dans Safari, touchez ··· à côté de la barre d'adresse (sur les anciens iPhone, le bouton Partager en bas), puis Partager → « Sur l'écran d'accueil ».",
+    oneTap: "ouvrez-la comme une app, en plein écran depuis l'écran d'accueil.",
+    install: "Installer",
     android: "ouvrez le menu du navigateur (⋮) et choisissez « Installer l'application » ou « Ajouter à l'écran d'accueil ».",
   },
   details: {
