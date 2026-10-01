@@ -387,6 +387,7 @@ const ro: Locale = {
     startOver: "Atinge ca să începi o selecție nouă",
   },
   charts: {
+    resetZoom: "Resetează zoomul",
     openCategory: "Deschide categoria",
     pctOfTotal: "{{pct}}% din total",
     total: "Total",

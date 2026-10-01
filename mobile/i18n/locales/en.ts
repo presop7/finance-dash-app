@@ -372,6 +372,7 @@ const en = {
     startOver: "Tap to start a new selection",
   },
   charts: {
+    resetZoom: "Reset zoom",
     openCategory: "Open Category",
     pctOfTotal: "{{pct}}% of total",
     total: "Total",

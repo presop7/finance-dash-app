@@ -373,6 +373,7 @@ const it: Locale = {
     startOver: "Tocca per iniziare una nuova selezione",
   },
   charts: {
+    resetZoom: "Reimposta zoom",
     openCategory: "Apri categoria",
     pctOfTotal: "{{pct}}% del totale",
     total: "Totale",

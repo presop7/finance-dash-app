@@ -373,6 +373,7 @@ const bg: Translations = {
     startOver: "Докоснете, за да започнете нов избор",
   },
   charts: {
+    resetZoom: "Нулирай мащаба",
     openCategory: "Отвори категорията",
     pctOfTotal: "{{pct}}% от общото",
     total: "Общо",

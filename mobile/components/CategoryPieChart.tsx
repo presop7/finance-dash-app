@@ -1,7 +1,8 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ComponentProps, Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Circle, G, Path, Text as SvgText, Line } from "react-native-svg";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   SharedValue,
   useSharedValue,
@@ -11,6 +12,7 @@ import Animated, {
   Easing,
   runOnJS,
   cancelAnimation,
+  clamp,
 } from "react-native-reanimated";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -73,6 +75,8 @@ const LABEL_COL = 112;
 // wider screens (tablets, the web version on a computer) — never down, and
 // capped so it doesn't turn huge on a desktop monitor.
 const MAX_FIT_SCALE = 1.8;
+const MAX_ZOOM = 3; // pinch-to-zoom limit
+const SNAP_ZOOM = 1.1; // released below this, the zoom springs back to normal
 // SVG text doesn't inherit the app's font: browsers fall back to a serif
 // (Times). Match react-native-web's own system font stack there; native
 // already uses the system font.
@@ -206,6 +210,12 @@ function ChunkPlaceholder({ chunk, color }: { chunk: Wedge[]; color: string }) {
 // A thin outline in the card's own color between wedges, so neighbouring
 // colors don't run together. Along the outer edge and under the hole it's
 // the same color as what's behind it, so only the gaps show.
+// A wedge under this share of the total gets no outline and is drawn above
+// its neighbours: at that size the outlines (its own and the neighbours',
+// which overlap it) would cover it, leaving a blank-looking gap.
+const TINY_SHARE = 0.012;
+const isTiny = (w: Wedge) => w.endAngle - w.startAngle < 360 * TINY_SHARE;
+
 const wedgeSeparator = (cardColor: string) =>
   ({ stroke: cardColor, strokeWidth: 1.5, strokeLinejoin: "round" }) as const;
 
@@ -290,7 +300,7 @@ function PieWedge({
     <AnimatedPath
       animatedProps={animatedProps}
       fill={wedge.color}
-      {...wedgeSeparator(Colors.surface)}
+      {...(isTiny(wedge) ? {} : wedgeSeparator(Colors.surface))}
       onPress={() => onPress(wedge)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -457,8 +467,11 @@ export default function CategoryPieChart({
     // Whichever wedge is growing (armed or mid-hold) paints last/on top, so
     // widening sideways (see PieWedge) doesn't get drawn underneath a
     // neighboring wedge that's still at its normal size.
-    const front = (key: string) => (key === selectedKey ? 1 : 0) + (key === heldKey ? 1 : 0);
-    return [...wedges].sort((a, b) => front(a.key) - front(b.key));
+    // Tiny wedges sit above the rest too (see TINY_SHARE), still below a
+    // growing one.
+    const front = (w: Wedge) =>
+      (w.key === selectedKey ? 2 : 0) + (w.key === heldKey ? 2 : 0) + (isTiny(w) ? 1 : 0);
+    return [...wedges].sort((a, b) => front(a) - front(b));
   }, [wedges, selectedKey, heldKey]);
 
   const select = useCallback(
@@ -523,6 +536,73 @@ export default function CategoryPieChart({
     ? Math.min(MAX_FIT_SCALE, Math.max(1, availableWidth / width))
     : 1;
 
+  // Pinch to zoom (two fingers), up to MAX_ZOOM, around the point between
+  // the fingers — moving them while pinching moves the chart. One finger is
+  // left alone: tapping/holding wedges and swiping the carousel work as
+  // before. Pinching back below SNAP_ZOOM returns to normal size.
+  const boxW = width * fit;
+  const boxH = height * fit;
+  const zoom = useSharedValue(1);
+  const panX = useSharedValue(0);
+  const panY = useSharedValue(0);
+  const pinchStart = useSharedValue({ z: 1, x: 0, y: 0, fx: 0, fy: 0 });
+  const [zoomed, setZoomed] = useState(false);
+  const zoomGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .onStart((e) => {
+          pinchStart.value = {
+            z: zoom.value,
+            x: panX.value,
+            y: panY.value,
+            fx: e.focalX - boxW / 2,
+            fy: e.focalY - boxH / 2,
+          };
+        })
+        .onUpdate((e) => {
+          const s = pinchStart.value;
+          const z = clamp(s.z * e.scale, 1, MAX_ZOOM);
+          // Keep the point that started under the fingers under them.
+          panX.value = e.focalX - boxW / 2 - (z / s.z) * (s.fx - s.x);
+          panY.value = e.focalY - boxH / 2 - (z / s.z) * (s.fy - s.y);
+          zoom.value = z;
+        })
+        .onEnd(() => {
+          if (zoom.value < SNAP_ZOOM) {
+            zoom.value = withTiming(1);
+            panX.value = withTiming(0);
+            panY.value = withTiming(0);
+            runOnJS(setZoomed)(false);
+            return;
+          }
+          // Never pan past the chart's own edges.
+          const maxX = (boxW * (zoom.value - 1)) / 2;
+          const maxY = (boxH * (zoom.value - 1)) / 2;
+          panX.value = withTiming(clamp(panX.value, -maxX, maxX));
+          panY.value = withTiming(clamp(panY.value, -maxY, maxY));
+          runOnJS(setZoomed)(true);
+        }),
+    [boxW, boxH],
+  );
+  const zoomStyle = useAnimatedStyle(() => ({
+    width: boxW,
+    height: boxH,
+    transform: [{ translateX: panX.value }, { translateY: panY.value }, { scale: zoom.value }],
+  }));
+  const resetZoom = useCallback(() => {
+    zoom.value = withTiming(1);
+    panX.value = withTiming(0);
+    panY.value = withTiming(0);
+    setZoomed(false);
+  }, []);
+  // New data (a filter, the type toggle) starts unzoomed.
+  useEffect(() => {
+    zoom.value = 1;
+    panX.value = 0;
+    panY.value = 0;
+    setZoomed(false);
+  }, [slices]);
+
   if (slices.length === 0) {
     return (
       <View style={styles.emptyWrap}>
@@ -539,7 +619,13 @@ export default function CategoryPieChart({
       style={styles.fitWrap}
       onLayout={(e) => setAvailableWidth(e.nativeEvent.layout.width)}
     >
-    <View style={{ width: width * fit, height: height * fit }}>
+    {/* touchAction (web): the browser keeps one-finger scrolling both ways
+        (the list down, the chart pages sideways) but leaves the pinch to us
+        — without it iPhone Safari zooms the whole page instead. A valid CSS
+        value that gesture-handler's type just doesn't list. */}
+    <GestureDetector gesture={zoomGesture} touchAction={"pan-x pan-y" as ComponentProps<typeof GestureDetector>["touchAction"]}>
+    <View style={{ width: width * fit, height: height * fit, overflow: "hidden" }}>
+    <Animated.View style={zoomStyle}>
     <Pressable
       onPress={dismiss}
       style={{ width, height, transform: [{ scale: fit }], transformOrigin: "top left" }}
@@ -671,7 +757,14 @@ export default function CategoryPieChart({
         </Animated.View>
       )}
     </Pressable>
+    </Animated.View>
+    {zoomed && (
+      <Pressable style={styles.resetZoom} onPress={resetZoom} hitSlop={8} accessibilityLabel={t("charts.resetZoom")}>
+        <Ionicons name="contract-outline" size={16} color={Colors.textPrimary} />
+      </Pressable>
+    )}
     </View>
+    </GestureDetector>
     </View>
   );
 }
@@ -701,6 +794,19 @@ function createStyles(Colors: ColorsType) {
     holeLabel: { width: "100%", fontSize: FONT.label, fontWeight: "600", color: Colors.textMuted, textTransform: "uppercase", textAlign: "center" },
     holeAmount: { width: "100%", fontSize: FONT.small, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
     fitWrap: { alignSelf: "stretch", alignItems: "center" },
+    resetZoom: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: Colors.surfaceSecondary,
+      borderWidth: 0.5,
+      borderColor: Colors.border,
+    },
     emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 8 },
     emptyText: { fontSize: FONT.small, color: Colors.textMuted },
   });

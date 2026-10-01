@@ -374,6 +374,7 @@ const ko: Locale = {
     startOver: "탭해서 새로 선택하세요",
   },
   charts: {
+    resetZoom: "확대 초기화",
     openCategory: "카테고리 열기",
     pctOfTotal: "전체의 {{pct}}%",
     total: "합계",

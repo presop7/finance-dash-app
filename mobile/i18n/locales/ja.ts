@@ -374,6 +374,7 @@ const ja: Locale = {
     startOver: "タップして選び直す",
   },
   charts: {
+    resetZoom: "ズームをリセット",
     openCategory: "カテゴリを開く",
     pctOfTotal: "全体の{{pct}}%",
     total: "合計",

@@ -374,6 +374,7 @@ const zh: Locale = {
     startOver: "点按重新选择",
   },
   charts: {
+    resetZoom: "重置缩放",
     openCategory: "打开分类",
     pctOfTotal: "占总额 {{pct}}%",
     total: "总计",

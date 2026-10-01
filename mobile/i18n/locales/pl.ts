@@ -401,6 +401,7 @@ const pl: Locale = {
     startOver: "Dotknij, by zacząć nowy wybór",
   },
   charts: {
+    resetZoom: "Resetuj powiększenie",
     openCategory: "Otwórz kategorię",
     pctOfTotal: "{{pct}}% sumy",
     total: "Suma",
