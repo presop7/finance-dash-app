@@ -22,6 +22,7 @@ const PAD = 8; // breathing room around the lit spot
 const GAP = 14; // between the lit spot and the explanation box
 const MEASURE_MS = 250; // re-measure often: spots move (scrolling, sheets sliding in)
 const GIVE_UP_MS = 2500; // spot never showed up: fall back to a centered box
+const MAX_SCROLL_TRIES = 6; // ~1.5s of retries at MEASURE_MS
 const ESTIMATED_BOX_HEIGHT = 220; // until the box's real height is measured
 const DIM = "rgba(0,0,0,0.7)";
 const MOVE = { duration: 280, easing: Easing.out(Easing.cubic) };
@@ -47,6 +48,9 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
   const { t } = useTranslation();
   const rootRef = useRef<View>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  // Read inside the measuring timer, which outlives renders.
+  const rootSize = useRef(size);
+  rootSize.current = size;
   const [rect, setRect] = useState<Rect | null>(null);
   const [missing, setMissing] = useState(false);
 
@@ -61,7 +65,12 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
     }
     const ids = Array.isArray(step.target) ? step.target : [step.target];
     let cancelled = false;
-    let scrolled = false;
+    // Scrolling the spot into view is retried until it's actually on
+    // screen: a step can start a moment before its screen is showing (the
+    // tab tap that starts "Look and format" fires before Settings appears),
+    // and a scroll on a hidden screen does nothing. Replaying the tour from
+    // the bottom of Settings left its first spot above the screen that way.
+    let scrollTries = 0;
     const startedAt = Date.now();
 
     const measureOne = (view: View, ox: number, oy: number) =>
@@ -77,8 +86,8 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
         if (Date.now() - startedAt > GIVE_UP_MS) setMissing(true);
         return;
       }
-      if (!scrolled) {
-        scrolled = true;
+      if (scrollTries === 0) {
+        scrollTries++;
         found[0].scroll?.(found[0].view);
       }
       rootRef.current?.measureInWindow(async (ox, oy) => {
@@ -91,6 +100,12 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
         const y = Math.min(...rects.map((r) => r.y));
         const width = Math.max(...rects.map((r) => r.x + r.width)) - x;
         const height = Math.max(...rects.map((r) => r.y + r.height)) - y;
+        const screenHeight = rootSize.current.height;
+        const offScreen = screenHeight > 0 && (y < 0 || y + height > screenHeight);
+        if (offScreen && scrollTries < MAX_SCROLL_TRIES) {
+          scrollTries++;
+          found[0].scroll?.(found[0].view);
+        }
         setMissing(false);
         setRect((prev) =>
           prev &&
@@ -184,7 +199,10 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
   }));
   const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
-  const hasHole = Boolean(step.target && rect && !missing);
+  // A spot that's (still) entirely off screen lights nothing — the box
+  // centers instead of being placed against a spot nobody can see.
+  const onScreen = Boolean(rect && size.height > 0 && rect.y + rect.height > 0 && rect.y < size.height);
+  const hasHole = Boolean(step.target && rect && !missing && onScreen);
   const isLast = index === TUTORIAL_STEPS.length - 1;
   // A "tap the lit spot" step whose spot can't be found gets a Next button
   // instead, so the tour can never get stuck.
@@ -203,12 +221,14 @@ function StepOverlay({ step, blockGestures }: { step: TutorialStep; blockGesture
     const aboveTop = rect.y - PAD - GAP - h;
     const fitsBelow = belowTop + h <= safeBottom;
     const fitsAbove = aboveTop >= safeTop;
+    // Clamped every time: a spot partly above the screen made belowTop
+    // negative, which pushed the box off the top.
     if (fitsBelow && fitsAbove) {
       // Both fit: the side with more room.
-      return { top: safeBottom - belowTop >= rect.y - safeTop ? belowTop : aboveTop };
+      return { top: clampTop(safeBottom - belowTop >= rect.y - safeTop ? belowTop : aboveTop) };
     }
-    if (fitsBelow) return { top: belowTop };
-    if (fitsAbove) return { top: aboveTop };
+    if (fitsBelow) return { top: clampTop(belowTop) };
+    if (fitsAbove) return { top: clampTop(aboveTop) };
     // A tall spot leaves no room on either side: keep the box on screen and
     // let it cover part of the spot, on the side with more space.
     return { top: clampTop(safeBottom - belowTop >= rect.y - safeTop ? belowTop : aboveTop) };

@@ -27,6 +27,7 @@ let leftApp = false;
       entries[index] = state;
     },
     back: () => pressBack(),
+    go: (delta: number) => pressBack(-delta),
   },
   addEventListener: (_: string, fn: (e: { state: unknown }) => void) => (listener = fn),
 };
@@ -42,10 +43,13 @@ function pressBack(steps = 1) {
 import { installWebBack, registerBackClose, syncWebTab, useExitHint } from "./useBackNavigation";
 
 jest.useFakeTimers();
+// History is synced once per round of changes, on a zero-delay timer.
+const settle = () => jest.advanceTimersByTime(1);
 let tab = "Dashboard";
 const goTo = (name: string) => {
   tab = name;
   syncWebTab(); // what the navigator's onStateChange calls
+  settle();
 };
 installWebBack({ onDashboard: () => tab === "Dashboard", toDashboard: () => goTo("Dashboard") });
 
@@ -56,6 +60,7 @@ function openSheet() {
     sheet.open = false;
     sheet.unregister();
   });
+  settle();
   return sheet;
 }
 
@@ -102,6 +107,7 @@ test("once the warning lapses, a single back only warns again", () => {
 test("a sheet closed by tapping leaves no stray step behind", () => {
   const sheet = openSheet();
   sheet.unregister(); // closed with its X
+  settle();
   pressBack();
   expect(useExitHint.getState().visible).toBe(true); // straight to the Dashboard warning
   expect(leftApp).toBe(false);
@@ -125,8 +131,29 @@ test("opening something during the warning ends it, so back can't exit", () => {
   expect(leftApp).toBe(false);
 });
 
+test("one sheet handing over to another (Details -> Edit) keeps the new one open", () => {
+  const details = openSheet();
+  // Edit: Details closes and Edit opens in the same moment.
+  details.unregister();
+  const edit = { open: true, unregister: () => {} };
+  edit.unregister = registerBackClose(() => {
+    edit.open = false;
+    edit.unregister();
+  });
+  settle();
+  expect(edit.open).toBe(true);
+  pressBack();
+  expect(edit.open).toBe(false);
+  settle();
+  pressBack();
+  expect(leftApp).toBe(false);
+  expect(useExitHint.getState().visible).toBe(true); // back on the Dashboard
+});
+
+// Last: this one's sheet deliberately never closes.
 test("a sheet that mustn't be dismissed stays, and keeps its place", () => {
   registerBackClose(() => {}); // e.g. the name prompt
+  settle();
   pressBack();
   jest.advanceTimersByTime(300);
   pressBack();

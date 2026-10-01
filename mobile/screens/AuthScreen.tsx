@@ -18,8 +18,9 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTranslation } from "react-i18next";
+import { translateAuthError } from "../utils/authErrors";
 
-type Mode = "sign-in" | "sign-up";
+type Mode = "sign-in" | "sign-up" | "reset";
 
 const APP_ICON = require("../assets/icon.png");
 
@@ -142,6 +143,15 @@ export default function AuthScreen() {
           <Animated.View
             style={{ opacity: fadeAnim, transform: [{ translateY: translateAnim }] }}
           >
+            {mode === "reset" ? (
+              <ResetPassword
+                styles={styles}
+                Colors={Colors}
+                initialEmail={email}
+                onBack={() => switchMode("sign-in")}
+              />
+            ) : (
+            <>
             <Text style={styles.modeHeading}>
               {signedUpEmail ? t("auth.almostThere") : mode === "sign-in" ? t("auth.signIn") : t("auth.signUp")}
             </Text>
@@ -216,6 +226,16 @@ export default function AuthScreen() {
                   />
                 </View>
 
+                {mode === "sign-in" && (
+                  <TouchableOpacity
+                    style={styles.forgotLink}
+                    onPress={() => switchMode("reset")}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.switchLink}>{t("auth.forgotPassword")}</Text>
+                  </TouchableOpacity>
+                )}
+
                 {error && <Text style={styles.errorText}>{translateAuthError(error, t)}</Text>}
 
                 <TouchableOpacity
@@ -258,10 +278,140 @@ export default function AuthScreen() {
                 </TouchableOpacity>
               </>
             )}
+            </>
+            )}
           </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+// "Forgot password?": asks for the email, sends a one-time code, then takes
+// the code and a new password. A correct code signs the user straight in
+// (proof the inbox is theirs) with the new password set.
+function ResetPassword({
+  styles,
+  Colors,
+  initialEmail,
+  onBack,
+}: {
+  styles: ReturnType<typeof createStyles>;
+  Colors: ColorsType;
+  initialEmail: string;
+  onBack: () => void;
+}) {
+  const { t } = useTranslation();
+  const { requestPasswordReset, resetPasswordWithCode } = useAuthStore();
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [email, setEmail] = useState(initialEmail);
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (action: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(translateAuthError(err instanceof Error ? err.message : String(err), t));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendCode = () =>
+    run(async () => {
+      await requestPasswordReset(email.trim());
+      setStep("code");
+    });
+  // On success the user is signed in and this screen goes away.
+  const setPassword = () => run(() => resetPasswordWithCode(email.trim(), code.trim(), newPassword));
+
+  const canSend = email.trim().length > 0 && !busy;
+  const canSet = code.trim().length >= 6 && newPassword.length >= 6 && !busy;
+
+  return (
+    <>
+      <Text style={styles.modeHeading}>{t("auth.resetTitle")}</Text>
+      <Text style={styles.subtitle}>
+        {step === "email" ? t("auth.resetSubtitle") : t("auth.codeSent", { email: email.trim() })}
+      </Text>
+
+      {step === "email" ? (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>{t("auth.email")}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="you@example.com"
+            placeholderTextColor={Colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+          />
+        </View>
+      ) : (
+        <>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t("auth.codeLabel")}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t("auth.codePlaceholder")}
+              placeholderTextColor={Colors.textMuted}
+              value={code}
+              onChangeText={(text) => setCode(text.replace(/\D/g, ""))}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              maxLength={10}
+            />
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{t("auth.newPassword")}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t("auth.passwordPlaceholder")}
+              placeholderTextColor={Colors.textMuted}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="new-password"
+            />
+          </View>
+        </>
+      )}
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      <TouchableOpacity
+        style={[styles.submitButton, !(step === "email" ? canSend : canSet) && styles.submitButtonDisabled]}
+        onPress={step === "email" ? sendCode : setPassword}
+        disabled={!(step === "email" ? canSend : canSet)}
+        activeOpacity={0.8}
+      >
+        {busy ? (
+          <ActivityIndicator color={Colors.surface} />
+        ) : (
+          <Text style={styles.submitButtonText}>
+            {step === "email" ? t("auth.sendCode") : t("auth.setNewPassword")}
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      {step === "code" && (
+        <TouchableOpacity onPress={sendCode} disabled={busy} style={styles.resendLink}>
+          <Text style={styles.switchLink}>{t("auth.resendCode")}</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={onBack} style={styles.resendLink}>
+        <Text style={styles.switchLink}>{t("auth.backToSignIn")}</Text>
+      </TouchableOpacity>
+    </>
   );
 }
 
@@ -401,6 +551,14 @@ function createStyles(Colors: ColorsType) {
     fontSize: 15,
     fontWeight: "600",
   },
+  resendLink: {
+    marginTop: 16,
+  },
+  forgotLink: {
+    alignSelf: "flex-end",
+    marginTop: -6,
+    marginBottom: 14,
+  },
   switchLink: {
     color: Colors.primary,
     fontSize: 13,
@@ -419,19 +577,4 @@ function createStyles(Colors: ColorsType) {
     lineHeight: 19,
   },
   });
-}
-
-// Supabase answers in English; show the common cases in the app's language.
-const AUTH_ERRORS: Record<string, string> = {
-  "Invalid login credentials": "auth.errors.invalidCredentials",
-  "Email not confirmed": "auth.errors.emailNotConfirmed",
-  "User already registered": "auth.errors.alreadyRegistered",
-  "Password should be at least 6 characters.": "auth.errors.weakPassword",
-  "Unable to validate email address: invalid format": "auth.errors.invalidEmail",
-  "Google sign-in needs an app update": "auth.errors.googleNeedsUpdate",
-  "Google sign-in failed": "auth.errors.googleFailed",
-};
-function translateAuthError(message: string, t: (key: string) => string): string {
-  const key = AUTH_ERRORS[message];
-  return key ? t(key) : message;
 }

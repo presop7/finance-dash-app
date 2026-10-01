@@ -11,13 +11,22 @@ type AuthStore = {
   /** Returns true if sign-up produced an immediate session (email confirmation disabled). */
   signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
   setDisplayName: (displayName: string) => Promise<void>;
+  /** Emails a one-time code for resetting a forgotten password. */
+  requestPasswordReset: (email: string) => Promise<void>;
+  /** Signs in with the emailed code, then sets the new password. */
+  resetPasswordWithCode: (email: string, code: string, newPassword: string) => Promise<void>;
+  /**
+   * Signed in: sets a new password. `currentPassword` is checked first when
+   * the account has one (email sign-up); a Google-only account just sets one.
+   */
+  changePassword: (currentPassword: string | null, newPassword: string) => Promise<void>;
   /** Returns true once signed in; false if the user closed the Google window. */
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
   clearError: () => void;
 };
 
-export const useAuthStore = create<AuthStore>((set) => {
+export const useAuthStore = create<AuthStore>((set, get) => {
   supabase.auth.getSession().then(({ data }) => {
     set({ session: data.session, initializing: false });
   });
@@ -110,6 +119,36 @@ export const useAuthStore = create<AuthStore>((set) => {
       // Stored on the Supabase account (not the device), so it follows the
       // user everywhere; onAuthStateChange delivers the updated session.
       const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } });
+      if (error) throw error;
+    },
+
+    // A code, not a link: a reset link on iPhone opens in Safari rather than
+    // the installed web app, and with PKCE it can only finish in the browser
+    // that asked for it — so it would fail there. Typing the code back into
+    // the app works the same everywhere. Needs the Supabase "Reset password"
+    // email template to show {{ .Token }}.
+    requestPasswordReset: async (email) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+    },
+
+    resetPasswordWithCode: async (email, code, newPassword) => {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "recovery" });
+      if (error) throw error;
+      // Now signed in (the code proved the inbox is theirs) — set the password.
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+    },
+
+    changePassword: async (currentPassword, newPassword) => {
+      const email = get().session?.user.email;
+      if (currentPassword !== null && email) {
+        // Supabase doesn't ask for the old password itself; signing in with
+        // it is the check (and refreshes the session, harmlessly).
+        const { error } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+        if (error) throw error;
+      }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
     },
 

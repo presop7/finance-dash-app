@@ -22,11 +22,17 @@ export const useExitHint = create<{ visible: boolean }>(() => ({ visible: false 
 //
 // Every "layer" back can undo gets its own history entry, created when the
 // layer appears (a sheet opening, leaving the Dashboard) — not when back is
-// pressed. So several fast backs each just pop an entry that's already
-// there; re-adding one mid-press is what used to race a quick second back
-// and let it leave the app. Each entry records how many layers existed when
-// it was added; on back, whatever layers are above that number are undone,
-// newest first — correct even if the browser pops several entries at once.
+// pressed — so several fast backs each just pop an entry that's already
+// there. Each entry records how many layers existed below and including it;
+// on back, whatever layers are above that number are undone, newest first —
+// correct even if the browser pops several entries at once.
+//
+// History is brought in line with the layers once per round of changes
+// (reconcile, on a zero-delay timer), not at each open/close: one sheet
+// handing over to another (Details -> Edit) closes and opens in the same
+// moment, which nets out to no history change at all. Stepping history back
+// at the close and forward at the open raced — the late "back" landed after
+// the new sheet opened and closed it again.
 //
 //   base   the Dashboard with nothing open; undoing it only warns
 //   tab    another tab is showing; undoing it returns to the Dashboard
@@ -39,8 +45,33 @@ const layers: Layer[] = [];
 let exitTimer: ReturnType<typeof setTimeout> | undefined;
 let nav: { onDashboard: () => boolean; toDashboard: () => void } | null = null;
 
-function pushEntry() {
-  window.history.pushState({ fitrackDepth: layers.length }, "");
+// How many of our entries the current history entry sits on.
+let historyDepth = 0;
+// A history.go() of our own is under way — its popstate isn't a back press.
+let traversing = false;
+let reconcileQueued = false;
+
+function scheduleReconcile() {
+  if (reconcileQueued) return;
+  reconcileQueued = true;
+  setTimeout(reconcile, 0);
+}
+
+function reconcile() {
+  reconcileQueued = false;
+  if (traversing) return; // picked up again once that lands
+  while (historyDepth < layers.length) {
+    historyDepth++;
+    window.history.pushState({ fitrackDepth: historyDepth }, "");
+  }
+  if (historyDepth > layers.length) {
+    // Layers that went away without back (closed by tapping, the Dashboard
+    // tab tapped): step history back past their entries.
+    const extra = historyDepth - layers.length;
+    historyDepth = layers.length;
+    traversing = true;
+    window.history.go(-extra);
+  }
 }
 
 function ensureBase() {
@@ -51,23 +82,20 @@ function ensureBase() {
   exitTimer = undefined;
   useExitHint.setState({ visible: false });
   layers.unshift({ kind: "base" });
-  pushEntry();
+  scheduleReconcile();
 }
 
 function addLayer(layer: Layer, index = -1) {
   ensureBase();
   layers.splice(index < 0 ? layers.length : index, 0, layer);
-  pushEntry();
+  scheduleReconcile();
 }
 
-// A layer that went away without back (a sheet closed by tapping, the
-// Dashboard tab tapped): drop it and step history back past its entry. The
-// popstate that causes finds nothing left to undo.
 function removeLayer(layer: Layer) {
   const i = layers.indexOf(layer);
   if (i < 0) return; // back already undid it
   layers.splice(i, 1);
-  window.history.back();
+  scheduleReconcile();
 }
 
 function undo(layer: Layer) {
@@ -96,16 +124,25 @@ function undo(layer: Layer) {
 export function installWebBack(navigation: { onDashboard: () => boolean; toDashboard: () => void }) {
   if (!web) return;
   nav = navigation;
+  layers.push({ kind: "base" });
   if (window.history.state?.fitrackDepth !== undefined) {
     // A refresh reloads onto one of our own entries: make it the base
     // rather than stacking another on top.
-    layers.push({ kind: "base" });
     window.history.replaceState({ fitrackDepth: 1 }, "");
+    historyDepth = 1;
   } else {
-    ensureBase();
+    reconcile();
   }
   window.addEventListener("popstate", (event) => {
     const depth: number = event.state?.fitrackDepth ?? 0;
+    historyDepth = depth;
+    if (traversing) {
+      // Our own step back landing — not a back press. Anything that
+      // changed while it was under way gets its entries now.
+      traversing = false;
+      scheduleReconcile();
+      return;
+    }
     while (layers.length > depth) undo(layers.pop()!);
   });
 }

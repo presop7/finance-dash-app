@@ -178,7 +178,15 @@ export default function App() {
         <ThemedStatusBar />
         <SafeAreaProvider>
           <DesktopFrame>
-            <NavigationContainer ref={navigationRef} onStateChange={syncWebTab}>
+            <NavigationContainer
+              ref={navigationRef}
+              onStateChange={syncWebTab}
+              // Keep the page title "Fi-Track" (from index.html). React
+              // Navigation otherwise retitles the browser page after each
+              // screen — "undefined" on the sign-in screen, which is what a
+              // home-screen shortcut made from the browser was named.
+              documentTitle={{ enabled: false }}
+            >
               <RootNavigator />
             </NavigationContainer>
           </DesktopFrame>
