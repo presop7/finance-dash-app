@@ -167,16 +167,19 @@ type LabelEntry = {
   name: string; // the category name, shortened to fit its side if needed
 };
 
-// Labels sit on a circle this far from the ring's center (just outside it).
+// Labels start at this height range (where their wedge points)...
 const LABEL_R = OUTER_R + 22;
+// ...and line up in one column on each side, this far from the center: just
+// past the ring. Ordered top to bottom the same way the wedges go round, so
+// leader lines never cross each other, and since every line ends at the
+// column, none can run through another label's text.
+const LABEL_X = OUTER_R + 12;
 
-// Places each labeled slice's name + amount beside its wedge: first at the
-// height its wedge points to, then nudged apart where two would overlap —
-// spread both ways (pushed down, then back up from below a limit), so a
-// crowded side doesn't become one long column of diagonal lines. Each label
-// then sits on the LABEL_R circle at its final height, which keeps it clear
-// of the ring and its leader line short. Coordinates are relative to the
-// ring's center; the caller positions the ring and fits the names.
+// Places each labeled slice's name + amount beside its wedge: at the height
+// its wedge points to, nudged apart where two would overlap — spread both
+// ways (pushed down, then back up from below a limit), so a crowded side
+// doesn't drift far from its wedges. Coordinates are relative to the ring's
+// center; the caller positions the ring and fits the names.
 function layoutLabels(wedges: Wedge[]): Omit<LabelEntry, "name">[] {
   const bySide: Record<"left" | "right", { wedge: Wedge; y: number }[]> = { left: [], right: [] };
   for (const w of wedges) {
@@ -199,9 +202,8 @@ function layoutLabels(wedges: Wedge[]): Omit<LabelEntry, "name">[] {
       }
     }
     for (const { wedge, y } of list) {
-      const x = Math.max(12, Math.sqrt(Math.max(0, LABEL_R * LABEL_R - y * y)));
       const edge = polarToCartesian(0, 0, OUTER_R, wedge.midAngle);
-      entries.push({ wedge, side, edge, textX: side === "right" ? x : -x, labelY: y });
+      entries.push({ wedge, side, edge, textX: side === "right" ? LABEL_X : -LABEL_X, labelY: y });
     }
   });
   return entries;
@@ -828,6 +830,7 @@ export default function CategoryPieChart({
               fillColor={Colors.primary + "22"}
             >
               <CategoryDetailFields
+                inCircle
                 label={displaySlice.label}
                 amount={displaySlice.amount}
                 currencyCode={currencyCode}
@@ -837,6 +840,7 @@ export default function CategoryPieChart({
             </HoldPressable>
           ) : (
             <CategoryDetailFields
+              inCircle
               label={displaySlice.label}
               amount={displaySlice.amount}
               currencyCode={currencyCode}

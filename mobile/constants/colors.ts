@@ -56,7 +56,7 @@ export const lightColors: ColorsType = {
         heroGradientFrom: '#1D2B4F',
         heroGradientTo: '#7383ac',
         heroIncome: '#7FF0C4',
-        heroExpense: '#FFB4A2',
+        heroExpense: '#FF9B85', // as vivid as it gets while keeping ~3.5:1 on the gradient
 
     // Income and Expense Colors — deep enough to read as text on white
     // (≥ 5:1) and to carry white text when used as a fill.
@@ -115,7 +115,7 @@ export const darkColors: ColorsType = {
         heroGradientFrom: '#2A314299',
         heroGradientTo: '#4A556899',
         heroIncome: '#7FF0C4',
-        heroExpense: '#FFB4A2',
+        heroExpense: '#E8734A', // the dark card has the contrast to spare for a fuller red
 
     // Income and Expense Colors
         income: '#2FBF8F',

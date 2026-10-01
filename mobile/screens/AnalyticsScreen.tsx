@@ -56,6 +56,7 @@ import {
   getTransactionDetails,
 } from "../components/TransactionList";
 import SwipeableTransactionRow from "../components/SwipeableTransactionRow";
+import FieldIcon from "../components/FieldIcon";
 import TransactionFiltersModal from "./modals/TransactionFiltersModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 import {
@@ -966,7 +967,7 @@ function AnalyticsScreen({
               ]}
               disabled={selectedIds.size === 0}
             >
-              <Ionicons name="pricetag-outline" size={14} color={Colors.primary} />
+              <FieldIcon name="pricetag-outline" color={Colors.primary} />
               <Text style={styles.selectEditText}>{t("analytics.bulkEdit")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -977,7 +978,7 @@ function AnalyticsScreen({
               ]}
               disabled={selectedIds.size === 0}
             >
-              <Ionicons name="trash-outline" size={14} color="#fff" />
+              <FieldIcon name="trash-outline" color="#fff" />
               <Text style={styles.selectDeleteText}>{t("common.delete")}</Text>
             </TouchableOpacity>
           </View>
@@ -1402,12 +1403,15 @@ function createStyles(Colors: ColorsType) {
   selectToolbarActions: { flexDirection: "row", gap: 10 },
   selectDiscardBtn: { paddingHorizontal: 4, paddingVertical: 6 },
   selectDiscardText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
+  // Same icon slot as the text fields (FieldIcon), so icon and text are
+  // spaced the same whichever icon it is, and a label that wraps (longer
+  // languages) keeps its distance from the icon.
   selectEditBtn: {
     flex: 1,
     justifyContent: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1415,19 +1419,19 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  selectEditText: { fontSize: FONT.body, fontWeight: "600", color: Colors.primary },
+  selectEditText: { flexShrink: 1, textAlign: "center", fontSize: FONT.body, fontWeight: "600", color: Colors.primary },
   selectDeleteBtn: {
     flex: 1,
     justifyContent: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: Colors.expense,
   },
-  selectDeleteText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
+  selectDeleteText: { flexShrink: 1, textAlign: "center", fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   selectBtnDisabled: { opacity: 0.5 },
   scrollView: { flex: 1 },
   summaryCard: { paddingHorizontal: 16 },

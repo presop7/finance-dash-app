@@ -14,26 +14,32 @@ export default function CategoryDetailFields({
   currencyCode,
   pct,
   count,
+  inCircle = false,
 }: {
   label: string;
   amount: number;
   currencyCode: string;
   pct: number;
   count: number;
+  // Shown inside the pie chart's round center: a circle is narrower at the
+  // top and bottom than across the middle, so the first and last lines (name,
+  // count) get side margins — the name wraps instead of being cut by the
+  // circle's edge — while the amount and % in the middle keep the full width.
+  inCircle?: boolean;
 }) {
   const Colors = useThemeColors();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   return (
     <>
-      <Text style={styles.label} numberOfLines={2}>
+      <Text style={[styles.label, inCircle && styles.roundEdgeLine]} numberOfLines={2}>
         {label}
       </Text>
       <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
         {amount.toFixed(2)} {currencyCode}
       </Text>
       <Text style={styles.pct}>{t("charts.pctOfTotal", { pct: pct.toFixed(1) })}</Text>
-      <Text style={styles.count}>
+      <Text style={[styles.count, inCircle && styles.roundEdgeLine]}>
         {t("charts.transactions", { count })}
       </Text>
     </>
@@ -46,5 +52,6 @@ function createStyles(Colors: ColorsType) {
     amount: { width: "100%", fontSize: FONT.small, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
     pct: { width: "100%", fontSize: FONT.label, color: Colors.textMuted, marginTop: 1, textAlign: "center" },
     count: { width: "100%", fontSize: FONT.label, color: Colors.textMuted, marginTop: 1, textAlign: "center" },
+    roundEdgeLine: { width: undefined, alignSelf: "stretch", marginHorizontal: 16 },
   });
 }
