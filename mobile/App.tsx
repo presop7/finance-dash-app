@@ -449,7 +449,7 @@ function CustomTabBar({
           size={22}
           color={isFocused ? Colors.primary : Colors.textMuted}
         />
-        <Text style={[styles.navLabel, isFocused && styles.navLabelActive]}>
+        <Text style={[styles.navLabel, isFocused && styles.navLabelActive]} numberOfLines={2}>
           {t(item.label)}
         </Text>
       </TouchableOpacity>
@@ -770,7 +770,9 @@ function createStyles(Colors: ColorsType) {
     },
     bottomNav: {
       flexDirection: "row",
-      alignItems: "center",
+      // Top-aligned: a label wrapping to two lines makes its side taller,
+      // and centering would then lift that side's icons above the others'.
+      alignItems: "flex-start",
       backgroundColor: Colors.surface,
       borderTopWidth: 0.5,
       borderTopColor: Colors.border,
@@ -785,16 +787,22 @@ function createStyles(Colors: ColorsType) {
     },
     navCenter: {
       width: 80,
+      alignSelf: "center",
       alignItems: "center",
       justifyContent: "center",
     },
+    // Equal shares of each side, so a long label (Bulgarian "Напомняния",
+    // German "Einstellungen") can't squeeze its neighbour or run off screen
+    // — it wraps onto a second line inside its own share instead.
     navItem: {
+      flex: 1,
       alignItems: "center",
       gap: 2,
-      paddingHorizontal: 8,
+      paddingHorizontal: 2,
     },
     navLabel: {
       fontSize: FONT.label,
+      textAlign: "center",
       color: Colors.textMuted,
     },
     navLabelActive: {

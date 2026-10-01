@@ -13,6 +13,8 @@ import Animated, {
   runOnJS,
   cancelAnimation,
   clamp,
+  measure,
+  useAnimatedRef,
 } from "react-native-reanimated";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -75,8 +77,9 @@ const LABEL_COL = 112;
 // wider screens (tablets, the web version on a computer) — never down, and
 // capped so it doesn't turn huge on a desktop monitor.
 const MAX_FIT_SCALE = 1.8;
-const MAX_ZOOM = 3; // pinch-to-zoom limit
+const MAX_ZOOM = 6; // pinch-to-zoom limit — enough to pick out the tiniest wedges
 const SNAP_ZOOM = 1.1; // released below this, the zoom springs back to normal
+const IS_WEB = Platform.OS === "web";
 // SVG text doesn't inherit the app's font: browsers fall back to a serif
 // (Times). Match react-native-web's own system font stack there; native
 // already uses the system font.
@@ -537,53 +540,91 @@ export default function CategoryPieChart({
     : 1;
 
   // Pinch to zoom (two fingers), up to MAX_ZOOM, around the point between
-  // the fingers — moving them while pinching moves the chart. One finger is
-  // left alone: tapping/holding wedges and swiping the carousel work as
-  // before. Pinching back below SNAP_ZOOM returns to normal size.
+  // the fingers; a two-finger drag moves the zoomed chart. One finger is
+  // left alone: tapping/holding wedges, swiping the carousel and scrolling
+  // the list work as before. Released below SNAP_ZOOM, it springs back.
   const boxW = width * fit;
   const boxH = height * fit;
+  const boxRef = useAnimatedRef<View>();
   const zoom = useSharedValue(1);
   const panX = useSharedValue(0);
   const panY = useSharedValue(0);
-  const pinchStart = useSharedValue({ z: 1, x: 0, y: 0, fx: 0, fy: 0 });
+  const pinchStart = useSharedValue({ z: 1, x: 0, y: 0, fx: 0, fy: 0, offX: 0, offY: 0 });
+  const pinching = useSharedValue(false);
+  const lastDrag = useSharedValue({ x: 0, y: 0 });
   const [zoomed, setZoomed] = useState(false);
-  const zoomGesture = useMemo(
-    () =>
-      Gesture.Pinch()
-        .onStart((e) => {
-          pinchStart.value = {
-            z: zoom.value,
-            x: panX.value,
-            y: panY.value,
-            fx: e.focalX - boxW / 2,
-            fy: e.focalY - boxH / 2,
-          };
-        })
-        .onUpdate((e) => {
-          const s = pinchStart.value;
-          const z = clamp(s.z * e.scale, 1, MAX_ZOOM);
-          // Keep the point that started under the fingers under them.
-          panX.value = e.focalX - boxW / 2 - (z / s.z) * (s.fx - s.x);
-          panY.value = e.focalY - boxH / 2 - (z / s.z) * (s.fy - s.y);
-          zoom.value = z;
-        })
-        .onEnd(() => {
-          if (zoom.value < SNAP_ZOOM) {
-            zoom.value = withTiming(1);
-            panX.value = withTiming(0);
-            panY.value = withTiming(0);
-            runOnJS(setZoomed)(false);
-            return;
-          }
-          // Never pan past the chart's own edges.
-          const maxX = (boxW * (zoom.value - 1)) / 2;
-          const maxY = (boxH * (zoom.value - 1)) / 2;
-          panX.value = withTiming(clamp(panX.value, -maxX, maxX));
-          panY.value = withTiming(clamp(panY.value, -maxY, maxY));
-          runOnJS(setZoomed)(true);
-        }),
-    [boxW, boxH],
-  );
+  const zoomGesture = useMemo(() => {
+    // Never pan past the chart's own edges.
+    const clampPan = (z: number) => {
+      "worklet";
+      const maxX = (boxW * (z - 1)) / 2;
+      const maxY = (boxH * (z - 1)) / 2;
+      panX.value = clamp(panX.value, -maxX, maxX);
+      panY.value = clamp(panY.value, -maxY, maxY);
+    };
+    const pinch = Gesture.Pinch()
+      .onStart((e) => {
+        // On the web gesture-handler reports the fingers from the window's
+        // top-left, not the chart's — subtract where the chart is, or the
+        // zoom lands off to the side of the fingers (below them, mostly).
+        const box = IS_WEB ? measure(boxRef) : null;
+        const offX = box?.pageX ?? 0;
+        const offY = box?.pageY ?? 0;
+        pinching.value = true;
+        pinchStart.value = {
+          z: zoom.value,
+          x: panX.value,
+          y: panY.value,
+          fx: e.focalX - offX - boxW / 2,
+          fy: e.focalY - offY - boxH / 2,
+          offX,
+          offY,
+        };
+      })
+      .onUpdate((e) => {
+        const s = pinchStart.value;
+        const z = clamp(s.z * e.scale, 1, MAX_ZOOM);
+        // Keep the point that started under the fingers under them (moving
+        // the fingers while pinching moves the chart with them).
+        panX.value = e.focalX - s.offX - boxW / 2 - (z / s.z) * (s.fx - s.x);
+        panY.value = e.focalY - s.offY - boxH / 2 - (z / s.z) * (s.fy - s.y);
+        zoom.value = z;
+      })
+      .onEnd(() => {
+        pinching.value = false;
+        if (zoom.value < SNAP_ZOOM) {
+          zoom.value = withTiming(1);
+          panX.value = withTiming(0);
+          panY.value = withTiming(0);
+          runOnJS(setZoomed)(false);
+          return;
+        }
+        const maxX = (boxW * (zoom.value - 1)) / 2;
+        const maxY = (boxH * (zoom.value - 1)) / 2;
+        panX.value = withTiming(clamp(panX.value, -maxX, maxX));
+        panY.value = withTiming(clamp(panY.value, -maxY, maxY));
+        runOnJS(setZoomed)(true);
+      });
+    // Two fingers dragging without pinching (a pinch only starts once the
+    // fingers spread or close). Applied as deltas, so it picks up wherever
+    // a pinch left off; while a pinch is running, the pinch moves the chart.
+    const drag = Gesture.Pan()
+      .minPointers(2)
+      .maxPointers(2)
+      .onStart(() => {
+        lastDrag.value = { x: 0, y: 0 };
+      })
+      .onUpdate((e) => {
+        const dx = e.translationX - lastDrag.value.x;
+        const dy = e.translationY - lastDrag.value.y;
+        lastDrag.value = { x: e.translationX, y: e.translationY };
+        if (pinching.value || zoom.value <= 1) return;
+        panX.value += dx;
+        panY.value += dy;
+        clampPan(zoom.value);
+      });
+    return Gesture.Simultaneous(pinch, drag);
+  }, [boxW, boxH]);
   const zoomStyle = useAnimatedStyle(() => ({
     width: boxW,
     height: boxH,
@@ -624,7 +665,7 @@ export default function CategoryPieChart({
         — without it iPhone Safari zooms the whole page instead. A valid CSS
         value that gesture-handler's type just doesn't list. */}
     <GestureDetector gesture={zoomGesture} touchAction={"pan-x pan-y" as ComponentProps<typeof GestureDetector>["touchAction"]}>
-    <View style={{ width: width * fit, height: height * fit, overflow: "hidden" }}>
+    <Animated.View ref={boxRef} style={{ width: width * fit, height: height * fit, overflow: "hidden" }}>
     <Animated.View style={zoomStyle}>
     <Pressable
       onPress={dismiss}
@@ -763,7 +804,7 @@ export default function CategoryPieChart({
         <Ionicons name="contract-outline" size={16} color={Colors.textPrimary} />
       </Pressable>
     )}
-    </View>
+    </Animated.View>
     </GestureDetector>
     </View>
   );

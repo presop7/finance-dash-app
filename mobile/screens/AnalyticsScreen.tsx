@@ -944,16 +944,20 @@ function AnalyticsScreen({
           ref={selectToolbarTargetRef}
           collapsable={false}
         >
-          <Text style={styles.selectToolbarText}>
-            {selectedIds.size} selected
-          </Text>
-          <View style={styles.selectToolbarActions}>
+          {/* Two rows, so longer words in other languages never push the
+              buttons off screen: the count and Cancel, then the actions. */}
+          <View style={styles.selectToolbarTop}>
+            <Text style={styles.selectToolbarText}>
+              {t("categories.selected", { count: selectedIds.size })}
+            </Text>
             <TouchableOpacity
               onPress={exitSelectMode}
               style={styles.selectDiscardBtn}
             >
               <Text style={styles.selectDiscardText}>{t("common.discard")}</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.selectToolbarActions}>
             <TouchableOpacity
               onPress={handleBulkEdit}
               style={[
@@ -1386,9 +1390,7 @@ function createStyles(Colors: ColorsType) {
     textAlign: "center",
   },
   selectToolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: Colors.primary + "10",
@@ -1396,10 +1398,13 @@ function createStyles(Colors: ColorsType) {
     borderBottomColor: Colors.primary + "40",
   },
   selectToolbarText: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
-  selectToolbarActions: { flexDirection: "row", alignItems: "center", gap: 10 },
+  selectToolbarTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  selectToolbarActions: { flexDirection: "row", gap: 10 },
   selectDiscardBtn: { paddingHorizontal: 4, paddingVertical: 6 },
   selectDiscardText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   selectEditBtn: {
+    flex: 1,
+    justifyContent: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -1410,8 +1415,10 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  selectEditText: { fontSize: FONT.small, fontWeight: "600", color: Colors.primary },
+  selectEditText: { fontSize: FONT.body, fontWeight: "600", color: Colors.primary },
   selectDeleteBtn: {
+    flex: 1,
+    justifyContent: "center",
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -1420,7 +1427,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 8,
     backgroundColor: Colors.expense,
   },
-  selectDeleteText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
+  selectDeleteText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   selectBtnDisabled: { opacity: 0.5 },
   scrollView: { flex: 1 },
   summaryCard: { paddingHorizontal: 16 },
