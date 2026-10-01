@@ -11,6 +11,10 @@ export type ColorsType = {
   gradientExpense: string
   heroGradientFrom: string
   heroGradientTo: string
+  // Income/expense figures on the balance card's dark gradient — the
+  // regular income/expense are tuned for white and nearly vanish on it.
+  heroIncome: string
+  heroExpense: string
   income: string
   expense: string
   textPrimary: string
@@ -51,6 +55,8 @@ export const lightColors: ColorsType = {
     // darkColors) so it doesn't pop so hard against a near-black page.
         heroGradientFrom: '#1D2B4F',
         heroGradientTo: '#7383ac',
+        heroIncome: '#7FF0C4',
+        heroExpense: '#FFB4A2',
 
     // Income and Expense Colors — deep enough to read as text on white
     // (≥ 5:1) and to carry white text when used as a fill.
@@ -108,6 +114,8 @@ export const darkColors: ColorsType = {
     // bright card floating on a near-black page.
         heroGradientFrom: '#2A314299',
         heroGradientTo: '#4A556899',
+        heroIncome: '#7FF0C4',
+        heroExpense: '#FFB4A2',
 
     // Income and Expense Colors
         income: '#2FBF8F',

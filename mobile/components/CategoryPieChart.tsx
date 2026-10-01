@@ -32,8 +32,8 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // Donut, not a full pie — the hole is what gives the tap callout (and the
 // default running total) somewhere to sit without ever covering a wedge.
-const OUTER_R = 54;
-const INNER_R = 30;
+const OUTER_R = 66;
+const INNER_R = 36;
 // How far the armed (tap-selected) wedge's own outer edge grows.
 const ENLARGE_R = OUTER_R * 1.2;
 // How far a wedge grows while being held — bigger than ENLARGE_R so the
@@ -53,7 +53,7 @@ const HOLD_EXTRA_ANGLE = 11;
 // shares one inner radius) — needed so the callout has room to show a full
 // name/amount/percent without truncating. Stays under OUTER_R so the
 // unselected wedges still show a sliver of ring rather than vanishing.
-const INNER_R_EXPANDED = 46;
+const INNER_R_EXPANDED = 60; // 120px across: room for name, amount, % and count at their sizes
 // Slices below this share of the total don't get their own label around the
 // ring — still fully visible as a wedge, just named only on tap (via the
 // center callout) rather than crowding the ring with a name for every
@@ -70,9 +70,16 @@ const CHUNK_SIZE = 6;
 // action (see onHoldCategory) — also the duration of the grow animation
 // that gives that hold visible feedback, so the two finish together.
 const HOLD_MS = 450;
-// Two label columns flanking the ring, wide enough for a short category
-// name + its amount on two lines each.
-const LABEL_COL = 112;
+// The chart is laid out for a width in this range (the card's real width,
+// within it) and scaled from there — so on a phone it uses exactly the
+// room the card has.
+const MIN_LAYOUT_W = 300;
+const MAX_LAYOUT_W = 420;
+const EDGE = 4; // kept clear at the canvas's left/right edge
+// Estimated text widths for fitting labels (SVG text can't be measured
+// before it's drawn): average character width as a share of the font size.
+const NAME_CHAR_W = FONT.small * 0.62; // bold category name
+const AMOUNT_CHAR_W = FONT.label * 0.58;
 // The chart is laid out at its phone size, then scaled up as a whole to use
 // wider screens (tablets, the web version on a computer) — never down, and
 // capped so it doesn't turn huge on a desktop monitor.
@@ -80,6 +87,7 @@ const MAX_FIT_SCALE = 1.8;
 const MAX_ZOOM = 6; // pinch-to-zoom limit — enough to pick out the tiniest wedges
 const SNAP_ZOOM = 1.1; // released below this, the zoom springs back to normal
 const IS_WEB = Platform.OS === "web";
+const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 // SVG text doesn't inherit the app's font: browsers fall back to a serif
 // (Times). Match react-native-web's own system font stack there; native
 // already uses the system font.
@@ -156,46 +164,56 @@ type LabelEntry = {
   edge: { x: number; y: number };
   textX: number;
   labelY: number;
+  name: string; // the category name, shortened to fit its side if needed
 };
 
-// One leader length: how far out from the ring a label sits, along its own
-// wedge's angle.
-const LABEL_R = OUTER_R + 30;
+// Labels sit on a circle this far from the ring's center (just outside it).
+const LABEL_R = OUTER_R + 22;
 
-// Places each labeled slice's name+amount out along its own wedge's actual
-// angle (both x and y from that angle, not a fixed left/right column) —
-// nudged apart vertically only when two would otherwise land close enough
-// to overlap. Keeping each label near where its wedge actually points,
-// rather than routing every line through a shared bend point toward a
-// common column, is what keeps the leader lines from fanning out and
-// crossing each other once there's more than a couple of them. `cx` here is
-// relative (the ring's own center at 0), so the caller can measure the
-// extent this produces before picking a final canvas height/center.
-function layoutLabels(wedges: Wedge[]): LabelEntry[] {
-  const bySide: Record<"left" | "right", { wedge: Wedge; x: number; y: number }[]> = { left: [], right: [] };
+// Places each labeled slice's name + amount beside its wedge: first at the
+// height its wedge points to, then nudged apart where two would overlap —
+// spread both ways (pushed down, then back up from below a limit), so a
+// crowded side doesn't become one long column of diagonal lines. Each label
+// then sits on the LABEL_R circle at its final height, which keeps it clear
+// of the ring and its leader line short. Coordinates are relative to the
+// ring's center; the caller positions the ring and fits the names.
+function layoutLabels(wedges: Wedge[]): Omit<LabelEntry, "name">[] {
+  const bySide: Record<"left" | "right", { wedge: Wedge; y: number }[]> = { left: [], right: [] };
   for (const w of wedges) {
     const rad = ((w.midAngle - 90) * Math.PI) / 180;
     const side: "left" | "right" = Math.cos(rad) >= 0 ? "right" : "left";
-    bySide[side].push({ wedge: w, x: LABEL_R * Math.cos(rad), y: LABEL_R * Math.sin(rad) });
+    bySide[side].push({ wedge: w, y: LABEL_R * Math.sin(rad) });
   }
 
-  const entries: LabelEntry[] = [];
+  const limit = LABEL_R + ROW_H; // labels may reach a little past the ring
+  const entries: Omit<LabelEntry, "name">[] = [];
   (["left", "right"] as const).forEach((side) => {
     const list = bySide[side].sort((a, b) => a.y - b.y);
     for (let i = 1; i < list.length; i++) {
       if (list[i].y - list[i - 1].y < ROW_H) list[i].y = list[i - 1].y + ROW_H;
     }
-    for (const { wedge, x, y } of list) {
+    if (list.length && list[list.length - 1].y > limit) {
+      list[list.length - 1].y = limit;
+      for (let i = list.length - 2; i >= 0; i--) {
+        if (list[i + 1].y - list[i].y < ROW_H) list[i].y = list[i + 1].y - ROW_H;
+      }
+    }
+    for (const { wedge, y } of list) {
+      const x = Math.max(12, Math.sqrt(Math.max(0, LABEL_R * LABEL_R - y * y)));
       const edge = polarToCartesian(0, 0, OUTER_R, wedge.midAngle);
-      entries.push({ wedge, side, edge, textX: x, labelY: y });
+      entries.push({ wedge, side, edge, textX: side === "right" ? x : -x, labelY: y });
     }
   });
   return entries;
 }
 
-function truncate(label: string, max: number): string {
-  return label.length > max ? `${label.slice(0, max - 1)}…` : label;
+// Shortens `text` to what fits in `width` at `charW` per character.
+function fitText(text: string, width: number, charW: number): string {
+  const max = Math.floor(width / charW);
+  if (text.length <= max) return text;
+  return max <= 1 ? "…" : `${text.slice(0, max - 1)}…`;
 }
+
 
 // Stands in for a not-yet-revealed chunk of wedges — one flat, static,
 // non-interactive Path spanning that whole chunk's combined angle instead
@@ -414,32 +432,65 @@ export default function CategoryPieChart({
   // separate from paintOrder below (which reorders for the currently
   // armed/held wedge), so tapping/holding a wedge doesn't recompute the
   // whole layout, just the ordering.
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const layoutW = availableWidth ? clampNum(availableWidth, MIN_LAYOUT_W, MAX_LAYOUT_W) : 340;
   const { wedges, chunks, labels, cx, cy, width, height } = useMemo(() => {
     const wedges = layoutWedges(slices);
-    const width = LABEL_COL * 2 + OUTER_R * 2 + 8;
-    const cx = LABEL_COL + OUTER_R + 4;
+    const width = layoutW;
 
     // Labeled slices only (see LABEL_PCT_THRESHOLD) — laid out relative to
     // a ring centered at (0, 0) first, so the extent they actually need can
     // be measured before picking a final canvas height/center.
     const labeledWedges = wedges.filter((w) => w.pct >= LABEL_PCT_THRESHOLD);
     const relLabels = layoutLabels(labeledWedges);
+
+    // Position the ring where the fewest characters of label names have to
+    // be cut (a ring position is tried every 2px; ties go to the center):
+    // a side with long names gets more room, a side with short ones gives
+    // it up. Nothing runs off the edge — a name that still doesn't fit is
+    // shortened to its side's room.
+    const amountText = (w: Wedge) => `${w.amount.toFixed(0)} ${currencyCode}`;
+    const freeAt = (e: (typeof relLabels)[number], ringX: number) =>
+      e.side === "left" ? ringX - EDGE - Math.abs(e.textX) - 4 : width - EDGE - ringX - e.textX - 4;
+    const cutAt = (ringX: number) =>
+      relLabels.reduce((sum, e) => {
+        const free = freeAt(e, ringX);
+        const nameCut = Math.max(0, e.wedge.label.length - Math.floor(free / NAME_CHAR_W));
+        const amountMissing = free < amountText(e.wedge).length * AMOUNT_CHAR_W ? 100 : 0;
+        return sum + nameCut + amountMissing;
+      }, 0);
+    let cx = width / 2;
+    let bestCut = Infinity;
+    for (let ringX = EDGE + HOLD_ENLARGE_R; ringX <= width - EDGE - HOLD_ENLARGE_R; ringX += 2) {
+      const cut = cutAt(ringX);
+      if (cut < bestCut || (cut === bestCut && Math.abs(ringX - width / 2) < Math.abs(cx - width / 2))) {
+        cx = ringX;
+        bestCut = cut;
+      }
+    }
+
     const labelYs = relLabels.map((e) => e.labelY);
-    const minY = Math.min(-OUTER_R, ...labelYs);
-    const maxY = Math.max(OUTER_R, ...labelYs) + 13; // +13: room for the amount line below the label
+    // Room for a held wedge's growth, and for each label's name above its
+    // line and amount below it.
+    const minY = Math.min(-HOLD_ENLARGE_R, ...labelYs.map((y) => y - 17));
+    const maxY = Math.max(HOLD_ENLARGE_R, ...labelYs.map((y) => y + 14));
     const height = maxY - minY + V_PAD * 2;
     const cy = V_PAD - minY;
 
-    const labels = relLabels.map((e) => ({
-      ...e,
-      edge: { x: e.edge.x + cx, y: e.edge.y + cy },
-      textX: e.textX + cx,
-      labelY: e.labelY + cy,
-    }));
+    const labels: LabelEntry[] = relLabels.map((e) => {
+      const free = freeAt(e, cx);
+      return {
+        ...e,
+        edge: { x: e.edge.x + cx, y: e.edge.y + cy },
+        textX: e.textX + cx,
+        labelY: e.labelY + cy,
+        name: fitText(e.wedge.label, free, NAME_CHAR_W),
+      };
+    });
     const chunks: Wedge[][] = [];
     for (let i = 0; i < wedges.length; i += CHUNK_SIZE) chunks.push(wedges.slice(i, i + CHUNK_SIZE));
     return { wedges, chunks, labels, cx, cy, width, height };
-  }, [slices]);
+  }, [slices, layoutW, currencyCode]);
 
   // How many chunks (see CHUNK_SIZE) are actually rendered as real wedges so
   // far — starts at 1 (the first chunk shows immediately, no reason to
@@ -534,10 +585,8 @@ export default function CategoryPieChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cx, cy]);
 
-  const [availableWidth, setAvailableWidth] = useState(0);
-  const fit = availableWidth
-    ? Math.min(MAX_FIT_SCALE, Math.max(1, availableWidth / width))
-    : 1;
+  // Wider than MAX_LAYOUT_W (a tablet, a computer): scale the whole chart up.
+  const fit = availableWidth ? Math.min(MAX_FIT_SCALE, availableWidth / width) : 1;
 
   // Pinch to zoom (two fingers), up to MAX_ZOOM, around the point between
   // the fingers; a two-finger drag moves the zoomed chart. One finger is
@@ -722,7 +771,7 @@ export default function CategoryPieChart({
               fill={Colors.textPrimary}
               textAnchor={e.side === "right" ? "start" : "end"}
             >
-              {truncate(e.wedge.label, 12)}
+              {e.name}
             </SvgText>
             <SvgText
               x={e.textX}

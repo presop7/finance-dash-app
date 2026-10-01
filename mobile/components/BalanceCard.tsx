@@ -334,14 +334,14 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 2,
   },
   expenseAmount: {
-    color: Colors.expense,
+    color: Colors.heroExpense,
   },
   colTrend: {
     fontSize: FONT.small,
-    color: Colors.income,
+    color: Colors.heroIncome,
   },
   expenseTrend: {
-    color: Colors.expense,
+    color: Colors.heroExpense,
   },
   separator: {
     width: 0.5,
