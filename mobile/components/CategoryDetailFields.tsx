@@ -1,4 +1,4 @@
-import { Text, StyleSheet } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useTranslation } from "react-i18next";
@@ -21,29 +21,27 @@ export default function CategoryDetailFields({
   currencyCode: string;
   pct: number;
   count: number;
-  // Shown inside the pie chart's round center: a circle is narrower at the
-  // top and bottom than across the middle, so the first and last lines (name,
-  // count) get side margins — the name wraps instead of being cut by the
-  // circle's edge — while the amount and % in the middle keep the full width.
+  // Shown inside the pie chart's round center (120px across): every line is
+  // kept to one centered 88px column — the circle's width at the height of
+  // the top and bottom lines — so no line runs under the wedges.
   inCircle?: boolean;
 }) {
   const Colors = useThemeColors();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
-  return (
+  const fields = (
     <>
-      <Text style={[styles.label, inCircle && styles.roundEdgeLine]} numberOfLines={2}>
+      <Text style={styles.label} numberOfLines={2}>
         {label}
       </Text>
       <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
         {amount.toFixed(2)} {currencyCode}
       </Text>
       <Text style={styles.pct}>{t("charts.pctOfTotal", { pct: pct.toFixed(1) })}</Text>
-      <Text style={[styles.count, inCircle && styles.roundEdgeLine]}>
-        {t("charts.transactions", { count })}
-      </Text>
+      <Text style={styles.count}>{t("charts.transactions", { count })}</Text>
     </>
   );
+  return inCircle ? <View style={styles.circleColumn}>{fields}</View> : fields;
 }
 
 function createStyles(Colors: ColorsType) {
@@ -52,6 +50,6 @@ function createStyles(Colors: ColorsType) {
     amount: { width: "100%", fontSize: FONT.small, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
     pct: { width: "100%", fontSize: FONT.label, color: Colors.textMuted, marginTop: 1, textAlign: "center" },
     count: { width: "100%", fontSize: FONT.label, color: Colors.textMuted, marginTop: 1, textAlign: "center" },
-    roundEdgeLine: { width: undefined, alignSelf: "stretch", marginHorizontal: 16 },
+    circleColumn: { width: 88, alignItems: "center" },
   });
 }
