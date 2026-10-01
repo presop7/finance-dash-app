@@ -20,6 +20,7 @@ import CategoryDetailFields from "./CategoryDetailFields";
 import { perfTag } from "../utils/perfWatchdog";
 import { pushLog } from "../utils/perfLogSink";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
@@ -79,7 +80,7 @@ const LABEL_FONT =
   Platform.OS === "web"
     ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
     : undefined;
-const ROW_H = 24;
+const ROW_H = 30; // one label row: the category name + its amount below
 const V_PAD = 14;
 
 // Both "worklet"-tagged so they can run on the UI thread: they're called
@@ -198,8 +199,15 @@ function ChunkPlaceholder({ chunk, color }: { chunk: Wedge[]; color: string }) {
     () => wedgePath(0, 0, OUTER_R, chunk[0].startAngle, chunk[chunk.length - 1].endAngle),
     [chunk],
   );
-  return <Path d={d} fill={color} />;
+  const Colors = useThemeColors();
+  return <Path d={d} fill={color} {...wedgeSeparator(Colors.surface)} />;
 }
+
+// A thin outline in the card's own color between wedges, so neighbouring
+// colors don't run together. Along the outer edge and under the hole it's
+// the same color as what's behind it, so only the gaps show.
+const wedgeSeparator = (cardColor: string) =>
+  ({ stroke: cardColor, strokeWidth: 1.5, strokeLinejoin: "round" }) as const;
 
 function PieWedge({
   wedge,
@@ -227,6 +235,7 @@ function PieWedge({
   onHoldStart?: (wedge: Wedge) => void;
   onHoldEnd?: () => void;
 }) {
+  const Colors = useThemeColors();
   // The vast majority of frames during any given wedge's animation, every
   // OTHER wedge is sitting still — this is what it's still sitting at, computed
   // once (on the JS thread) whenever the wedge's own angles actually change,
@@ -281,6 +290,7 @@ function PieWedge({
     <AnimatedPath
       animatedProps={animatedProps}
       fill={wedge.color}
+      {...wedgeSeparator(Colors.surface)}
       onPress={() => onPress(wedge)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -403,7 +413,7 @@ export default function CategoryPieChart({
     const relLabels = layoutLabels(labeledWedges);
     const labelYs = relLabels.map((e) => e.labelY);
     const minY = Math.min(-OUTER_R, ...labelYs);
-    const maxY = Math.max(OUTER_R, ...labelYs) + 10; // +10: room for the amount line below the label
+    const maxY = Math.max(OUTER_R, ...labelYs) + 13; // +13: room for the amount line below the label
     const height = maxY - minY + V_PAD * 2;
     const cy = V_PAD - minY;
 
@@ -578,19 +588,19 @@ export default function CategoryPieChart({
           <Fragment key={`text-${e.wedge.key}`}>
             <SvgText
               x={e.textX}
-              y={e.labelY - 3}
-              fontSize={10}
+              y={e.labelY - 4}
+              fontSize={FONT.small}
               fontWeight="600"
               fontFamily={LABEL_FONT}
               fill={Colors.textPrimary}
               textAnchor={e.side === "right" ? "start" : "end"}
             >
-              {truncate(e.wedge.label, 14)}
+              {truncate(e.wedge.label, 12)}
             </SvgText>
             <SvgText
               x={e.textX}
-              y={e.labelY + 9}
-              fontSize={9}
+              y={e.labelY + 11}
+              fontSize={FONT.label}
               fill={Colors.textMuted}
               fontFamily={LABEL_FONT}
               textAnchor={e.side === "right" ? "start" : "end"}
@@ -613,9 +623,12 @@ export default function CategoryPieChart({
           detail once one's armed. */}
       <Animated.View style={[styles.hole, holeStyle, totalStyle]} pointerEvents="none">
         <Text style={styles.holeLabel}>{t("charts.total")}</Text>
+        {/* Number and currency on separate lines: at this size "2866 EUR"
+            is wider than the hole (and the web can't shrink text to fit). */}
         <Text style={styles.holeAmount} numberOfLines={1} adjustsFontSizeToFit>
-          {total.toFixed(0)} {currencyCode}
+          {total.toFixed(0)}
         </Text>
+        <Text style={styles.holeLabel}>{currencyCode}</Text>
       </Animated.View>
 
       {displaySlice && (
@@ -685,10 +698,10 @@ function createStyles(Colors: ColorsType) {
       alignItems: "center",
       justifyContent: "center",
     },
-    holeLabel: { width: "100%", fontSize: 9, fontWeight: "600", color: Colors.textMuted, textTransform: "uppercase", textAlign: "center" },
-    holeAmount: { width: "100%", fontSize: 11, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
+    holeLabel: { width: "100%", fontSize: FONT.label, fontWeight: "600", color: Colors.textMuted, textTransform: "uppercase", textAlign: "center" },
+    holeAmount: { width: "100%", fontSize: FONT.small, fontWeight: "700", color: Colors.textPrimary, marginTop: 2, textAlign: "center" },
     fitWrap: { alignSelf: "stretch", alignItems: "center" },
     emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 8 },
-    emptyText: { fontSize: 13, color: Colors.textMuted },
+    emptyText: { fontSize: FONT.small, color: Colors.textMuted },
   });
 }

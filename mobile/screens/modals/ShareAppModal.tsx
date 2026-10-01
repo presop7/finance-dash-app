@@ -6,6 +6,7 @@ import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { shareUrl } from "../../constants/appLinks";
 import QrCode from "../../components/QrCode";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 // "Share Fi-Track" from Settings: a QR code to scan from someone else's
 // phone, plus the phone's own share menu for sending the link.
@@ -85,16 +86,16 @@ function createStyles(Colors: ColorsType) {
       padding: 20,
       alignItems: "center",
     },
-    title: { fontSize: 18, fontWeight: "700", color: Colors.textPrimary },
+    title: { fontSize: FONT.title, fontWeight: "700", color: Colors.textPrimary },
     subtitle: {
-      fontSize: 14,
+      fontSize: FONT.body,
       color: Colors.textSecondary,
       textAlign: "center",
       marginTop: 6,
       marginBottom: 16,
     },
     qr: { padding: 8, backgroundColor: "#FFFFFF", borderRadius: 12 },
-    url: { fontSize: 14, color: Colors.textSecondary, marginTop: 10 },
+    url: { fontSize: FONT.body, color: Colors.textSecondary, marginTop: 10 },
     button: {
       alignSelf: "stretch",
       backgroundColor: Colors.primary,
@@ -103,8 +104,8 @@ function createStyles(Colors: ColorsType) {
       alignItems: "center",
       marginTop: 16,
     },
-    buttonText: { color: Colors.surface, fontSize: 15, fontWeight: "600" }, // like the other primary buttons
+    buttonText: { color: Colors.surface, fontSize: FONT.body, fontWeight: "600" }, // like the other primary buttons
     closeButton: { alignSelf: "stretch", paddingVertical: 12, alignItems: "center", marginTop: 4 },
-    closeText: { fontSize: 15, color: Colors.textSecondary },
+    closeText: { fontSize: FONT.body, color: Colors.textSecondary },
   });
 }

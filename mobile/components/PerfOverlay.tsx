@@ -8,6 +8,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share } from "react-native";
 import { subscribePerfLog, getPerfLogSnapshot, clearPerfLog } from "../utils/perfLogSink";
+import { FONT } from "../constants/typography";
 
 export default function PerfOverlay() {
   const lines = useSyncExternalStore(subscribePerfLog, getPerfLogSnapshot);
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     elevation: 9999,
   },
-  badgeText: { color: "#0f0", fontSize: 11, fontWeight: "700" },
+  badgeText: { color: "#0f0", fontSize: FONT.label, fontWeight: "700" },
   panel: {
     position: "absolute",
     left: 8,
@@ -110,10 +111,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#333",
   },
-  headerText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  headerText: { color: "#fff", fontSize: FONT.small, fontWeight: "700" },
   headerBtns: { flexDirection: "row", gap: 14 },
-  headerBtnText: { color: "#5ac8fa", fontSize: 12, fontWeight: "600" },
+  headerBtnText: { color: "#5ac8fa", fontSize: FONT.small, fontWeight: "600" },
   body: { paddingHorizontal: 10, paddingVertical: 6 },
-  line: { color: "#0f0", fontSize: 10, marginBottom: 4, fontFamily: "monospace" },
-  emptyText: { color: "#888", fontSize: 11, paddingVertical: 10 },
+  line: { color: "#0f0", fontSize: FONT.label, marginBottom: 4, fontFamily: "monospace" },
+  emptyText: { color: "#888", fontSize: FONT.small, paddingVertical: 10 },
 });

@@ -16,6 +16,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { accountName, nameFromEmail } from "../../utils/greeting";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 // Shown once to accounts that have no name yet — email sign-ups from before
 // the sign-up form asked for one. Google accounts already carry a name, and
@@ -110,13 +111,13 @@ function createStyles(Colors: ColorsType) {
     padding: 20,
   },
   title: {
-    fontSize: 18,
+    fontSize: FONT.title,
     fontWeight: "700",
     color: Colors.textPrimary,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
     textAlign: "center",
     marginTop: 6,
@@ -128,13 +129,13 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    fontSize: 18,
+    fontSize: FONT.field,
     color: Colors.textPrimary,
     backgroundColor: Colors.surfaceSecondary,
   },
   error: {
     color: Colors.expense,
-    fontSize: 12,
+    fontSize: FONT.small,
     textAlign: "center",
     marginTop: 10,
   },
@@ -150,7 +151,7 @@ function createStyles(Colors: ColorsType) {
   },
   buttonText: {
     color: Colors.surface,
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
   },
   });

@@ -5,6 +5,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
+import { FONT } from "../constants/typography";
 
 type CalendarRangePickerProps = {
   start: Date | null;
@@ -147,12 +148,12 @@ function createStyles(Colors: ColorsType) {
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  monthLabel: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  monthLabel: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   weekdayRow: { flexDirection: "row", marginBottom: 4 },
   weekdayLabel: {
     flex: 1,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: FONT.label,
     color: Colors.textMuted,
     fontWeight: "500",
   },
@@ -166,8 +167,8 @@ function createStyles(Colors: ColorsType) {
   },
   dayCellInRange: { backgroundColor: Colors.primary + "18" },
   dayCellEndpoint: { backgroundColor: Colors.primary },
-  dayText: { fontSize: 12, color: Colors.textPrimary },
+  dayText: { fontSize: FONT.small, color: Colors.textPrimary },
   dayTextEndpoint: { color: "#fff", fontWeight: "600" },
-  hint: { fontSize: 11, color: Colors.textMuted, marginTop: 8, textAlign: "center" },
+  hint: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 8, textAlign: "center" },
   });
 }

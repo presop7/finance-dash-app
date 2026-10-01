@@ -78,6 +78,7 @@ import { installWebBack, syncWebTab, useAndroidDoubleBackExit } from "./hooks/us
 // ENABLED flag to false, or delete this import, once this pass is done.
 import { startPerfWatchdog } from "./utils/perfWatchdog";
 import PerfOverlay from "./components/PerfOverlay";
+import { FONT } from "./constants/typography";
 startPerfWatchdog();
 
 // react-native-screens' native screen containers, used under the hood by the
@@ -716,7 +717,7 @@ function createStyles(Colors: ColorsType) {
       paddingHorizontal: 32,
     },
     errorText: {
-      fontSize: 13,
+      fontSize: FONT.small,
       color: Colors.textSecondary,
       textAlign: "center",
     },
@@ -727,7 +728,7 @@ function createStyles(Colors: ColorsType) {
       backgroundColor: Colors.primary,
     },
     retryBtnText: {
-      fontSize: 13,
+      fontSize: FONT.body,
       fontWeight: "600",
       color: "#fff",
     },
@@ -753,17 +754,17 @@ function createStyles(Colors: ColorsType) {
       paddingVertical: 7,
     },
     syncText: {
-      fontSize: 10,
+      fontSize: FONT.label,
       color: Colors.textMuted,
       textAlign: "center",
     },
     syncTextWarning: {
-      fontSize: 11,
+      fontSize: FONT.small,
       fontWeight: "600",
       color: Colors.warningText,
     },
     syncTextError: {
-      fontSize: 11,
+      fontSize: FONT.small,
       fontWeight: "600",
       color: Colors.errorText,
     },
@@ -793,7 +794,7 @@ function createStyles(Colors: ColorsType) {
       paddingHorizontal: 8,
     },
     navLabel: {
-      fontSize: 9,
+      fontSize: FONT.label,
       color: Colors.textMuted,
     },
     navLabelActive: {

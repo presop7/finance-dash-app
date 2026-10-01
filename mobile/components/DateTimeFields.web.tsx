@@ -13,6 +13,7 @@ import { FIELD_BOX, FIELD_INPUT } from "../constants/styles";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { currentLocale } from "../i18n";
 import FieldIcon from "./FieldIcon";
+import { FONT } from "../constants/typography";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -359,7 +360,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 8,
   },
   calendarMonthLabel: {
-    fontSize: 13,
+    fontSize: FONT.body,
     fontWeight: "600",
     color: Colors.textPrimary,
   },
@@ -369,7 +370,7 @@ function createStyles(Colors: ColorsType) {
   weekdayText: {
     flex: 1,
     textAlign: "center",
-    fontSize: 10,
+    fontSize: FONT.label,
     color: Colors.textMuted,
     marginBottom: 4,
   },
@@ -388,7 +389,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary,
   },
   dayText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textPrimary,
   },
   dayTextSelected: {
@@ -410,7 +411,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   timeOptionText: {
-    fontSize: 13,
+    fontSize: FONT.body,
     color: Colors.textPrimary,
   },
   timeOptionTextSelected: {

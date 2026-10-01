@@ -19,6 +19,7 @@ import { formatDate, formatTime } from "../../utils/formatDateTime";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 type TransactionDetailModalProps = {
   transaction: Transaction | null;
@@ -205,7 +206,7 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 12,
   },
   title: {
-    fontSize: 16,
+    fontSize: FONT.title,
     fontWeight: "600",
     color: Colors.textPrimary,
   },
@@ -225,12 +226,12 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 12,
   },
   amount: {
-    fontSize: 26,
+    fontSize: FONT.display,
     fontWeight: "700",
     marginBottom: 4,
   },
   transactionTitle: {
-    fontSize: 14,
+    fontSize: FONT.body,
     color: Colors.textSecondary,
     textAlign: "center",
   },
@@ -249,11 +250,11 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 8,
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
   },
   detailValue: {
-    fontSize: 12,
+    fontSize: FONT.body,
     fontWeight: "500",
     color: Colors.textPrimary,
   },
@@ -266,7 +267,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 12,
   },
   noteLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -274,9 +275,9 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 4,
   },
   noteText: {
-    fontSize: 13,
+    fontSize: FONT.body,
     color: Colors.textPrimary,
-    lineHeight: 18,
+    lineHeight: 21,
   },
   actions: {
     flexDirection: "row",
@@ -303,7 +304,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary,
   },
   editBtnText: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
     color: "#fff",
   },

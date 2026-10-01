@@ -6,6 +6,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { getInsights } from "../utils/insights";
+import { FONT } from "../constants/typography";
 
 type InsightBannerProps = {
   transactions: Transaction[];
@@ -86,12 +87,12 @@ function createStyles(Colors: ColorsType) {
     flex: 1,
   },
   message: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   counter: {
-    fontSize: 10,
+    fontSize: FONT.label,
     color: Colors.textMuted,
     flexShrink: 0,
   },

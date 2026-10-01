@@ -15,6 +15,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { CategorySlice } from "../hooks/useCategoryBreakdown";
 import CategoryDetailFields from "./CategoryDetailFields";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 // One row's total height (header line + gap, bar, gap to next row) — used
 // to size the fixed visible window below (VISIBLE_ROWS) so the card never
@@ -216,8 +217,8 @@ function createStyles(Colors: ColorsType) {
     list: { height: ROW_H * VISIBLE_ROWS },
     row: { marginBottom: ROW_GAP },
     rowHeader: { marginBottom: 6 },
-    rowLabel: { fontSize: 15, fontWeight: "600", color: Colors.textPrimary },
-    rowAmount: { fontSize: 12, color: Colors.textMuted },
+    rowLabel: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
+    rowAmount: { fontSize: FONT.small, color: Colors.textMuted },
     // No overflow:hidden here (unlike the track's plain-bar predecessor) —
     // the fill's own height grows past BAR_H on hold (see growStyle) and
     // needs to spill slightly above/below the track without being clipped.
@@ -282,8 +283,8 @@ function createStyles(Colors: ColorsType) {
       borderRadius: 10,
       backgroundColor: Colors.primary,
     },
-    openBtnText: { fontSize: 12, fontWeight: "700", color: "#fff" },
+    openBtnText: { fontSize: FONT.small, fontWeight: "700", color: "#fff" },
     emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 8 },
-    emptyText: { fontSize: 13, color: Colors.textMuted },
+    emptyText: { fontSize: FONT.small, color: Colors.textMuted },
   });
 }

@@ -19,6 +19,7 @@ import { useScreenTop } from "../hooks/useScreenTop";
 import { getGreeting, firstNameFromUser } from "../utils/greeting";
 import type { AnalyticsInitialFilter } from "./AnalyticsScreen";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 type DashboardScreenProps = {
   onTransactionPress: (transaction: Transaction) => void;
@@ -166,11 +167,11 @@ function createStyles(Colors: ColorsType) {
       paddingBottom: 16,
     },
     greeting: {
-      fontSize: 13,
+      fontSize: FONT.small,
       color: Colors.textMuted,
     },
     name: {
-      fontSize: 22,
+      fontSize: FONT.heading,
       fontWeight: "600",
       color: Colors.textPrimary,
     },

@@ -16,6 +16,7 @@ import { formatCurrency } from "../utils/currency";
 import HoldPressable from "./HoldPressable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 // How long the card must be held before a hidden balance is shown.
 const REVEAL_HOLD_MS = 300;
@@ -259,12 +260,12 @@ function createStyles(Colors: ColorsType) {
     marginTop: 8,
   },
   balanceLabel: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.6)",
+    fontSize: FONT.small,
+    color: "rgba(255,255,255,0.75)",
     marginBottom: 4,
   },
   balanceAmount: {
-    fontSize: 32,
+    fontSize: FONT.hero,
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 16,
@@ -286,7 +287,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 12,
   },
   timeframeText: {
-    fontSize: 11,
+    fontSize: FONT.small,
     fontWeight: "500",
     color: "#fff",
   },
@@ -307,7 +308,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   dropdownItemText: {
-    fontSize: 12,
+    fontSize: FONT.body,
     color: "rgba(255,255,255,0.75)",
   },
   dropdownItemTextActive: {
@@ -322,12 +323,12 @@ function createStyles(Colors: ColorsType) {
     flex: 1,
   },
   colLabel: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.5)",
+    fontSize: FONT.small,
+    color: "rgba(255,255,255,0.75)",
     marginBottom: 2,
   },
   colAmount: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "500",
     color: "#FFFFFF",
     marginBottom: 2,
@@ -336,7 +337,7 @@ function createStyles(Colors: ColorsType) {
     color: Colors.expense,
   },
   colTrend: {
-    fontSize: 11,
+    fontSize: FONT.small,
     color: Colors.income,
   },
   expenseTrend: {

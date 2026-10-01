@@ -35,6 +35,7 @@ import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
+import { FONT } from "../../constants/typography";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -724,7 +725,7 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+  title: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
   typeToggle: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -740,7 +741,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
     justifyContent: "center",
   },
-  toggleText: { fontSize: 13, fontWeight: "500" },
+  toggleText: { fontSize: FONT.body, fontWeight: "500" },
   toggleActiveText: { color: "#fff" },
   toggleInactiveText: { color: Colors.textMuted },
   searchBox: {
@@ -757,7 +758,7 @@ function createStyles(Colors: ColorsType) {
   },
   searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
   emptySearchText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     paddingHorizontal: 4,
     paddingVertical: 8,
@@ -774,10 +775,10 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.primary + "40",
   },
-  selectBarText: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  selectBarText: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   selectBarActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   selectBarCancelBtn: { paddingHorizontal: 4, paddingVertical: 6 },
-  selectBarCancelText: { fontSize: 13, fontWeight: "500", color: Colors.textSecondary },
+  selectBarCancelText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   selectBarDeleteBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -788,7 +789,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.expense,
   },
   selectBarDeleteBtnDisabled: { opacity: 0.5 },
-  selectBarDeleteText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  selectBarDeleteText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
   categoriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -821,7 +822,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
     justifyContent: "center",
   },
-  categoryChipText: { fontSize: 14, color: Colors.textPrimary, fontWeight: "500" },
+  categoryChipText: { fontSize: FONT.body, color: Colors.textPrimary, fontWeight: "500" },
   // Transaction count per category — muted/gray when empty (0) so an empty
   // duplicate stands out at a glance instead of needing to be counted.
   countBadge: {
@@ -833,7 +834,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
   },
   countBadgeEmpty: { backgroundColor: Colors.border },
-  countBadgeText: { fontSize: 10, fontWeight: "700", color: Colors.primary },
+  countBadgeText: { fontSize: FONT.label, fontWeight: "700", color: Colors.primary },
   countBadgeTextEmpty: { color: Colors.textMuted },
   addNewFooter: {
     borderTopWidth: 0.5,
@@ -851,6 +852,6 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.primary,
     borderStyle: "dashed",
   },
-  addNewText: { fontSize: 14, color: Colors.primary, fontWeight: "500" },
+  addNewText: { fontSize: FONT.body, color: Colors.primary, fontWeight: "500" },
   });
 }

@@ -3,6 +3,7 @@ import Modal from "./AppModal";
 import { create } from "zustand";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { FONT } from "../constants/typography";
 
 // The web version's stand-in for the phone's system alert. The browser's own
 // window.alert/confirm show the site address as their title and can't be
@@ -86,8 +87,8 @@ function createStyles(Colors: ColorsType) {
       paddingHorizontal: 20,
       paddingBottom: 8,
     },
-    title: { fontSize: 17, fontWeight: "600", color: Colors.textPrimary },
-    message: { fontSize: 14, lineHeight: 20, color: Colors.textSecondary, marginTop: 8 },
+    title: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
+    message: { fontSize: FONT.body, lineHeight: 20, color: Colors.textSecondary, marginTop: 8 },
     buttons: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -95,7 +96,7 @@ function createStyles(Colors: ColorsType) {
       marginTop: 12,
     },
     button: { paddingVertical: 10, paddingHorizontal: 12 },
-    buttonText: { fontSize: 15, fontWeight: "600", color: Colors.textPrimary },
+    buttonText: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
     cancelText: { fontWeight: "400", color: Colors.textSecondary },
     destructiveText: { color: Colors.expense },
   });

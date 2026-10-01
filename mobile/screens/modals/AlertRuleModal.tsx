@@ -23,6 +23,7 @@ import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
+import { FONT } from "../../constants/typography";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
@@ -433,10 +434,10 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+  title: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
   body: { paddingHorizontal: 16 },
   formLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -457,8 +458,8 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   typeChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  categoryChipText: { fontSize: 14 }, // category names, +2 over the type chips
-  typeChipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
+  categoryChipText: { fontSize: FONT.body }, // category names, +2 over the type chips
+  typeChipText: { fontSize: FONT.small, color: Colors.textPrimary, fontWeight: "500" },
   typeChipTextActive: { color: "#fff" },
   fieldContainer: {
     flexDirection: "row",
@@ -479,7 +480,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   toggleOption: { flex: 1, paddingVertical: 10, alignItems: "center", justifyContent: "center" },
-  toggleText: { fontSize: 13, fontWeight: "500" },
+  toggleText: { fontSize: FONT.body, fontWeight: "500" },
   toggleActiveText: { color: "#fff" },
   toggleInactiveText: { color: Colors.textMuted },
   formActions: { flexDirection: "row", gap: 10, marginTop: 20, marginBottom: 8 },
@@ -502,9 +503,9 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.expense + "40",
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "500", color: Colors.textSecondary },
+  cancelBtnText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   saveBtn: { flex: 2, padding: 14, borderRadius: 12, alignItems: "center", backgroundColor: Colors.primary },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  saveBtnText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   });
 }

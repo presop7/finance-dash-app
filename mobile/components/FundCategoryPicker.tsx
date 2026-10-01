@@ -13,6 +13,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { themedCategoryColor } from "../utils/color";
 import HoldPressable from "./HoldPressable";
+import { FONT } from "../constants/typography";
 
 type FundCategoryPickerProps = {
   fundCategories: FundCategory[];
@@ -145,7 +146,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "22",
   },
   label: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
     textAlign: "center",
   },
@@ -156,7 +157,7 @@ function createStyles(Colors: ColorsType) {
     borderStyle: "dashed",
   },
   addLabel: {
-    fontSize: 10,
+    fontSize: FONT.label,
     color: Colors.textMuted,
   },
   });

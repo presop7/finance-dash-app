@@ -18,6 +18,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import { alertAsync } from "../../utils/confirm";
 import { translateAuthError } from "../../utils/authErrors";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 // Settings -> Account -> Change Password. An email account confirms its
 // current password first; a Google-only account has none, so it just sets
@@ -113,10 +114,10 @@ function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
     backdrop: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: "rgba(0,0,0,0.5)" },
     dialog: { width: "100%", maxWidth: 380, backgroundColor: Colors.surface, borderRadius: 16, padding: 20 },
-    title: { fontSize: 18, fontWeight: "700", color: Colors.textPrimary, marginBottom: 16 },
+    title: { fontSize: FONT.title, fontWeight: "700", color: Colors.textPrimary, marginBottom: 16 },
     field: { marginBottom: 12 },
     label: {
-      fontSize: 11,
+      fontSize: FONT.label,
       fontWeight: "500",
       color: Colors.textMuted,
       textTransform: "uppercase",
@@ -133,11 +134,11 @@ function createStyles(Colors: ColorsType) {
       borderColor: Colors.border,
       borderRadius: 10,
     },
-    error: { color: Colors.expense, fontSize: 13, marginBottom: 8 },
+    error: { color: Colors.expense, fontSize: FONT.small, marginBottom: 8 },
     button: { backgroundColor: Colors.primary, borderRadius: 10, paddingVertical: 13, alignItems: "center", marginTop: 4 },
     buttonDisabled: { opacity: 0.5 },
-    buttonText: { color: Colors.surface, fontSize: 15, fontWeight: "600" },
+    buttonText: { color: Colors.surface, fontSize: FONT.body, fontWeight: "600" },
     cancel: { paddingVertical: 12, alignItems: "center" },
-    cancelText: { fontSize: 15, color: Colors.textSecondary },
+    cancelText: { fontSize: FONT.body, color: Colors.textSecondary },
   });
 }

@@ -21,6 +21,7 @@ import { themedCategoryColor } from "../utils/color";
 import { moveToSlot, Slots } from "../utils/reorder";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 type FundsCardProps = {
   transactions: Transaction[];
@@ -307,12 +308,12 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 10,
   },
   fundName: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     marginBottom: 4,
   },
   balance: {
-    fontSize: 16,
+    fontSize: FONT.field,
     fontWeight: "600",
     color: Colors.textPrimary,
     marginBottom: 6,
@@ -323,7 +324,7 @@ function createStyles(Colors: ColorsType) {
     gap: 3,
   },
   trendText: {
-    fontSize: 11,
+    fontSize: FONT.small,
     fontWeight: "500",
   },
   });

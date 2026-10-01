@@ -33,6 +33,7 @@ import {
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
+import { FONT } from "../../constants/typography";
 
 type TransactionFiltersModalProps = {
   visible: boolean;
@@ -552,12 +553,12 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+  title: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 14 },
-  resetText: { fontSize: 12, fontWeight: "500", color: Colors.income },
+  resetText: { fontSize: FONT.small, fontWeight: "500", color: Colors.income },
   body: { paddingHorizontal: 16, paddingBottom: 12 },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -576,7 +577,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   dateDropdownText: {
-    fontSize: 13,
+    fontSize: FONT.body,
     color: Colors.textPrimary,
     fontWeight: "500",
   },
@@ -596,7 +597,7 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 10,
   },
   dropdownItemActive: { backgroundColor: Colors.primary + "10" },
-  dropdownItemText: { fontSize: 12, color: Colors.textSecondary },
+  dropdownItemText: { fontSize: FONT.body, color: Colors.textSecondary },
   dropdownItemTextActive: { color: Colors.primary, fontWeight: "600" },
   searchBox: {
     flexDirection: "row",
@@ -611,7 +612,7 @@ function createStyles(Colors: ColorsType) {
   },
   searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
   emptySearchText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     paddingVertical: 8,
   },
@@ -634,7 +635,7 @@ function createStyles(Colors: ColorsType) {
     marginRight: 8,
     marginBottom: 8,
   },
-  chipText: { fontSize: 14, color: Colors.textPrimary, fontWeight: "500" },
+  chipText: { fontSize: FONT.body, color: Colors.textPrimary, fontWeight: "500" },
   chipTextActive: { color: "#fff" },
   footer: {
     paddingHorizontal: 16,
@@ -648,6 +649,6 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 14,
     alignItems: "center",
   },
-  applyBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  applyBtnText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   });
 }

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useExitHint } from "../hooks/useBackNavigation";
+import { FONT } from "../constants/typography";
 
 // Web's "press back again to exit" — the Android app uses its system toast.
 export default function BackExitHint() {
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
   pill: {
     backgroundColor: "rgba(20,20,24,0.9)",
     color: "#fff",
-    fontSize: 14,
+    fontSize: FONT.body,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,

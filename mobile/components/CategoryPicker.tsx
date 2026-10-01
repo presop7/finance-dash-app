@@ -18,6 +18,7 @@ import { useStagedCount } from "../hooks/useStagedCount";
 import HoldPressable from "./HoldPressable";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "./FieldIcon";
+import { FONT } from "../constants/typography";
 
 type CategoryPickerProps = {
   categories: Category[];
@@ -170,7 +171,7 @@ function createStyles(Colors: ColorsType) {
   },
   searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
   emptyText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -200,7 +201,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "22",
   },
   label: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
     textAlign: "center",
   },

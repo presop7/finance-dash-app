@@ -23,6 +23,7 @@ import FeedbackModal from "./modals/FeedbackModal";
 import ShareAppModal from "./modals/ShareAppModal";
 import ChangePasswordModal from "./modals/ChangePasswordModal";
 import type { CategoryTabType } from "./modals/CategoriesModal";
+import { FONT } from "../constants/typography";
 
 type SettingsScreenProps = {
   onOpenCategories: (type: CategoryTabType) => void;
@@ -701,9 +702,9 @@ function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   header: { paddingBottom: 16 },
-  headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
+  headerTitle: { fontSize: FONT.heading, fontWeight: "600", color: Colors.textPrimary },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -746,12 +747,12 @@ function createStyles(Colors: ColorsType) {
   },
   rowHead: { flexDirection: "row", alignItems: "center", gap: 10, flexGrow: 1, flexShrink: 1 },
   rowHeadInfo: { flexShrink: 1 },
-  rowTitle: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary },
-  rowSubtitle: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  rowTitle: { fontSize: FONT.body, fontWeight: "500", color: Colors.textPrimary },
+  rowSubtitle: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 2 },
   nameInput: {
     flexGrow: 1,
     flexBasis: 120,
-    fontSize: 16,
+    fontSize: FONT.field,
     paddingHorizontal: 6,
     paddingVertical: 8,
     borderRadius: 6,
@@ -768,7 +769,7 @@ function createStyles(Colors: ColorsType) {
   },
   segment: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   segmentActive: { backgroundColor: Colors.primary },
-  segmentText: { fontSize: 12, fontWeight: "600", color: Colors.textMuted },
+  segmentText: { fontSize: FONT.small, fontWeight: "600", color: Colors.textMuted },
   segmentTextActive: { color: "#fff" },
   dropdown: {
     marginHorizontal: 12,
@@ -787,7 +788,7 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 10,
   },
   dropdownItemActive: { backgroundColor: Colors.primary + "10" },
-  dropdownItemText: { fontSize: 12, color: Colors.textSecondary },
+  dropdownItemText: { fontSize: FONT.body, color: Colors.textSecondary },
   dropdownItemTextActive: { color: Colors.primary, fontWeight: "600" },
   bottomPadding: { height: 20 },
   });

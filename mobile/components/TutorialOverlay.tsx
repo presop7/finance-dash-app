@@ -15,6 +15,7 @@ import { ColorsType } from "../constants/colors";
 import { TUTORIAL_STEPS, TutorialStep } from "../constants/tutorialSteps";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { canGoBack, getTutorialTarget, useTutorialStore } from "../store/useTutorialStore";
+import { FONT } from "../constants/typography";
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -353,14 +354,14 @@ function createStyles(Colors: ColorsType) {
       elevation: 8,
     },
     title: {
-      fontSize: 16,
+      fontSize: FONT.title,
       fontWeight: "700",
       color: Colors.textPrimary,
       marginBottom: 6,
     },
     textScroll: { flexShrink: 1 },
     text: {
-      fontSize: 14,
+      fontSize: FONT.body,
       lineHeight: 20,
       color: Colors.textSecondary,
     },
@@ -370,16 +371,16 @@ function createStyles(Colors: ColorsType) {
       justifyContent: "space-between",
       marginTop: 14,
     },
-    counter: { fontSize: 12, color: Colors.textMuted },
-    tryIt: { fontSize: 13, fontWeight: "600", color: Colors.primary, marginTop: 10 },
-    hint: { fontSize: 12, fontStyle: "italic", color: Colors.primary },
+    counter: { fontSize: FONT.small, color: Colors.textMuted },
+    tryIt: { fontSize: FONT.small, fontWeight: "600", color: Colors.primary, marginTop: 10 },
+    hint: { fontSize: FONT.small, fontStyle: "italic", color: Colors.primary },
     nextBtn: {
       backgroundColor: Colors.primary,
       borderRadius: 10,
       paddingHorizontal: 18,
       paddingVertical: 9,
     },
-    nextText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+    nextText: { color: "#fff", fontSize: FONT.body, fontWeight: "600" },
     buttons: { flexDirection: "row", alignItems: "center", gap: 8 },
     backBtn: {
       borderRadius: 10,
@@ -388,7 +389,7 @@ function createStyles(Colors: ColorsType) {
       borderWidth: 1,
       borderColor: Colors.border,
     },
-    backText: { color: Colors.textSecondary, fontSize: 14, fontWeight: "600" },
+    backText: { color: Colors.textSecondary, fontSize: FONT.body, fontWeight: "600" },
     skip: {
       position: "absolute",
       left: 12,
@@ -399,6 +400,6 @@ function createStyles(Colors: ColorsType) {
       borderWidth: 1,
       borderColor: "rgba(255,255,255,0.5)",
     },
-    skipText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+    skipText: { color: "#fff", fontSize: FONT.small, fontWeight: "600" },
   });
 }

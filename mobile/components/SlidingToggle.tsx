@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
+import { FONT } from "../constants/typography";
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
@@ -155,7 +156,7 @@ function createStyles(Colors: ColorsType) {
       alignItems: "center",
       justifyContent: "center",
     },
-    text: { fontSize: 12, fontWeight: "600", color: Colors.textMuted },
+    text: { fontSize: FONT.small, fontWeight: "600", color: Colors.textMuted },
     textActive: { color: "#fff" },
   });
 }

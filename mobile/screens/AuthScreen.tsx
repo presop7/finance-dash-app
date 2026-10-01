@@ -19,6 +19,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTranslation } from "react-i18next";
 import { translateAuthError } from "../utils/authErrors";
+import { FONT } from "../constants/typography";
 
 type Mode = "sign-in" | "sign-up" | "reset";
 
@@ -454,13 +455,13 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 12,
   },
   brandTitle: {
-    fontSize: 26,
+    fontSize: FONT.display,
     fontWeight: "600",
     color: Colors.textSecondary,
     textAlign: "center",
   },
   modeHeading: {
-    fontSize: 22,
+    fontSize: FONT.heading,
     fontWeight: "800",
     color: Colors.primary,
     textAlign: "center",
@@ -468,7 +469,7 @@ function createStyles(Colors: ColorsType) {
     letterSpacing: 0.6,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
     textAlign: "center",
     marginTop: 6,
@@ -478,7 +479,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 16,
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -491,13 +492,13 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    fontSize: 17,
+    fontSize: FONT.field,
     color: Colors.textPrimary,
     backgroundColor: Colors.surfaceSecondary,
   },
   errorText: {
     color: Colors.expense,
-    fontSize: 12,
+    fontSize: FONT.small,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -515,7 +516,7 @@ function createStyles(Colors: ColorsType) {
   },
   submitButtonText: {
     color: Colors.surface,
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
   },
   dividerRow: {
@@ -530,7 +531,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.border,
   },
   dividerText: {
-    fontSize: 11,
+    fontSize: FONT.label,
     color: Colors.textMuted,
     textTransform: "uppercase",
   },
@@ -548,7 +549,7 @@ function createStyles(Colors: ColorsType) {
   },
   googleButtonText: {
     color: Colors.textPrimary,
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
   },
   resendLink: {
@@ -561,7 +562,7 @@ function createStyles(Colors: ColorsType) {
   },
   switchLink: {
     color: Colors.primary,
-    fontSize: 13,
+    fontSize: FONT.body,
     textAlign: "center",
     fontWeight: "500",
   },
@@ -571,7 +572,7 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 24,
   },
   confirmText: {
-    fontSize: 13,
+    fontSize: FONT.small,
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 19,

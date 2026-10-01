@@ -7,6 +7,7 @@ import { Transaction } from "../store/useFinanceStore";
 import { getTopExpenses } from "../utils/insights";
 import TransactionList from "./SwipeableTransactionList";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 type RangePreset = "7d" | "30d" | "90d" | "365d" | "all";
 
@@ -120,7 +121,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 10,
   },
   rangeText: {
-    fontSize: 11,
+    fontSize: FONT.small,
     fontWeight: "500",
     color: Colors.textSecondary,
   },
@@ -144,7 +145,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "10",
   },
   dropdownItemText: {
-    fontSize: 12,
+    fontSize: FONT.body,
     color: Colors.textSecondary,
   },
   dropdownItemTextActive: {
@@ -157,7 +158,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
   },
   });

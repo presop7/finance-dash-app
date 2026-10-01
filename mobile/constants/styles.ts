@@ -1,3 +1,4 @@
+import { FONT } from './typography'
 import { StyleSheet } from 'react-native'
 
 export const GlobalStyles = StyleSheet.create({
@@ -29,7 +30,7 @@ export const FIELD_INPUT = {
   paddingHorizontal: 6,
   paddingVertical: 8,
   borderRadius: 6,
-  fontSize: 16,
+  fontSize: FONT.field,
 } as const
 // The bordered box around a field: with the field inside, about 48px tall.
 export const FIELD_BOX = { paddingVertical: 6, paddingHorizontal: 8 } as const

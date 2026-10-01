@@ -6,6 +6,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/useThemeColors";
 import { currentLocale } from "../i18n";
 import FieldIcon from "./FieldIcon";
+import { FONT } from "../constants/typography";
 
 type DateTimeFieldsProps = {
   date: Date;
@@ -122,7 +123,7 @@ function createStyles(Colors: ColorsType) {
   },
   dateTimeText: {
     paddingHorizontal: 6,
-    fontSize: 16,
+    fontSize: FONT.field,
     color: Colors.textPrimary,
   },
   });

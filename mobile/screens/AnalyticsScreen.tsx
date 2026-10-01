@@ -69,6 +69,7 @@ import {
 import { getCurrency } from "../constants/currencies";
 import { confirmAsyncWithLabel, alertAsync, showDialog } from "../utils/confirm";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 // Roughly a screenful of rows below the header — enough that the first
 // commit after a filter change looks complete while the rest streams in.
@@ -1345,7 +1346,7 @@ function createStyles(Colors: ColorsType) {
     rowGap: 8,
     marginBottom: 14,
   },
-  headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
+  headerTitle: { fontSize: FONT.heading, fontWeight: "600", color: Colors.textPrimary },
   headerBtnGroup: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" },
   quickResetBtn: {
     width: 28,
@@ -1368,7 +1369,7 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.primary + "40",
   },
-  filterBtnText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
+  filterBtnText: { fontSize: FONT.small, fontWeight: "600", color: Colors.primary },
   dateRangeRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1379,7 +1380,7 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 8,
   },
   dateRangeLabel: {
-    fontSize: 14,
+    fontSize: FONT.body,
     fontWeight: "500",
     color: Colors.textMuted,
     textAlign: "center",
@@ -1394,10 +1395,10 @@ function createStyles(Colors: ColorsType) {
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.primary + "40",
   },
-  selectToolbarText: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  selectToolbarText: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   selectToolbarActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   selectDiscardBtn: { paddingHorizontal: 4, paddingVertical: 6 },
-  selectDiscardText: { fontSize: 13, fontWeight: "500", color: Colors.textSecondary },
+  selectDiscardText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   selectEditBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1409,7 +1410,7 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  selectEditText: { fontSize: 12, fontWeight: "600", color: Colors.primary },
+  selectEditText: { fontSize: FONT.small, fontWeight: "600", color: Colors.primary },
   selectDeleteBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1419,15 +1420,15 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 8,
     backgroundColor: Colors.expense,
   },
-  selectDeleteText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  selectDeleteText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
   selectBtnDisabled: { opacity: 0.5 },
   scrollView: { flex: 1 },
   summaryCard: { paddingHorizontal: 16 },
   barRow: { marginBottom: 12 },
   barLabelRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  barLabel: { flex: 1, fontSize: 13, color: Colors.textSecondary },
-  barAmount: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  barLabel: { flex: 1, fontSize: FONT.body, color: Colors.textSecondary },
+  barAmount: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   barTrack: {
     height: 8,
     borderRadius: 4,
@@ -1444,10 +1445,10 @@ function createStyles(Colors: ColorsType) {
     borderTopWidth: 0.5,
     borderTopColor: Colors.border,
   },
-  netLabel: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
-  netAmount: { fontSize: 16, fontWeight: "700", color: Colors.income },
+  netLabel: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
+  netAmount: { fontSize: FONT.field, fontWeight: "700", color: Colors.income },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",

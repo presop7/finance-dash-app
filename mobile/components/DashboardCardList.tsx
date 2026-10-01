@@ -6,6 +6,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import CollapsibleCard from "./CollapsibleCard";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 export type DashboardCardDef = {
   id: string;
@@ -219,7 +220,7 @@ function createStyles(Colors: ColorsType) {
     gap: 4,
   },
   discardText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     fontWeight: "600",
     color: Colors.expense,
   },
@@ -229,7 +230,7 @@ function createStyles(Colors: ColorsType) {
     gap: 4,
   },
   saveText: {
-    fontSize: 12,
+    fontSize: FONT.small,
     fontWeight: "600",
     color: Colors.income,
   },

@@ -40,6 +40,7 @@ import {
   MainType,
 } from "../../utils/csvImport";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 type ImportCsvModalProps = {
   visible: boolean;
@@ -875,15 +876,15 @@ function createStyles(Colors: ColorsType) {
     borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
-  headerTitle: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+  headerTitle: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
   scrollArea: { flex: 1 },
   body: { padding: 16, paddingBottom: 32 },
   centerBody: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-  pickIntro: { fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 19 },
-  blockedText: { fontSize: 13, color: Colors.textMuted, textAlign: "center" },
-  fileLabel: { fontSize: 12, color: Colors.textMuted, marginBottom: 12 },
+  pickIntro: { fontSize: FONT.small, color: Colors.textSecondary, textAlign: "center", lineHeight: 19 },
+  blockedText: { fontSize: FONT.small, color: Colors.textMuted, textAlign: "center" },
+  fileLabel: { fontSize: FONT.small, color: Colors.textMuted, marginBottom: 12 },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -892,7 +893,7 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 8,
   },
   mappingRow: { marginBottom: 12 },
-  mappingLabel: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary, marginBottom: 6 },
+  mappingLabel: { fontSize: FONT.body, fontWeight: "500", color: Colors.textPrimary, marginBottom: 6 },
   mappingTrigger: {
     flexDirection: "row",
     alignItems: "center",
@@ -903,7 +904,7 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  mappingTriggerText: { fontSize: 13, color: Colors.textPrimary },
+  mappingTriggerText: { fontSize: FONT.body, color: Colors.textPrimary },
   dropdown: {
     borderRadius: 10,
     backgroundColor: Colors.surfaceSecondary,
@@ -920,7 +921,7 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  dropdownItemText: { fontSize: 13, color: Colors.textPrimary },
+  dropdownItemText: { fontSize: FONT.body, color: Colors.textPrimary },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     paddingHorizontal: 12,
@@ -931,8 +932,8 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  categoryChipText: { fontSize: 14 }, // category/fund names, +2 over the other chips
-  chipText: { fontSize: 12, color: Colors.textPrimary, fontWeight: "500" },
+  categoryChipText: { fontSize: FONT.body }, // category/fund names, +2 over the other chips
+  chipText: { fontSize: FONT.small, color: Colors.textPrimary, fontWeight: "500" },
   chipTextActive: { color: "#fff" },
   createChip: {
     flexDirection: "row",
@@ -956,7 +957,7 @@ function createStyles(Colors: ColorsType) {
     borderStyle: "solid",
     backgroundColor: Colors.surfaceSecondary,
   },
-  createChipText: { fontSize: 12, color: Colors.primary, fontWeight: "500" },
+  createChipText: { fontSize: FONT.small, color: Colors.primary, fontWeight: "500" },
   currencyToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 },
   rateInput: {
     padding: 12,
@@ -964,7 +965,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 10,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    fontSize: 17,
+    fontSize: FONT.field,
     color: Colors.textPrimary,
     marginTop: 8,
   },
@@ -977,12 +978,12 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 12,
     gap: 8,
   },
-  reviewText: { fontSize: 13, color: Colors.textPrimary },
+  reviewText: { fontSize: FONT.small, color: Colors.textPrimary },
   summaryGrid: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
   summaryCell: { alignItems: "center", flex: 1 },
-  summaryValue: { fontSize: 20, fontWeight: "700", color: Colors.textPrimary },
-  summaryCellLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  failedRowText: { fontSize: 12, color: Colors.expense, marginBottom: 4 },
+  summaryValue: { fontSize: FONT.title, fontWeight: "700", color: Colors.textPrimary },
+  summaryCellLabel: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 2 },
+  failedRowText: { fontSize: FONT.small, color: Colors.expense, marginBottom: 4 },
   noticeBox: {
     flexDirection: "row",
     gap: 10,
@@ -993,7 +994,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.warningText + "40",
     marginBottom: 14,
   },
-  noticeText: { flex: 1, fontSize: 12, color: Colors.warningText, lineHeight: 18 },
+  noticeText: { flex: 1, fontSize: FONT.small, color: Colors.warningText, lineHeight: 18 },
   errorCard: {
     padding: 12,
     borderRadius: 12,
@@ -1003,9 +1004,9 @@ function createStyles(Colors: ColorsType) {
     marginBottom: 10,
     gap: 8,
   },
-  errorCardTitle: { fontSize: 13, fontWeight: "600", color: Colors.textPrimary },
+  errorCardTitle: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   errorCardIssue: { gap: 6 },
-  errorCardReason: { fontSize: 12, color: Colors.expense },
+  errorCardReason: { fontSize: FONT.small, color: Colors.expense },
   errorCardFixRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   errorCardInput: {
     flex: 1,
@@ -1014,7 +1015,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 8,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    fontSize: 16,
+    fontSize: FONT.field,
     color: Colors.textPrimary,
   },
   errorCardFixBtn: {
@@ -1023,7 +1024,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 8,
     backgroundColor: Colors.primary,
   },
-  errorCardFixBtnText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  errorCardFixBtnText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
   footer: {
     flexDirection: "row",
     gap: 12,
@@ -1044,7 +1045,7 @@ function createStyles(Colors: ColorsType) {
     alignItems: "center",
   },
   primaryBtnDisabled: { opacity: 0.5 },
-  primaryBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  primaryBtnText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   footerBtn: { flex: 1 },
   secondaryBtn: {
     paddingHorizontal: 24,
@@ -1055,6 +1056,6 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: "600", color: Colors.textPrimary },
+  secondaryBtnText: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   });
 }

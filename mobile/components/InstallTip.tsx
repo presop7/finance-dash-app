@@ -6,6 +6,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { isAppleMobileWeb, isPhoneBrowserTab } from "../utils/webPlatform";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../constants/typography";
 
 // Android browsers (Chrome, Brave, Samsung Internet, Edge) offer their own
 // install prompt to a site that asks for it. The event fires early — often
@@ -90,7 +91,7 @@ function createStyles(Colors: ColorsType) {
       shadowOffset: { width: 0, height: 4 },
       elevation: 8,
     },
-    text: { flex: 1, fontSize: 13, lineHeight: 18, color: Colors.textSecondary },
+    text: { flex: 1, fontSize: FONT.small, lineHeight: 18, color: Colors.textSecondary },
     bold: { fontWeight: "700", color: Colors.textPrimary },
     installButton: {
       backgroundColor: Colors.primary,
@@ -98,6 +99,6 @@ function createStyles(Colors: ColorsType) {
       paddingHorizontal: 14,
       paddingVertical: 8,
     },
-    installText: { color: Colors.surface, fontSize: 14, fontWeight: "600" },
+    installText: { color: Colors.surface, fontSize: FONT.body, fontWeight: "600" },
   });
 }

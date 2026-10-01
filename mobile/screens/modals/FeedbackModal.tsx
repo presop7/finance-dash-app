@@ -25,6 +25,7 @@ import { alertAsync, confirmAsyncWithLabel } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 // Mirrors the limits the backend enforces (routes/feedback.py) so the user
 // hears about a problem here instead of after an upload.
@@ -322,11 +323,11 @@ function createStyles(Colors: ColorsType) {
       paddingHorizontal: 16,
       paddingVertical: 12,
     },
-    headerTitle: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+    headerTitle: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
     body: { paddingHorizontal: 16 },
-    intro: { fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+    intro: { fontSize: FONT.small, color: Colors.textSecondary, lineHeight: 18 },
     formLabel: {
-      fontSize: 11,
+      fontSize: FONT.label,
       fontWeight: "500",
       color: Colors.textMuted,
       textTransform: "uppercase",
@@ -348,7 +349,7 @@ function createStyles(Colors: ColorsType) {
     descriptionInput: { minHeight: 110, maxHeight: 220 },
     counter: {
       alignSelf: "flex-end",
-      fontSize: 10,
+      fontSize: FONT.label,
       color: Colors.textMuted,
       marginTop: 4,
     },
@@ -381,7 +382,7 @@ function createStyles(Colors: ColorsType) {
       borderColor: Colors.primary + "60",
       borderStyle: "dashed",
     },
-    addPictureText: { fontSize: 11, fontWeight: "600", color: Colors.primary },
+    addPictureText: { fontSize: FONT.small, fontWeight: "600", color: Colors.primary },
     formActions: { flexDirection: "row", gap: 10, marginTop: 22, marginBottom: 8 },
     cancelBtn: {
       flex: 1,
@@ -392,7 +393,7 @@ function createStyles(Colors: ColorsType) {
       borderWidth: 0.5,
       borderColor: Colors.border,
     },
-    cancelBtnText: { fontSize: 14, fontWeight: "500", color: Colors.textSecondary },
+    cancelBtnText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
     sendBtn: {
       flex: 2,
       padding: 14,
@@ -402,6 +403,6 @@ function createStyles(Colors: ColorsType) {
       backgroundColor: Colors.primary,
     },
     sendBtnDisabled: { opacity: 0.5 },
-    sendBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+    sendBtnText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   });
 }

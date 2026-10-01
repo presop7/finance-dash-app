@@ -8,6 +8,7 @@ import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { useTutorialStore } from "../../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
+import { FONT } from "../../constants/typography";
 
 // Asked once, after the tour, when a new account's currency couldn't be
 // worked out from where the phone is (see detectCurrency). Changeable any
@@ -73,9 +74,9 @@ function createStyles(Colors: ColorsType) {
       borderRadius: 16,
       padding: 20,
     },
-    title: { fontSize: 18, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
+    title: { fontSize: FONT.title, fontWeight: "700", color: Colors.textPrimary, textAlign: "center" },
     subtitle: {
-      fontSize: 13,
+      fontSize: FONT.small,
       color: Colors.textSecondary,
       textAlign: "center",
       marginTop: 6,
@@ -91,7 +92,7 @@ function createStyles(Colors: ColorsType) {
       borderRadius: 10,
     },
     itemActive: { backgroundColor: Colors.primary + "18" },
-    itemText: { fontSize: 14, color: Colors.textSecondary },
+    itemText: { fontSize: FONT.body, color: Colors.textSecondary },
     itemTextActive: { color: Colors.primary, fontWeight: "600" },
     button: {
       backgroundColor: Colors.primary,
@@ -100,6 +101,6 @@ function createStyles(Colors: ColorsType) {
       alignItems: "center",
       marginTop: 14,
     },
-    buttonText: { color: Colors.surface, fontSize: 15, fontWeight: "600" },
+    buttonText: { color: Colors.surface, fontSize: FONT.body, fontWeight: "600" },
   });
 }

@@ -10,6 +10,7 @@ import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
+import { FONT } from "../constants/typography";
 
 export type { Transaction };
 
@@ -248,12 +249,12 @@ function createStyles(Colors: ColorsType) {
     flex: 1,
   },
   transactionTitle: {
-    fontSize: 13,
+    fontSize: FONT.body,
     fontWeight: "500",
     color: Colors.textPrimary,
   },
   category: {
-    fontSize: 13,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     marginTop: 2,
   },
@@ -264,12 +265,12 @@ function createStyles(Colors: ColorsType) {
     marginTop: 2,
   },
   noteHintText: {
-    fontSize: 10,
+    fontSize: FONT.label,
     fontStyle: "italic",
     color: Colors.textMuted,
   },
   amount: {
-    fontSize: 13,
+    fontSize: FONT.body,
     fontWeight: "500",
   },
   incomeAmount: {
@@ -284,13 +285,13 @@ function createStyles(Colors: ColorsType) {
     marginHorizontal: 16,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "500",
     color: Colors.textSecondary,
     marginTop: 12,
   },
   emptySubtext: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
     marginTop: 4,
   },

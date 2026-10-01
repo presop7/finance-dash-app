@@ -23,6 +23,7 @@ import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
+import { FONT } from "../../constants/typography";
 
 export const AVAILABLE_ICONS: Array<keyof typeof Ionicons.glyphMap> = [
   "cart-outline",
@@ -312,9 +313,9 @@ function createStyles(Colors: ColorsType) {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  title: { fontSize: 16, fontWeight: "600", color: Colors.textPrimary },
+  title: { fontSize: FONT.title, fontWeight: "600", color: Colors.textPrimary },
   formLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -375,7 +376,7 @@ function createStyles(Colors: ColorsType) {
     justifyContent: "center",
     alignItems: "center",
   },
-  previewLabel: { fontSize: 14, fontWeight: "500" },
+  previewLabel: { fontSize: FONT.body, fontWeight: "500" },
   formActions: { flexDirection: "row", gap: 10, marginTop: 16, marginBottom: 16 },
   cancelBtn: {
     flex: 1,
@@ -396,9 +397,9 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.expense + "40",
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "500", color: Colors.textSecondary },
+  cancelBtnText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   saveBtn: { flex: 2, padding: 14, borderRadius: 12, alignItems: "center", backgroundColor: Colors.primary },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { fontSize: 14, fontWeight: "600", color: "#fff" },
+  saveBtnText: { fontSize: FONT.body, fontWeight: "600", color: "#fff" },
   });
 }

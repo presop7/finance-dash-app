@@ -5,6 +5,7 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import HoldPressable from "./HoldPressable";
 import BorderPressButton from "./BorderPressButton";
+import { FONT } from "../constants/typography";
 
 type CollapsibleCardProps = {
   title: string;
@@ -162,12 +163,12 @@ function createStyles(Colors: ColorsType) {
     overflow: "hidden",
   },
   title: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
     color: Colors.textPrimary,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: FONT.small,
     color: Colors.textMuted,
   },
   // Fixed size big enough for either control set (two 28px buttons + 6 gap),

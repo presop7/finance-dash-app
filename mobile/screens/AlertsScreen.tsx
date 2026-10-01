@@ -18,6 +18,7 @@ import { useTutorialTarget } from "../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
 import { isAppleMobileWeb } from "../utils/webPlatform";
+import { FONT } from "../constants/typography";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
@@ -220,7 +221,7 @@ function createStyles(Colors: ColorsType) {
     justifyContent: "space-between",
     paddingBottom: 16,
   },
-  headerTitle: { fontSize: 22, fontWeight: "600", color: Colors.textPrimary },
+  headerTitle: { fontSize: FONT.heading, fontWeight: "600", color: Colors.textPrimary },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -230,7 +231,7 @@ function createStyles(Colors: ColorsType) {
     borderRadius: 20,
     backgroundColor: Colors.primary,
   },
-  addBtnText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  addBtnText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
   banner: {
     flexDirection: "row",
     alignItems: "center",
@@ -241,16 +242,16 @@ function createStyles(Colors: ColorsType) {
     padding: 14,
     marginBottom: 16,
   },
-  bannerText: { flex: 1, fontSize: 12, color: Colors.textSecondary },
+  bannerText: { flex: 1, fontSize: FONT.small, color: Colors.textSecondary },
   enableBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
     backgroundColor: Colors.primary,
   },
-  enableBtnText: { fontSize: 12, fontWeight: "600", color: "#fff" },
+  enableBtnText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -275,12 +276,12 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   ruleInfo: { flex: 1 },
-  ruleTitle: { fontSize: 13, fontWeight: "500", color: Colors.textPrimary },
-  ruleDescription: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  ruleHint: { fontSize: 10, fontStyle: "italic", color: Colors.textMuted, marginTop: 2 },
+  ruleTitle: { fontSize: FONT.body, fontWeight: "500", color: Colors.textPrimary },
+  ruleDescription: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 2 },
+  ruleHint: { fontSize: FONT.label, fontStyle: "italic", color: Colors.textMuted, marginTop: 2 },
   deleteBtn: { padding: 4 },
   emptyContainer: { alignItems: "center", paddingVertical: 32 },
-  emptyText: { fontSize: 13, color: Colors.textMuted, marginTop: 10 },
+  emptyText: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 10 },
   bottomPadding: { height: 20 },
   });
 }

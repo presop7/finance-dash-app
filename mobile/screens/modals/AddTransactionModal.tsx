@@ -36,6 +36,7 @@ import {
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
+import { FONT } from "../../constants/typography";
 
 type TransactionType = "expense" | "income";
 
@@ -624,7 +625,7 @@ function createStyles(Colors: ColorsType) {
     borderTopColor: Colors.border,
   },
   accessoryNextText: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
   },
   overlay: {
@@ -675,7 +676,7 @@ function createStyles(Colors: ColorsType) {
     paddingVertical: 12,
   },
   title: {
-    fontSize: 16,
+    fontSize: FONT.title,
     fontWeight: "600",
     color: Colors.textPrimary,
   },
@@ -697,7 +698,7 @@ function createStyles(Colors: ColorsType) {
     gap: 6,
   },
   toggleText: {
-    fontSize: 13,
+    fontSize: FONT.body,
     fontWeight: "500",
   },
   toggleActiveText: {
@@ -736,10 +737,10 @@ function createStyles(Colors: ColorsType) {
     ...FIELD_INPUT, // same size and weight as the other fields
   },
   amountSign: {
-    fontSize: 16,
+    fontSize: FONT.field,
   },
   amountSuffix: {
-    fontSize: 14,
+    fontSize: FONT.body,
     color: Colors.textMuted,
   },
   numpad: {
@@ -760,7 +761,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.surface,
   },
   numpadText: {
-    fontSize: 18,
+    fontSize: FONT.title,
     fontWeight: "500",
     color: Colors.textPrimary,
   },
@@ -771,7 +772,7 @@ function createStyles(Colors: ColorsType) {
     justifyContent: "center",
   },
   numpadDoneText: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
     color: "#fff",
   },
@@ -784,7 +785,7 @@ function createStyles(Colors: ColorsType) {
     marginTop: 4,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: FONT.label,
     fontWeight: "500",
     color: Colors.textMuted,
     textTransform: "uppercase",
@@ -802,7 +803,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   manageCatText: {
-    fontSize: 11,
+    fontSize: FONT.small,
     color: Colors.primary,
     fontWeight: "500",
   },
@@ -833,7 +834,7 @@ function createStyles(Colors: ColorsType) {
     opacity: 0.5,
   },
   saveBtnText: {
-    fontSize: 15,
+    fontSize: FONT.body,
     fontWeight: "600",
     color: "#fff",
   },
