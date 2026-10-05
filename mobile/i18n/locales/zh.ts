@@ -416,6 +416,8 @@ const zh: Locale = {
     show: "带我去",
   },
   installTip: {
+    installedTitle: "Fi-Track 已安装：",
+    installed: "从它的图标（主屏幕、开始菜单或程序坞）打开，即可作为应用使用。",
     oneTapDesktop: "像应用一样在独立窗口中打开——从开始菜单、任务栏或程序坞。",
     desktop: "点击地址栏右端的安装图标，或打开浏览器菜单并选择“安装 Fi-Track”。",
     macSafari: "在 Safari 中选择“文件”→“添加到程序坞”，即可像应用一样在独立窗口中打开。",

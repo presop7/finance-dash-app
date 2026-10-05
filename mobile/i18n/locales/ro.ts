@@ -430,6 +430,8 @@ const ro: Locale = {
     show: "Arată-mi",
   },
   installTip: {
+    installedTitle: "Fi-Track este instalat:",
+    installed: "deschide-l din pictograma lui (ecranul principal, meniul Start sau Dock) ca să-l folosești ca aplicație.",
     oneTapDesktop: "deschide-o ca pe o aplicație, în propria fereastră — din meniul Start, bara de activități sau Dock.",
     desktop: "dă clic pe pictograma de instalare de la capătul barei de adrese sau deschide meniul browserului și alege „Instalează Fi-Track”.",
     macSafari: "în Safari alege Fișier → „Adaugă în Dock” ca s-o deschizi ca pe o aplicație, în propria fereastră.",

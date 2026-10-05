@@ -416,6 +416,8 @@ const pt: Locale = {
     show: "Mostrar",
   },
   installTip: {
+    installedTitle: "O Fi-Track está instalado:",
+    installed: "abra-o pelo ícone (tela de início, menu Iniciar ou Dock) para usá-lo como app.",
     oneTapDesktop: "abra-o como um app, em uma janela própria — pelo menu Iniciar, pela barra de tarefas ou pelo Dock.",
     desktop: "clique no ícone de instalar no fim da barra de endereços, ou abra o menu do navegador e escolha “Instalar Fi-Track”.",
     macSafari: "no Safari, escolha Arquivo → “Adicionar ao Dock” para abri-lo como um app, em uma janela própria.",

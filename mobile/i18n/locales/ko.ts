@@ -416,6 +416,8 @@ const ko: Locale = {
     show: "보여 주기",
   },
   installTip: {
+    installedTitle: "Fi-Track이 설치되어 있습니다:",
+    installed: "아이콘(홈 화면, 시작 메뉴 또는 Dock)에서 열어 앱으로 사용하세요.",
     oneTapDesktop: "앱처럼 별도 창에서 열 수 있습니다 — 시작 메뉴, 작업 표시줄 또는 Dock에서.",
     desktop: "주소 표시줄 오른쪽 끝의 설치 아이콘을 클릭하거나, 브라우저 메뉴에서 \"Fi-Track 설치\"를 선택하세요.",
     macSafari: "Safari에서 파일 → \"Dock에 추가\"를 선택하면 앱처럼 별도 창에서 열 수 있습니다.",

@@ -4,6 +4,7 @@
   "description": "Track your income, spending and funds.",
   "start_url": "/",
   "display": "standalone",
+  "related_applications": [{ "platform": "webapp", "url": "https://fi-track-web.onrender.com/manifest.json" }],
   "background_color": "#17181c",
   "theme_color": "#17181c",
   "icons": [

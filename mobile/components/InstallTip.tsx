@@ -4,6 +4,7 @@ import {
   isBrowserTab,
   isDesktopFirefox,
   isDesktopWeb,
+  isInstalledWebApp,
   isMacSafari,
 } from "../utils/webPlatform";
 import { useTranslation } from "react-i18next";
@@ -20,8 +21,53 @@ if (isBrowserTab) {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault(); // shown from our tip's button instead
     installPrompt = event as InstallPromptEvent;
+    // Browsers only offer to install what isn't installed: an earlier
+    // install note is out of date (the app was removed since).
+    installed = false;
+    try {
+      localStorage.removeItem(INSTALLED_KEY);
+    } catch {}
     promptListeners.forEach((fn) => fn());
   });
+}
+
+// Already installed? A browser tab can't open the installed app, but it can
+// say to use it instead of nagging to install it again. Two ways to know:
+//   - getInstalledRelatedApps (Chromium; needs related_applications in
+//     manifest.json) asks the browser itself.
+//   - Where that isn't available (e.g. some Brave versions): a note the
+//     installed app leaves on every start, and the "appinstalled" event. On
+//     Android the installed app shares the browser's storage, so the browser
+//     tab sees the note — it just takes opening the installed app once.
+const INSTALLED_KEY = "fi-track-installed";
+const remember = () => {
+  try {
+    localStorage.setItem(INSTALLED_KEY, "1");
+  } catch {}
+};
+let installed = false;
+if (isInstalledWebApp) remember();
+if (isBrowserTab) {
+  try {
+    installed = localStorage.getItem(INSTALLED_KEY) === "1";
+  } catch {}
+  window.addEventListener("appinstalled", () => {
+    remember();
+    installed = true;
+    promptListeners.forEach((fn) => fn());
+  });
+  const nav = navigator as Navigator & { getInstalledRelatedApps?: () => Promise<unknown[]> };
+  // Only a "yes" is trusted: some browsers have the call but always answer
+  // "none". Uninstalling is caught by the install offer instead (above).
+  nav
+    .getInstalledRelatedApps?.()
+    .then((apps) => {
+      if (apps.length === 0) return;
+      remember();
+      installed = true;
+      promptListeners.forEach((fn) => fn());
+    })
+    .catch(() => {});
 }
 
 // Web version opened in a browser tab: suggests installing it — on a phone to
@@ -34,9 +80,13 @@ if (isBrowserTab) {
 export function useInstallTip(): Tip | null {
   const { t } = useTranslation();
   const [canPrompt, setCanPrompt] = useState(installPrompt !== null);
+  const [isInstalled, setIsInstalled] = useState(installed);
 
   useEffect(() => {
-    const update = () => setCanPrompt(installPrompt !== null);
+    const update = () => {
+      setCanPrompt(installPrompt !== null);
+      setIsInstalled(installed);
+    };
     promptListeners.add(update);
     return () => {
       promptListeners.delete(update);
@@ -44,6 +94,9 @@ export function useInstallTip(): Tip | null {
   }, []);
 
   if (!isBrowserTab) return null;
+  if (isInstalled) {
+    return { id: "install", icon: "open-outline", title: t("installTip.installedTitle"), text: t("installTip.installed") };
+  }
   if (isDesktopWeb && !canPrompt && isDesktopFirefox) return null;
   const text = canPrompt
     ? isDesktopWeb
