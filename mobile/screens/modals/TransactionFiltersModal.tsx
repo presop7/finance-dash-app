@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
+  LayoutChangeEvent,
 } from "react-native";
 import Modal from "../../components/AppModal";
 import { Ionicons } from "@expo/vector-icons";
@@ -88,6 +89,10 @@ export default function TransactionFiltersModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, filters]);
+
+  const fundsScroll = useScrollBackOnClear(fundSearch, draft.fundIds);
+  const expenseScroll = useScrollBackOnClear(expenseSearch, draft.expenseCategoryIds);
+  const incomeScroll = useScrollBackOnClear(incomeSearch, draft.incomeCategoryIds);
 
   const matches = (name: string, query: string) =>
     name.toLowerCase().includes(query.trim().toLowerCase());
@@ -266,7 +271,7 @@ export default function TransactionFiltersModal({
               {filteredFunds.length === 0 ? (
                 <Text style={styles.emptySearchText}>{t("filters.noFunds")}</Text>
               ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView key={fundsScroll.scrollKey} ref={fundsScroll.scrollRef} horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(filteredFunds).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
@@ -275,6 +280,7 @@ export default function TransactionFiltersModal({
                         return (
                           <HoldPressable
                             key={fund.id}
+                            onLayout={fundsScroll.onChipLayout(fund.id)}
                             style={[
                               styles.chip,
                               active && { backgroundColor: fund.color },
@@ -338,7 +344,7 @@ export default function TransactionFiltersModal({
               {filteredExpenseCategories.length === 0 ? (
                 <Text style={styles.emptySearchText}>{t("filters.noCategories")}</Text>
               ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView key={expenseScroll.scrollKey} ref={expenseScroll.scrollRef} horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(filteredExpenseCategories).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
@@ -349,6 +355,7 @@ export default function TransactionFiltersModal({
                         return (
                           <HoldPressable
                             key={cat.id}
+                            onLayout={expenseScroll.onChipLayout(cat.id)}
                             style={[
                               styles.chip,
                               active && {
@@ -419,7 +426,7 @@ export default function TransactionFiltersModal({
               {filteredIncomeCategories.length === 0 ? (
                 <Text style={styles.emptySearchText}>{t("filters.noCategories")}</Text>
               ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView key={incomeScroll.scrollKey} ref={incomeScroll.scrollRef} horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRows}>
                   {splitIntoRows(filteredIncomeCategories).map((row, rowIndex) => (
                     <View key={rowIndex} style={styles.chipRow}>
@@ -428,6 +435,7 @@ export default function TransactionFiltersModal({
                         return (
                           <HoldPressable
                             key={cat.id}
+                            onLayout={incomeScroll.onChipLayout(cat.id)}
                             style={[
                               styles.chip,
                               active && {
@@ -507,6 +515,33 @@ export default function TransactionFiltersModal({
       </View>
     </Modal>
   );
+}
+
+// Clearing a search brings that row's whole list back from its start: scroll
+// back to the chip picked last (the newest of the selected ids) once the
+// chips are laid out again. Chips sit in two rows, so x within a row is x in
+// the strip. The row is re-created (scrollKey) when the search starts or
+// ends: on the web onLayout only reports size changes, so chips that just
+// moved would keep reporting their filtered spots.
+function useScrollBackOnClear(search: string, selectedIds: string[]) {
+  const scrollRef = useRef<ScrollView>(null);
+  const spots = useRef(new Map<string, number>());
+  const latest = useRef<string | undefined>(undefined);
+  latest.current = selectedIds[selectedIds.length - 1];
+  const searching = search.trim() !== "";
+  useEffect(() => {
+    if (searching) return;
+    const timer = setTimeout(() => {
+      const id = latest.current;
+      const x = id ? spots.current.get(id) : undefined;
+      if (x !== undefined) scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [searching]);
+  const onChipLayout = (id: string) => (e: LayoutChangeEvent) => {
+    spots.current.set(id, e.nativeEvent.layout.x);
+  };
+  return { scrollRef, onChipLayout, scrollKey: searching ? "search" : "all" };
 }
 
 function createStyles(Colors: ColorsType) {
