@@ -400,7 +400,7 @@ const it: Locale = {
     title: "Suggerimenti fluttuanti",
     intro: "Suggerimenti che possono comparire in alto all'apertura dell'app.",
     install: "Installa l'app",
-    installHint: "Nel browser del telefono: aggiungi Fi-Track alla schermata Home",
+    installHint: "Su telefono o computer: installa Fi-Track come app",
     notifications: "Attiva le notifiche",
     notificationsHint: "Mostrato finché le notifiche sono disattivate",
   },
@@ -415,6 +415,9 @@ const it: Locale = {
     show: "Mostrami",
   },
   installTip: {
+    oneTapDesktop: "aprila come un'app, in una finestra sua — dal menu Start, dalla barra delle applicazioni o dal Dock.",
+    desktop: "fai clic sull'icona di installazione alla fine della barra degli indirizzi, oppure apri il menu del browser e scegli «Installa Fi-Track».",
+    macSafari: "in Safari scegli Archivio → «Aggiungi al Dock» per aprirla come un'app, in una finestra sua.",
     title: "Installa Fi-Track:",
     iphone: "in Safari tocca ··· accanto alla barra degli indirizzi (sui vecchi iPhone, il pulsante Condividi in basso), poi Condividi → «Aggiungi alla schermata Home».",
     oneTap: "aprila come un'app, a schermo intero dalla schermata Home.",

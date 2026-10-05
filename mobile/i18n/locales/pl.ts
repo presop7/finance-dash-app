@@ -430,7 +430,7 @@ const pl: Locale = {
     title: "Pływające wskazówki",
     intro: "Wskazówki, które mogą pojawić się u góry po otwarciu aplikacji.",
     install: "Zainstaluj aplikację",
-    installHint: "W przeglądarce telefonu: dodaj Fi-Track do ekranu początkowego",
+    installHint: "Na telefonie lub komputerze: zainstaluj Fi-Track jako aplikację",
     notifications: "Włącz powiadomienia",
     notificationsHint: "Widoczna, dopóki powiadomienia są wyłączone",
   },
@@ -445,6 +445,9 @@ const pl: Locale = {
     show: "Pokaż mi",
   },
   installTip: {
+    oneTapDesktop: "otwieraj ją jak aplikację, we własnym oknie — z menu Start, paska zadań lub Docka.",
+    desktop: "kliknij ikonę instalacji na końcu paska adresu albo otwórz menu przeglądarki i wybierz „Zainstaluj Fi-Track”.",
+    macSafari: "w Safari wybierz Plik → „Dodaj do Docka”, aby otwierać ją jak aplikację, we własnym oknie.",
     title: "Zainstaluj Fi-Track:",
     iphone: "w Safari dotknij ··· obok paska adresu (na starszych iPhone’ach — przycisku Udostępnij na dole), potem Udostępnij → „Do ekranu początkowego”.",
     oneTap: "otwieraj ją jak aplikację — na pełnym ekranie, z ekranu głównego.",

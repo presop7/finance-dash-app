@@ -399,7 +399,7 @@ const en = {
     title: "Floating tips",
     intro: "Tips that can pop up at the top when you open the app.",
     install: "Install the app",
-    installHint: "In a phone browser: add Fi-Track to your home screen",
+    installHint: "On a phone or computer: install Fi-Track as an app",
     notifications: "Turn on notifications",
     notificationsHint: "Shown until notifications are on",
   },
@@ -414,6 +414,9 @@ const en = {
     show: "Show me",
   },
   installTip: {
+    oneTapDesktop: "open it like an app, in its own window — from the Start menu, taskbar or Dock.",
+    desktop: "click the install icon at the right end of the address bar, or open the browser menu and choose “Install Fi-Track”.",
+    macSafari: "in Safari choose File → “Add to Dock” to open it like an app, in its own window.",
     title: "Install Fi-Track:",
     iphone: "in Safari tap ··· next to the address bar (on older iPhones, the Share button at the bottom), then Share → \"Add to Home Screen\".",
     oneTap: "open it like an app, full screen and from your home screen.",

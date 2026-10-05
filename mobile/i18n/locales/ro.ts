@@ -415,7 +415,7 @@ const ro: Locale = {
     title: "Sfaturi plutitoare",
     intro: "Sfaturi care pot apărea sus când deschizi aplicația.",
     install: "Instalează aplicația",
-    installHint: "În browserul telefonului: adaugă Fi-Track pe ecranul principal",
+    installHint: "Pe telefon sau computer: instalează Fi-Track ca aplicație",
     notifications: "Activează notificările",
     notificationsHint: "Afișat până când notificările sunt activate",
   },
@@ -430,6 +430,9 @@ const ro: Locale = {
     show: "Arată-mi",
   },
   installTip: {
+    oneTapDesktop: "deschide-o ca pe o aplicație, în propria fereastră — din meniul Start, bara de activități sau Dock.",
+    desktop: "dă clic pe pictograma de instalare de la capătul barei de adrese sau deschide meniul browserului și alege „Instalează Fi-Track”.",
+    macSafari: "în Safari alege Fișier → „Adaugă în Dock” ca s-o deschizi ca pe o aplicație, în propria fereastră.",
     title: "Instalează Fi-Track:",
     iphone: "în Safari atinge ··· lângă bara de adresă (pe iPhone-urile mai vechi, butonul Partajare de jos), apoi Partajare → „Adaugă pe ecranul principal”.",
     oneTap: "deschide-o ca pe o aplicație, pe tot ecranul, de pe ecranul principal.",

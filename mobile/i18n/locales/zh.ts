@@ -401,7 +401,7 @@ const zh: Locale = {
     title: "浮动提示",
     intro: "打开应用时可能出现在顶部的提示。",
     install: "安装应用",
-    installHint: "在手机浏览器中：将 Fi-Track 添加到主屏幕",
+    installHint: "在手机或电脑上：将 Fi-Track 安装为应用",
     notifications: "开启通知",
     notificationsHint: "在开启通知之前显示",
   },
@@ -416,6 +416,9 @@ const zh: Locale = {
     show: "带我去",
   },
   installTip: {
+    oneTapDesktop: "像应用一样在独立窗口中打开——从开始菜单、任务栏或程序坞。",
+    desktop: "点击地址栏右端的安装图标，或打开浏览器菜单并选择“安装 Fi-Track”。",
+    macSafari: "在 Safari 中选择“文件”→“添加到程序坞”，即可像应用一样在独立窗口中打开。",
     title: "安装 Fi-Track：",
     iphone: "在 Safari 中轻点地址栏旁的 ···（较旧的 iPhone 为底部的“分享”按钮），然后选择 分享 →“添加到主屏幕”。",
     oneTap: "像应用一样从主屏幕全屏打开。",

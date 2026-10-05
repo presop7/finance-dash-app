@@ -401,7 +401,7 @@ const ja: Locale = {
     title: "フローティングヒント",
     intro: "アプリを開いたときに上部に表示されるヒントです。",
     install: "アプリをインストール",
-    installHint: "スマートフォンのブラウザ：Fi-Trackをホーム画面に追加",
+    installHint: "スマートフォンやパソコンで：Fi-Trackをアプリとしてインストール",
     notifications: "通知をオンにする",
     notificationsHint: "通知がオンになるまで表示されます",
   },
@@ -416,6 +416,9 @@ const ja: Locale = {
     show: "表示する",
   },
   installTip: {
+    oneTapDesktop: "アプリのように専用ウィンドウで開けます（スタートメニュー、タスクバー、Dockから）。",
+    desktop: "アドレスバー右端のインストールアイコンをクリックするか、ブラウザのメニューから「Fi-Trackをインストール」を選択してください。",
+    macSafari: "Safariで［ファイル］→「Dockに追加」を選ぶと、アプリのように専用ウィンドウで開けます。",
     title: "Fi-Trackをインストール：",
     iphone: "Safariでアドレスバー横の ··· をタップ（古いiPhoneでは下部の共有ボタン）し、共有 →「ホーム画面に追加」を選びます。",
     oneTap: "ホーム画面からアプリのように全画面で開けます。",

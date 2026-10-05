@@ -400,7 +400,7 @@ const de: Locale = {
     title: "Schwebende Tipps",
     intro: "Tipps, die beim Öffnen der App oben erscheinen können.",
     install: "App installieren",
-    installHint: "Im Handy-Browser: Fi-Track zum Home-Bildschirm hinzufügen",
+    installHint: "Auf Handy oder Computer: Fi-Track als App installieren",
     notifications: "Benachrichtigungen einschalten",
     notificationsHint: "Wird angezeigt, bis Benachrichtigungen an sind",
   },
@@ -415,6 +415,9 @@ const de: Locale = {
     show: "Zeig es mir",
   },
   installTip: {
+    oneTapDesktop: "öffne es wie eine App, in einem eigenen Fenster — über Startmenü, Taskleiste oder Dock.",
+    desktop: "klicke auf das Installieren-Symbol am rechten Ende der Adressleiste oder öffne das Browsermenü und wähle „Fi-Track installieren“.",
+    macSafari: "wähle in Safari Ablage → „Zum Dock hinzufügen“, um es wie eine App in einem eigenen Fenster zu öffnen.",
     title: "Fi-Track installieren:",
     iphone: "tippe in Safari auf ··· neben der Adressleiste (auf älteren iPhones unten auf Teilen), dann Teilen → „Zum Home-Bildschirm“.",
     oneTap: "öffne es wie eine App — im Vollbild, direkt vom Home-Bildschirm.",

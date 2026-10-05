@@ -400,7 +400,7 @@ const es: Locale = {
     title: "Consejos flotantes",
     intro: "Consejos que pueden aparecer arriba al abrir la app.",
     install: "Instalar la app",
-    installHint: "En el navegador del móvil: añade Fi-Track a la pantalla de inicio",
+    installHint: "En el móvil o el ordenador: instala Fi-Track como app",
     notifications: "Activar notificaciones",
     notificationsHint: "Se muestra hasta que las notificaciones estén activadas",
   },
@@ -415,6 +415,9 @@ const es: Locale = {
     show: "Muéstrame",
   },
   installTip: {
+    oneTapDesktop: "ábrela como una app, en su propia ventana, desde el menú Inicio, la barra de tareas o el Dock.",
+    desktop: "haz clic en el icono de instalar al final de la barra de direcciones, o abre el menú del navegador y elige «Instalar Fi-Track».",
+    macSafari: "en Safari elige Archivo → «Añadir al Dock» para abrirla como una app, en su propia ventana.",
     title: "Instala Fi-Track:",
     iphone: "en Safari toca ··· junto a la barra de direcciones (en iPhone antiguos, el botón Compartir de abajo) y luego Compartir → «Añadir a pantalla de inicio».",
     oneTap: "ábrela como una app, a pantalla completa y desde tu pantalla de inicio.",

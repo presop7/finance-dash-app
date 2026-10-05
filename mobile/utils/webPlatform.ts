@@ -18,8 +18,18 @@ export const isInstalledWebApp =
   matches("(display-mode: standalone)") ||
   (isWeb && (window.navigator as { standalone?: boolean }).standalone === true);
 
+// The web version in a normal browser tab (not yet installed as an app).
+export const isBrowserTab = isWeb && !isInstalledWebApp;
+
 // A phone or tablet using the web version in a normal browser tab.
-export const isPhoneBrowserTab = isWeb && !isDesktopWeb && !isInstalledWebApp;
+export const isPhoneBrowserTab = isBrowserTab && !isDesktopWeb;
+
+const userAgent = isWeb ? window.navigator.userAgent : "";
+// Firefox on a computer can't install web apps at all.
+export const isDesktopFirefox = isDesktopWeb && /Firefox\//.test(userAgent);
+// Safari on a Mac: no install prompt, but File → Add to Dock (Safari 17+).
+export const isMacSafari =
+  isDesktopWeb && /Macintosh/.test(userAgent) && /Safari\//.test(userAgent) && !/Chrome|Chromium|Edg|OPR|Firefox/.test(userAgent);
 
 // iPhone/iPad (recent iPads report as a Mac, but with a touchscreen).
 export const isAppleMobileWeb =

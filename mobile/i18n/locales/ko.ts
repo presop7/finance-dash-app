@@ -401,7 +401,7 @@ const ko: Locale = {
     title: "플로팅 팁",
     intro: "앱을 열 때 상단에 나타날 수 있는 팁입니다.",
     install: "앱 설치",
-    installHint: "휴대폰 브라우저에서: Fi-Track을 홈 화면에 추가",
+    installHint: "휴대폰이나 컴퓨터에서: Fi-Track을 앱으로 설치",
     notifications: "알림 켜기",
     notificationsHint: "알림이 켜질 때까지 표시됩니다",
   },
@@ -416,6 +416,9 @@ const ko: Locale = {
     show: "보여 주기",
   },
   installTip: {
+    oneTapDesktop: "앱처럼 별도 창에서 열 수 있습니다 — 시작 메뉴, 작업 표시줄 또는 Dock에서.",
+    desktop: "주소 표시줄 오른쪽 끝의 설치 아이콘을 클릭하거나, 브라우저 메뉴에서 \"Fi-Track 설치\"를 선택하세요.",
+    macSafari: "Safari에서 파일 → \"Dock에 추가\"를 선택하면 앱처럼 별도 창에서 열 수 있습니다.",
     title: "Fi-Track 설치:",
     iphone: "Safari에서 주소창 옆 ···을 탭하고(이전 iPhone은 하단의 공유 버튼) 공유 → \"홈 화면에 추가\"를 선택하세요.",
     oneTap: "홈 화면에서 앱처럼 전체 화면으로 열 수 있어요.",

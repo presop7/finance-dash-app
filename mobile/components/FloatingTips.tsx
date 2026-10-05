@@ -64,6 +64,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
 
   return (
     <View pointerEvents="box-none" style={[styles.stack, { top: insets.top + 8 }]}>
+      <View style={styles.column}>
       <TipCard
         key={tip.id}
         icon={tip.icon}
@@ -79,6 +80,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
         }
         onClose={close}
       />
+      </View>
     </View>
   );
 }
@@ -184,5 +186,7 @@ function useReminderTip(): Tip | null {
 }
 
 const styles = StyleSheet.create({
-  stack: { position: "absolute", left: 12, right: 12 },
+  // Full width on a phone; a centered column on a computer's wide window.
+  stack: { position: "absolute", left: 0, right: 0, alignItems: "center", paddingHorizontal: 12 },
+  column: { width: "100%", maxWidth: 480 },
 });
