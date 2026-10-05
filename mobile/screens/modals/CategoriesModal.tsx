@@ -153,10 +153,12 @@ export default function CategoriesModal({
 
   // Hold a chip and move it to reorder (with the full list showing, not a
   // search's few); hold and let go still starts multi-select.
+  const gridScrollRef = useRef<ScrollView>(null);
   const reorder = useReorder(
     filteredItems.map((i) => i.id),
     activeType === "fund" ? setFundCardOrder : setCategoryOrder,
     !trimmedSearch,
+    { ref: gridScrollRef, horizontal: false },
   );
   const itemsById = new Map(filteredItems.map((i) => [i.id, i]));
 
@@ -544,7 +546,12 @@ export default function CategoriesModal({
             </View>
           )}
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={gridScrollRef}
+            {...reorder.scrollProps}
+            style={styles.scrollArea}
+            showsVerticalScrollIndicator={false}
+          >
             <View
               ref={gridRef}
               style={styles.categoriesGrid}

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,7 +68,11 @@ export default function FundsCard({
   }, [transactions, fundCategories, fundCardOrder]);
 
   // Hold a card, then release to open it in Analytics or move it to reorder.
-  const reorder = useReorder(funds.map((f) => f.fund.id), setFundCardOrder);
+  const scrollRef = useRef<ScrollView>(null);
+  const reorder = useReorder(funds.map((f) => f.fund.id), setFundCardOrder, true, {
+    ref: scrollRef,
+    horizontal: true,
+  });
   const byId = new Map(funds.map((f) => [f.fund.id, f]));
 
   if (funds.length === 0) return null;
@@ -76,6 +80,8 @@ export default function FundsCard({
   return (
     <View style={styles.wrapper}>
       <ScrollView
+        ref={scrollRef}
+        {...reorder.scrollProps}
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={CARD_WIDTH + CARD_GAP}

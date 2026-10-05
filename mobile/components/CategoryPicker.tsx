@@ -51,7 +51,11 @@ export default function CategoryPicker({
     ? sorted.filter((c) => c.label.toLowerCase().includes(trimmed))
     : sorted;
   // Reordering only with the full list showing, not a search's few.
-  const reorder = useReorder(filtered.map((c) => c.id), setCategoryOrder, !trimmed);
+  const scrollRef = useRef<ScrollView>(null);
+  const reorder = useReorder(filtered.map((c) => c.id), setCategoryOrder, !trimmed, {
+    ref: scrollRef,
+    horizontal: true,
+  });
   const byId = new Map(filtered.map((c) => [c.id, c]));
   // Only ~5 chips fit on screen at once — mount the first batch immediately
   // and the rest a beat later rather than all of them in one heavy pass.
@@ -60,10 +64,9 @@ export default function CategoryPicker({
   // Jumps the strip to the selected chip whenever the selection changes
   // from outside a direct tap here — e.g. returning from the category
   // manager after picking one there, which could be scrolled off-screen.
-  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const x = reorder.rects.get(selected)?.x;
+    const x = reorder.spotOf(selected)?.x;
     if (x !== undefined) {
       scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
     }
@@ -92,6 +95,7 @@ export default function CategoryPicker({
 
       <ScrollView
         ref={scrollRef}
+        {...reorder.scrollProps}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}

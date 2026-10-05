@@ -1,5 +1,15 @@
-import { ComponentProps, ReactNode, useEffect, useRef, useState } from "react";
-import { LayoutChangeEvent, Platform, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { ComponentProps, ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -16,22 +26,34 @@ import { moveTo } from "../utils/reorder";
 // HoldPressable: nothing shows for the first HOLD_DELAY_MS (a tap or a scroll
 // never flashes it), then the fill runs HOLD_FILL_MS. Once full the item is
 // picked up — release in place for onHold, or move it: the others make way as
-// it passes over them, and the new order goes to onCommit on release.
+// it passes over them, the list auto-scrolls when it's held near the edge, and
+// the new order goes to onCommit on release.
 const HOLD_DELAY_MS = 150;
 const HOLD_FILL_MS = 150;
 const HOLD_MS = HOLD_DELAY_MS + HOLD_FILL_MS;
 // Finger travel (px) below which a release counts as "didn't move".
 const MOVE_TOLERANCE = 10;
+// Auto-scroll while dragging near the scroll view's edge (like multi-select).
+const EDGE_ZONE = 48; // px from the visible edge
+const SCROLL_STEP = 8; // px per frame
 
 type Rect = { x: number; y: number; width: number; height: number };
 type Point = { x: number; y: number };
+type Scrollable = { scrollTo: (o: { x?: number; y?: number; animated?: boolean }) => void };
 
 export type Reorder = ReturnType<typeof useReorder>;
 
 // `ids` in their current order; render the items in `order` (the order while
 // dragging), each as a <ReorderItem>. `enabled` false (e.g. while a search
 // filters the list) keeps tap and hold-release but doesn't move anything.
-export function useReorder(ids: string[], onCommit: (ids: string[]) => void, enabled = true) {
+// `scroll`: the scroll view whose content the items are laid out in, for
+// auto-scrolling along it (spread the returned `scrollProps` on it).
+export function useReorder(
+  ids: string[],
+  onCommit: (ids: string[]) => void,
+  enabled = true,
+  scroll?: { ref: RefObject<Scrollable | null>; horizontal: boolean },
+) {
   const [draft, setDraft] = useState<string[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const order = draft ?? ids;
@@ -42,45 +64,78 @@ export function useReorder(ids: string[], onCommit: (ids: string[]) => void, ena
     order,
     enabled,
     onCommit,
+    scroll,
     dragId: null as string | null,
     rects: new Map<string, Rect>(),
+    nodes: new Map<string, HTMLElement>(), // web: each item's element
     start: { x: 0, y: 0 }, // the dragged item's spot when picked up
     grab: { x: 0, y: 0 }, // where on it the finger is
+    travel: { x: 0, y: 0 }, // finger travel since pick-up
     // After a move, until the items are laid out again: their old spots
     // would make the item jump straight back.
     waitingForLayout: false,
+    scrollPos: 0,
+    scrollAtStart: 0,
+    viewport: 0,
+    content: 0,
+    frame: null as number | null,
   }).current;
   s.ids = ids;
   s.order = order;
   s.enabled = enabled;
   s.onCommit = onCommit;
-  // The dragged item is drawn at (its spot when picked up + finger travel),
-  // wherever the list has laid it out meanwhile: offset = start − laid-out spot.
+  s.scroll = scroll;
+  // The dragged item is drawn at its spot when picked up + finger travel +
+  // auto-scroll, wherever the list has laid it out meanwhile:
+  // offset = spot when picked up − laid-out spot.
   const offset = useSharedValue<Point>({ x: 0, y: 0 });
   const travel = useSharedValue<Point>({ x: 0, y: 0 });
+  const scrolled = useSharedValue<Point>({ x: 0, y: 0 });
 
-  const pickUp = (id: string, grabX: number, grabY: number) => {
-    const r = s.rects.get(id);
-    if (!r) return;
-    s.start = { x: r.x, y: r.y };
-    s.grab = { x: grabX, y: grabY };
-    s.dragId = id;
-    offset.value = { x: 0, y: 0 };
-    setDragId(id);
+  const scrollShift = (): Point => {
+    const d = s.scrollPos - s.scrollAtStart;
+    return s.scroll?.horizontal ? { x: d, y: 0 } : { x: 0, y: d };
+  };
+  // The finger, in the content's coordinates.
+  const finger = (): Point => {
+    const sh = scrollShift();
+    return {
+      x: s.start.x + s.grab.x + s.travel.x + sh.x,
+      y: s.start.y + s.grab.y + s.travel.y + sh.y,
+    };
   };
 
+  // Web: onLayout only reports size changes there, so an item that just
+  // moved (a swap, an earlier reorder) would keep its old spot — read the
+  // spots from the page instead.
+  const measureWeb = () => {
+    for (const [id, el] of s.nodes) {
+      const item = el.parentElement; // the item's own (animated) wrapper
+      if (item) {
+        s.rects.set(id, { x: item.offsetLeft, y: item.offsetTop, width: item.offsetWidth, height: item.offsetHeight });
+      }
+    }
+  };
+  useLayoutEffect(() => {
+    if (Platform.OS !== "web" || !s.dragId) return;
+    measureWeb();
+    const r = s.rects.get(s.dragId);
+    if (r) offset.value = { x: s.start.x - r.x, y: s.start.y - r.y };
+    s.waitingForLayout = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order]);
+
   // The item whose center is nearest the finger takes the dragged one's place.
-  const follow = (dx: number, dy: number) => {
+  const hitTest = () => {
     const id = s.dragId;
     if (!id || !s.enabled || s.waitingForLayout) return;
-    const fx = s.start.x + s.grab.x + dx;
-    const fy = s.start.y + s.grab.y + dy;
+    const f = finger();
     let nearest = id;
     let best = Infinity;
     for (const other of s.order) {
       const r = s.rects.get(other);
       if (!r) continue;
-      const d = Math.hypot(r.x + r.width / 2 - fx, r.y + r.height / 2 - fy);
+      const d = Math.hypot(r.x + r.width / 2 - f.x, r.y + r.height / 2 - f.y);
       if (d < best) {
         best = d;
         nearest = other;
@@ -92,10 +147,54 @@ export function useReorder(ids: string[], onCommit: (ids: string[]) => void, ena
     setDraft(s.order);
   };
 
+  // Finger near the visible edge: a step of scrolling each frame (as far as
+  // the content goes), with the dragged item riding along.
+  const autoScroll = () => {
+    s.frame = null;
+    const sc = s.scroll;
+    if (!s.dragId || !sc) return;
+    if (s.enabled) {
+      const f = finger();
+      const pos = (sc.horizontal ? f.x : f.y) - s.scrollPos;
+      const dir = pos < EDGE_ZONE ? -1 : pos > s.viewport - EDGE_ZONE ? 1 : 0;
+      const next = Math.max(0, Math.min(s.content - s.viewport, s.scrollPos + dir * SCROLL_STEP));
+      if (dir !== 0 && next !== s.scrollPos) {
+        s.scrollPos = next;
+        sc.ref.current?.scrollTo(sc.horizontal ? { x: next, animated: false } : { y: next, animated: false });
+        scrolled.value = scrollShift();
+        hitTest();
+      }
+    }
+    s.frame = requestAnimationFrame(autoScroll);
+  };
+
+  const pickUp = (id: string, grabX: number, grabY: number) => {
+    if (Platform.OS === "web") measureWeb();
+    const r = s.rects.get(id);
+    if (!r) return;
+    s.dragId = id;
+    s.start = { x: r.x, y: r.y };
+    s.grab = { x: grabX, y: grabY };
+    s.travel = { x: 0, y: 0 };
+    s.scrollAtStart = s.scrollPos;
+    s.waitingForLayout = false;
+    offset.value = { x: 0, y: 0 };
+    scrolled.value = { x: 0, y: 0 };
+    setDragId(id);
+    if (s.frame === null) s.frame = requestAnimationFrame(autoScroll);
+  };
+
+  const follow = (dx: number, dy: number) => {
+    s.travel = { x: dx, y: dy };
+    hitTest();
+  };
+
   const drop = (commit: boolean) => {
     if (commit && s.dragId && s.order.join() !== s.ids.join()) s.onCommit(s.order);
     s.dragId = null;
     s.waitingForLayout = false;
+    if (s.frame !== null) cancelAnimationFrame(s.frame);
+    s.frame = null;
     setDraft(null);
     setDragId(null);
   };
@@ -103,14 +202,51 @@ export function useReorder(ids: string[], onCommit: (ids: string[]) => void, ena
   const onItemLayout = (id: string, e: LayoutChangeEvent) => {
     const r = e.nativeEvent.layout;
     s.rects.set(id, r);
-    if (id === s.dragId) {
+    if (Platform.OS !== "web" && id === s.dragId) {
       offset.value = { x: s.start.x - r.x, y: s.start.y - r.y };
       s.waitingForLayout = false;
     }
   };
+  const registerNode = (id: string, el: HTMLElement | null) => {
+    if (el) s.nodes.set(id, el);
+    else s.nodes.delete(id);
+  };
+  // An item's current spot in the content (e.g. to scroll to it).
+  const spotOf = (id: string): Rect | undefined => {
+    if (Platform.OS === "web") measureWeb();
+    return s.rects.get(id);
+  };
 
-  // rects: each item's measured spot in the container, by id.
-  return { order, dragId, offset, travel, rects: s.rects, pickUp, follow, drop, onItemLayout };
+  const horizontal = !!scroll?.horizontal;
+  const scrollProps = {
+    scrollEventThrottle: 16,
+    // Ignored mid-drag: auto-scroll sets the position itself, and these
+    // arrive a frame or two late.
+    onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!s.dragId) s.scrollPos = horizontal ? e.nativeEvent.contentOffset.x : e.nativeEvent.contentOffset.y;
+    },
+    onLayout: (e: LayoutChangeEvent) => {
+      s.viewport = horizontal ? e.nativeEvent.layout.width : e.nativeEvent.layout.height;
+    },
+    onContentSizeChange: (w: number, h: number) => {
+      s.content = horizontal ? w : h;
+    },
+  };
+
+  return {
+    order,
+    dragId,
+    offset,
+    travel,
+    scrolled,
+    scrollProps,
+    spotOf,
+    pickUp,
+    follow,
+    drop,
+    onItemLayout,
+    registerNode,
+  };
 }
 
 export function ReorderItem({
@@ -135,7 +271,7 @@ export function ReorderItem({
   const fill = useSharedValue(0);
   const held = useRef(false);
   const node = useRef<View>(null);
-  const { offset, travel } = reorder;
+  const { offset, travel, scrolled } = reorder;
   const isDragged = reorder.dragId === id;
 
   const begin = () => {
@@ -182,8 +318,8 @@ export function ReorderItem({
         ? {
             zIndex: 10,
             transform: [
-              { translateX: offset.value.x + travel.value.x },
-              { translateY: offset.value.y + travel.value.y },
+              { translateX: offset.value.x + travel.value.x + scrolled.value.x },
+              { translateY: offset.value.y + travel.value.y + scrolled.value.y },
               { scale: 1.05 },
             ],
           }
@@ -199,6 +335,7 @@ export function ReorderItem({
     if (Platform.OS !== "web") return;
     const el = node.current as unknown as HTMLElement | null;
     if (!el?.addEventListener) return;
+    reorder.registerNode(id, el);
     let downAt = 0;
     let x0 = 0;
     let y0 = 0;
@@ -222,9 +359,11 @@ export function ReorderItem({
     el.addEventListener("touchstart", start, { passive: true });
     el.addEventListener("touchmove", move, { passive: false });
     return () => {
+      reorder.registerNode(id, null);
       el.removeEventListener("touchstart", start);
       el.removeEventListener("touchmove", move);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

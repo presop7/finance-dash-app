@@ -41,11 +41,14 @@ export default function FundCategoryPicker({
   const fundCardOrder = useFinanceStore((s) => s.fundCardOrder);
   const setFundCardOrder = useFinanceStore((s) => s.setFundCardOrder);
   const sorted = sortByOrder(fundCategories, fundCardOrder);
-  const reorder = useReorder(sorted.map((f) => f.id), setFundCardOrder);
+  const reorder = useReorder(sorted.map((f) => f.id), setFundCardOrder, true, {
+    ref: scrollRef,
+    horizontal: true,
+  });
   const byId = new Map(sorted.map((f) => [f.id, f]));
 
   useEffect(() => {
-    const x = reorder.rects.get(selected)?.x;
+    const x = reorder.spotOf(selected)?.x;
     if (x !== undefined) {
       scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
     }
@@ -54,6 +57,7 @@ export default function FundCategoryPicker({
   return (
     <ScrollView
       ref={scrollRef}
+      {...reorder.scrollProps}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
