@@ -394,12 +394,21 @@ const ko: Locale = {
     noMatch: "\"{{query}}\"와(과) 일치하는 항목이 없어요",
   },
   tips: {
+    alerts: "돈 알림",
+    alertsHint: "이 기기로 알림이 오지 않을 때: 잔액 부족, 한도 초과",
+    reminder: "최근 추가 없음",
+    reminderHint: "새 거래가 12시간 동안 없을 때",
     title: "플로팅 팁",
     intro: "앱을 열 때 상단에 나타날 수 있는 팁입니다.",
     install: "앱 설치",
     installHint: "휴대폰 브라우저에서: Fi-Track을 홈 화면에 추가",
     notifications: "알림 켜기",
     notificationsHint: "알림이 켜질 때까지 표시됩니다",
+  },
+  reminderTip: {
+    title: "추가할 내용이 있나요?",
+    text: "{{count}}시간 넘게 거래를 추가하지 않았습니다.",
+    add: "추가",
   },
   notificationTip: {
     title: "알림을 켜세요.",

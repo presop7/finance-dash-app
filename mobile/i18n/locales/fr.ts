@@ -393,12 +393,21 @@ const fr: Locale = {
     noMatch: "Aucun résultat pour « {{query}} »",
   },
   tips: {
+    alerts: "Alertes d'argent",
+    alertsHint: "Quand les notifications n'arrivent pas sur cet appareil : solde bas, limites dépassées",
+    reminder: "Rien d'ajouté récemment",
+    reminderHint: "Après 12 heures sans nouvelle opération",
     title: "Astuces flottantes",
     intro: "Des astuces qui peuvent apparaître en haut à l'ouverture de l'app.",
     install: "Installer l'app",
     installHint: "Dans le navigateur du téléphone : ajoutez Fi-Track à l'écran d'accueil",
     notifications: "Activer les notifications",
     notificationsHint: "Affichée tant que les notifications sont désactivées",
+  },
+  reminderTip: {
+    title: "Quelque chose à ajouter ?",
+    text: "Vous n'avez ajouté aucune opération depuis plus de {{count}} heures.",
+    add: "Ajouter",
   },
   notificationTip: {
     title: "Activez les notifications.",

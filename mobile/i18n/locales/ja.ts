@@ -394,12 +394,21 @@ const ja: Locale = {
     noMatch: "「{{query}}」に一致するものはありません",
   },
   tips: {
+    alerts: "お金のアラート",
+    alertsHint: "このデバイスに通知が届かないとき：残高不足、上限超過",
+    reminder: "最近の追加なし",
+    reminderHint: "新しい取引が12時間ないとき",
     title: "フローティングヒント",
     intro: "アプリを開いたときに上部に表示されるヒントです。",
     install: "アプリをインストール",
     installHint: "スマートフォンのブラウザ：Fi-Trackをホーム画面に追加",
     notifications: "通知をオンにする",
     notificationsHint: "通知がオンになるまで表示されます",
+  },
+  reminderTip: {
+    title: "追加するものはありますか？",
+    text: "{{count}}時間以上、取引が追加されていません。",
+    add: "追加",
   },
   notificationTip: {
     title: "通知をオンにしましょう。",

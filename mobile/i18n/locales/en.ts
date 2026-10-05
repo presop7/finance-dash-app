@@ -392,12 +392,21 @@ const en = {
     noMatch: "Nothing matches \"{{query}}\"",
   },
   tips: {
+    alerts: "Money alerts",
+    alertsHint: "When notifications don't reach this device: low balance, limits passed",
+    reminder: "Nothing added lately",
+    reminderHint: "After 12 hours without a new transaction",
     title: "Floating tips",
     intro: "Tips that can pop up at the top when you open the app.",
     install: "Install the app",
     installHint: "In a phone browser: add Fi-Track to your home screen",
     notifications: "Turn on notifications",
     notificationsHint: "Shown until notifications are on",
+  },
+  reminderTip: {
+    title: "Anything to add?",
+    text: "You haven't added a transaction in over {{count}} hours.",
+    add: "Add",
   },
   notificationTip: {
     title: "Turn on notifications.",

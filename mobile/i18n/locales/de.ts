@@ -393,12 +393,21 @@ const de: Locale = {
     noMatch: "Nichts passt zu „{{query}}“",
   },
   tips: {
+    alerts: "Geld-Hinweise",
+    alertsHint: "Wenn Benachrichtigungen dieses Gerät nicht erreichen: niedriger Kontostand, überschrittene Limits",
+    reminder: "Länger nichts erfasst",
+    reminderHint: "Nach 12 Stunden ohne neue Buchung",
     title: "Schwebende Tipps",
     intro: "Tipps, die beim Öffnen der App oben erscheinen können.",
     install: "App installieren",
     installHint: "Im Handy-Browser: Fi-Track zum Home-Bildschirm hinzufügen",
     notifications: "Benachrichtigungen einschalten",
     notificationsHint: "Wird angezeigt, bis Benachrichtigungen an sind",
+  },
+  reminderTip: {
+    title: "Etwas zu erfassen?",
+    text: "Du hast seit über {{count}} Stunden keine Buchung hinzugefügt.",
+    add: "Hinzufügen",
   },
   notificationTip: {
     title: "Benachrichtigungen einschalten.",

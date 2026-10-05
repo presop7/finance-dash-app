@@ -96,7 +96,7 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 ];
 
 // "refreshing" = showing cached data while a background hydrate is in flight.
-export type TipId = "install" | "notifications";
+export type TipId = "install" | "notifications" | "alerts" | "reminder";
 
 export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
 
@@ -174,6 +174,10 @@ type FinanceStore = {
   setNotificationsEnabled: (on: boolean) => void;
   // Which floating tips may pop up on this device.
   tips: Record<TipId, boolean>;
+  // When a transaction was last added on this device (ms) — for the "nothing
+  // added in a while" tip; the dates on the transactions themselves can be
+  // back-dated.
+  lastAddedAt: number | null;
   setTipEnabled: (id: TipId, on: boolean) => void;
   // App language code ("bg", "en", ...), or null to follow the phone's
   // own language. Device preference, like the theme.
@@ -579,7 +583,8 @@ export const useFinanceStore = create<FinanceStore>()(
       categoryOrder: [],
       themePreference: "system",
       notificationsEnabled: true,
-      tips: { install: true, notifications: true },
+      tips: { install: true, notifications: true, alerts: true, reminder: true },
+      lastAddedAt: null,
       language: null,
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
@@ -725,6 +730,7 @@ export const useFinanceStore = create<FinanceStore>()(
         // background, online or not — the UI never waits on the network (a
         // cold or slow backend used to hold the modal open for 15-20s).
         set((state) => ({
+          lastAddedAt: Date.now(),
           pendingOps: [
             ...state.pendingOps,
             { kind: "create", clientGeneratedId, payload: transaction, status: "pending" },
@@ -1035,6 +1041,7 @@ export const useFinanceStore = create<FinanceStore>()(
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,
+        lastAddedAt: state.lastAddedAt,
         categoryOrder: state.categoryOrder,
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,

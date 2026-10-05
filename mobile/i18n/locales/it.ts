@@ -393,12 +393,21 @@ const it: Locale = {
     noMatch: "Nessun risultato per «{{query}}»",
   },
   tips: {
+    alerts: "Avvisi sul denaro",
+    alertsHint: "Quando le notifiche non arrivano su questo dispositivo: saldo basso, limiti superati",
+    reminder: "Niente aggiunto di recente",
+    reminderHint: "Dopo 12 ore senza un nuovo movimento",
     title: "Suggerimenti fluttuanti",
     intro: "Suggerimenti che possono comparire in alto all'apertura dell'app.",
     install: "Installa l'app",
     installHint: "Nel browser del telefono: aggiungi Fi-Track alla schermata Home",
     notifications: "Attiva le notifiche",
     notificationsHint: "Mostrato finché le notifiche sono disattivate",
+  },
+  reminderTip: {
+    title: "Qualcosa da aggiungere?",
+    text: "Non hai aggiunto movimenti da più di {{count}} ore.",
+    add: "Aggiungi",
   },
   notificationTip: {
     title: "Attiva le notifiche.",

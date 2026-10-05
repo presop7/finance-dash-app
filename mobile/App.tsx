@@ -58,7 +58,7 @@ import { applyLanguage, languageReady } from "./i18n";
 import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
-import FloatingTips from "./components/FloatingTips";
+import FloatingTips, { setTipAddOpener } from "./components/FloatingTips";
 import CurrencyPromptModal from "./screens/modals/CurrencyPromptModal";
 import { detectCurrency } from "./utils/detectCurrency";
 
@@ -538,6 +538,15 @@ function AppContent() {
   useAlertsMonitor();
   useDailyReminderSync();
   useTutorialAutoStart();
+
+  // The "nothing added in a while" tip's button opens the new-transaction form.
+  useEffect(() => {
+    setTipAddOpener(() => {
+      setEditTransaction(null);
+      setShowTransaction(true);
+    });
+    return () => setTipAddOpener(null);
+  }, []);
 
   return (
     <View style={styles.container}>

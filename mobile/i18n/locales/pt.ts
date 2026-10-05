@@ -394,12 +394,21 @@ const pt: Locale = {
     noMatch: "Nada corresponde a \"{{query}}\"",
   },
   tips: {
+    alerts: "Alertas de dinheiro",
+    alertsHint: "Quando as notificações não chegam a este dispositivo: saldo baixo, limites ultrapassados",
+    reminder: "Nada adicionado recentemente",
+    reminderHint: "Após 12 horas sem uma nova transação",
     title: "Dicas flutuantes",
     intro: "Dicas que podem aparecer no topo ao abrir o app.",
     install: "Instalar o app",
     installHint: "No navegador do celular: adicione o Fi-Track à Tela de Início",
     notifications: "Ativar notificações",
     notificationsHint: "Mostrada até as notificações estarem ativadas",
+  },
+  reminderTip: {
+    title: "Algo para adicionar?",
+    text: "Você não adicionou nenhuma transação há mais de {{count}} horas.",
+    add: "Adicionar",
   },
   notificationTip: {
     title: "Ative as notificações.",

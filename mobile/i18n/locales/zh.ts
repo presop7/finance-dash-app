@@ -394,12 +394,21 @@ const zh: Locale = {
     noMatch: "没有与“{{query}}”匹配的结果",
   },
   tips: {
+    alerts: "资金提醒",
+    alertsHint: "当通知无法送达此设备时：余额不足、超出限额",
+    reminder: "最近没有添加",
+    reminderHint: "12 小时没有新交易后",
     title: "浮动提示",
     intro: "打开应用时可能出现在顶部的提示。",
     install: "安装应用",
     installHint: "在手机浏览器中：将 Fi-Track 添加到主屏幕",
     notifications: "开启通知",
     notificationsHint: "在开启通知之前显示",
+  },
+  reminderTip: {
+    title: "有要添加的吗？",
+    text: "你已超过 {{count}} 小时没有添加交易。",
+    add: "添加",
   },
   notificationTip: {
     title: "开启通知。",

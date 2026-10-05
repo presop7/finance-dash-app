@@ -408,12 +408,21 @@ const ro: Locale = {
     noMatch: "Nimic nu se potrivește cu „{{query}}”",
   },
   tips: {
+    alerts: "Alerte despre bani",
+    alertsHint: "Când notificările nu ajung pe acest dispozitiv: sold scăzut, limite depășite",
+    reminder: "Nimic adăugat recent",
+    reminderHint: "După 12 ore fără o tranzacție nouă",
     title: "Sfaturi plutitoare",
     intro: "Sfaturi care pot apărea sus când deschizi aplicația.",
     install: "Instalează aplicația",
     installHint: "În browserul telefonului: adaugă Fi-Track pe ecranul principal",
     notifications: "Activează notificările",
     notificationsHint: "Afișat până când notificările sunt activate",
+  },
+  reminderTip: {
+    title: "Ai ceva de adăugat?",
+    text: "Nu ai adăugat nicio tranzacție de peste {{count}} de ore.",
+    add: "Adaugă",
   },
   notificationTip: {
     title: "Activează notificările.",
