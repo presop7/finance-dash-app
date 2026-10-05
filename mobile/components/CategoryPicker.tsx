@@ -63,14 +63,19 @@ export default function CategoryPicker({
 
   // Jumps the strip to the selected chip whenever the selection changes
   // from outside a direct tap here — e.g. returning from the category
-  // manager after picking one there, which could be scrolled off-screen.
-
+  // manager after picking one there, which could be scrolled off-screen —
+  // and when a search is cleared, which brings the whole list back from its
+  // start. A beat later, so the chips are laid out at their new spots.
+  const searching = trimmed !== "";
   useEffect(() => {
-    const x = reorder.spotOf(selected)?.x;
-    if (x !== undefined) {
-      scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
-    }
-  }, [selected]);
+    if (searching) return;
+    const timer = setTimeout(() => {
+      const x = reorder.spotOf(selected)?.x;
+      if (x !== undefined) scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+    }, 50);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, searching]);
 
   return (
     <View>
