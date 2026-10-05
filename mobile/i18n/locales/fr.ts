@@ -415,6 +415,9 @@ const fr: Locale = {
     show: "Me montrer",
   },
   installTip: {
+    chromeTitle: "Installez depuis Chrome :",
+    chrome: "sur Android, Chrome installe Fi-Track comme une vraie app — sa propre icône, en plein écran et des notifications à son nom.",
+    openInChrome: "Ouvrir dans Chrome",
     installedTitle: "Fi-Track est installée :",
     installed: "ouvrez-la depuis son icône (écran d'accueil, menu Démarrer ou Dock) pour l'utiliser comme une app.",
     oneTapDesktop: "ouvrez-la comme une app, dans sa propre fenêtre — depuis le menu Démarrer, la barre des tâches ou le Dock.",

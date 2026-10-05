@@ -416,6 +416,9 @@ const ko: Locale = {
     show: "보여 주기",
   },
   installTip: {
+    chromeTitle: "Chrome에서 설치하세요:",
+    chrome: "Android에서는 Chrome이 Fi-Track을 실제 앱으로 설치합니다 — 전용 아이콘, 전체 화면, 앱 이름으로 오는 알림.",
+    openInChrome: "Chrome에서 열기",
     installedTitle: "Fi-Track이 설치되어 있습니다:",
     installed: "아이콘(홈 화면, 시작 메뉴 또는 Dock)에서 열어 앱으로 사용하세요.",
     oneTapDesktop: "앱처럼 별도 창에서 열 수 있습니다 — 시작 메뉴, 작업 표시줄 또는 Dock에서.",

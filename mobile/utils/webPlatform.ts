@@ -25,6 +25,17 @@ export const isBrowserTab = isWeb && !isInstalledWebApp;
 export const isPhoneBrowserTab = isBrowserTab && !isDesktopWeb;
 
 const userAgent = isWeb ? window.navigator.userAgent : "";
+// An Android phone/tablet browser, and whether it's Chrome itself. Chrome is
+// where Android installs the web version as a real app (its own icon in the
+// app list, notifications under Fi-Track's name); other browsers make a
+// plain shortcut. Brave reports itself exactly like Chrome, apart from
+// navigator.brave; "wv" marks an app's built-in browser (Facebook, Gmail...).
+export const isAndroidWeb = isWeb && !isDesktopWeb && /Android/.test(userAgent);
+export const isAndroidChrome =
+  isAndroidWeb &&
+  /Chrome\//.test(userAgent) &&
+  !/; wv\)|SamsungBrowser|OPR|EdgA|Firefox|YaBrowser|MiuiBrowser|UCBrowser|DuckDuckGo|Vivaldi|HuaweiBrowser|HeyTap|VivoBrowser/.test(userAgent) &&
+  !("brave" in window.navigator);
 // Firefox on a computer can't install web apps at all.
 export const isDesktopFirefox = isDesktopWeb && /Firefox\//.test(userAgent);
 // Safari on a Mac: no install prompt, but File → Add to Dock (Safari 17+).

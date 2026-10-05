@@ -416,6 +416,9 @@ const zh: Locale = {
     show: "带我去",
   },
   installTip: {
+    chromeTitle: "从 Chrome 安装：",
+    chrome: "在 Android 上，Chrome 会将 Fi-Track 安装为真正的应用——独立图标、全屏显示，通知显示其名称。",
+    openInChrome: "在 Chrome 中打开",
     installedTitle: "Fi-Track 已安装：",
     installed: "从它的图标（主屏幕、开始菜单或程序坞）打开，即可作为应用使用。",
     oneTapDesktop: "像应用一样在独立窗口中打开——从开始菜单、任务栏或程序坞。",

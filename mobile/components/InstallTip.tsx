@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  isAndroidChrome,
+  isAndroidWeb,
   isAppleMobileWeb,
   isBrowserTab,
   isDesktopFirefox,
@@ -96,6 +98,24 @@ export function useInstallTip(): Tip | null {
   if (!isBrowserTab) return null;
   if (isInstalled) {
     return { id: "install", icon: "open-outline", title: t("installTip.installedTitle"), text: t("installTip.installed") };
+  }
+  // Android, but not Chrome: only Chrome installs it as a real app, so send
+  // the user there — Android opens this same page straight in Chrome (or,
+  // without Chrome, Chrome's Play Store page).
+  if (isAndroidWeb && !isAndroidChrome) {
+    return {
+      id: "install",
+      icon: "logo-chrome",
+      title: t("installTip.chromeTitle"),
+      text: t("installTip.chrome"),
+      action: t("installTip.openInChrome"),
+      onAction: () => {
+        const fallback = encodeURIComponent("https://play.google.com/store/apps/details?id=com.android.chrome");
+        window.location.href =
+          `intent://${window.location.host}${window.location.pathname}` +
+          `#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+      },
+    };
   }
   if (isDesktopWeb && !canPrompt && isDesktopFirefox) return null;
   const text = canPrompt

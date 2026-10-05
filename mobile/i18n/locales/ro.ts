@@ -430,6 +430,9 @@ const ro: Locale = {
     show: "Arată-mi",
   },
   installTip: {
+    chromeTitle: "Instalează din Chrome:",
+    chrome: "pe Android, Chrome instalează Fi-Track ca aplicație adevărată — pictogramă proprie, ecran complet și notificări sub numele ei.",
+    openInChrome: "Deschide în Chrome",
     installedTitle: "Fi-Track este instalat:",
     installed: "deschide-l din pictograma lui (ecranul principal, meniul Start sau Dock) ca să-l folosești ca aplicație.",
     oneTapDesktop: "deschide-o ca pe o aplicație, în propria fereastră — din meniul Start, bara de activități sau Dock.",
