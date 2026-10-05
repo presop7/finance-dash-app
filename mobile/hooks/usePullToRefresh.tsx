@@ -10,11 +10,14 @@ const TRIGGER = 70;
 const MAX_PULL = 110;
 // A touch held this long before moving is a hold (reorder, drag-select), not a pull.
 const HOLD_MS = 250;
+// How long the spinner shows to acknowledge a pull.
+const ACK_MS = 600;
 
 // Pull-to-refresh for the transaction screens: re-sends anything still queued
-// (including failed writes) and re-downloads everything from the server.
-// Tracks its own spinner rather than the store's "refreshing" status, so
-// background syncs don't make the spinner pop up on their own.
+// (including failed writes) and re-downloads everything from the server — in
+// the background. The server can take 30-60s to wake up, so the spinner only
+// acknowledges the pull and goes away; the screen stays usable, and the sync
+// line above the tab bar shows it's still syncing (store status "refreshing").
 //
 // The phone apps use RefreshControl with refreshing/onRefresh. On the web
 // RefreshControl does nothing, so there the scroll view's own touches are
@@ -29,13 +32,12 @@ export function usePullToRefresh(
   const [refreshing, setRefreshing] = useState(false);
   const [pull, setPull] = useState(0);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    try {
-      await useFinanceStore.getState().hydrate();
-    } finally {
-      setRefreshing(false);
-    }
+    setTimeout(() => setRefreshing(false), ACK_MS);
+    const store = useFinanceStore.getState();
+    // Already syncing (app start, reconnect, an earlier pull): that one will do.
+    if (store.status !== "refreshing" && store.status !== "loading") store.hydrate();
   }, []);
 
   const getNodeRef = useRef(getScrollNode);
