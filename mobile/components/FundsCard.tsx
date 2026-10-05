@@ -84,7 +84,8 @@ export default function FundsCard({
         {...reorder.scrollProps}
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + CARD_GAP}
+        // Off while dragging: snapping would fight the auto-scroll.
+        snapToInterval={reorder.dragId ? undefined : CARD_WIDTH + CARD_GAP}
         decelerationRate="fast"
         contentContainerStyle={styles.scrollContent}
       >
