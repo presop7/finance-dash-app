@@ -167,6 +167,13 @@ const it: Locale = {
     },
   },
   settings: {
+    notificationsSection: "Notifiche e suggerimenti",
+    notifications: "Notifiche",
+    notificationsHint: "Promemoria e avvisi sul tuo denaro su questo dispositivo",
+    notificationsBlockedTitle: "Le notifiche sono bloccate",
+    notificationsBlocked: "Consenti le notifiche di Fi-Track nelle impostazioni del browser o del telefono, poi riprova.",
+    tips: "Suggerimenti fluttuanti",
+    tipsHint: "Scegli quali suggerimenti compaiono all'apertura dell'app",
     appearance: "Aspetto",
     theme: "Tema",
     theme_light: "Chiaro",
@@ -384,6 +391,19 @@ const it: Locale = {
     searchCategories: "Cerca categorie",
     searchFunds: "Cerca conti",
     noMatch: "Nessun risultato per «{{query}}»",
+  },
+  tips: {
+    title: "Suggerimenti fluttuanti",
+    intro: "Suggerimenti che possono comparire in alto all'apertura dell'app.",
+    install: "Installa l'app",
+    installHint: "Nel browser del telefono: aggiungi Fi-Track alla schermata Home",
+    notifications: "Attiva le notifiche",
+    notificationsHint: "Mostrato finché le notifiche sono disattivate",
+  },
+  notificationTip: {
+    title: "Attiva le notifiche.",
+    text: "Ricevi promemoria per registrare le spese e avvisi sul tuo denaro.",
+    show: "Mostrami",
   },
   installTip: {
     title: "Installa Fi-Track:",

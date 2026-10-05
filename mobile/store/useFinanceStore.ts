@@ -96,6 +96,8 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 ];
 
 // "refreshing" = showing cached data while a background hydrate is in flight.
+export type TipId = "install" | "notifications";
+
 export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
 
 type CategoryFields = { label: string; icon: string; color?: string };
@@ -166,6 +168,13 @@ type FinanceStore = {
   // Device preference, not account data — deliberately not part of Settings
   // (which round-trips to the backend) or namespaced per-user below.
   themePreference: ThemePreference;
+  // This device's notifications (reminders, money alerts): off stops them
+  // here even while the browser/phone still allows them.
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (on: boolean) => void;
+  // Which floating tips may pop up on this device.
+  tips: Record<TipId, boolean>;
+  setTipEnabled: (id: TipId, on: boolean) => void;
   // App language code ("bg", "en", ...), or null to follow the phone's
   // own language. Device preference, like the theme.
   language: string | null;
@@ -207,6 +216,8 @@ const DEVICE_FIELDS: readonly string[] = [
   "themePreference",
   "displayNameOverride",
   "language",
+  "notificationsEnabled",
+  "tips",
 ];
 
 type PersistedBlob = {
@@ -567,6 +578,8 @@ export const useFinanceStore = create<FinanceStore>()(
       fundCardOrder: [],
       categoryOrder: [],
       themePreference: "system",
+      notificationsEnabled: true,
+      tips: { install: true, notifications: true },
       language: null,
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
@@ -968,6 +981,8 @@ export const useFinanceStore = create<FinanceStore>()(
         })),
 
       setThemePreference: (pref) => set({ themePreference: pref }),
+      setNotificationsEnabled: (on) => set({ notificationsEnabled: on }),
+      setTipEnabled: (id, on) => set((state) => ({ tips: { ...state.tips, [id]: on } })),
       setLanguage: (language) => set({ language }),
       relabelDefaults: () =>
         set((state) => ({
@@ -1015,6 +1030,8 @@ export const useFinanceStore = create<FinanceStore>()(
         dashboardCollapsedCards: state.dashboardCollapsedCards,
         themePreference: state.themePreference,
         language: state.language,
+        notificationsEnabled: state.notificationsEnabled,
+        tips: state.tips,
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,
@@ -1037,6 +1054,8 @@ export const useFinanceStore = create<FinanceStore>()(
         return {
           ...current,
           ...saved,
+          // Tips added later start on, not missing.
+          tips: { ...current.tips, ...saved.tips },
           transactions: (saved.transactions ?? []).map((t) => ({
             ...t,
             date: new Date(t.date),

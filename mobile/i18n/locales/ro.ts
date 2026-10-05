@@ -175,6 +175,13 @@ const ro: Locale = {
     },
   },
   settings: {
+    notificationsSection: "Notificări și sfaturi",
+    notifications: "Notificări",
+    notificationsHint: "Mementouri și alerte despre bani pe acest dispozitiv",
+    notificationsBlockedTitle: "Notificările sunt blocate",
+    notificationsBlocked: "Permite notificările pentru Fi-Track din setările browserului sau ale telefonului, apoi încearcă din nou.",
+    tips: "Sfaturi plutitoare",
+    tipsHint: "Alege ce sfaturi apar când deschizi aplicația",
     appearance: "Aspect",
     theme: "Temă",
     theme_light: "Luminoasă",
@@ -399,6 +406,19 @@ const ro: Locale = {
     searchCategories: "Caută categorii",
     searchFunds: "Caută conturi",
     noMatch: "Nimic nu se potrivește cu „{{query}}”",
+  },
+  tips: {
+    title: "Sfaturi plutitoare",
+    intro: "Sfaturi care pot apărea sus când deschizi aplicația.",
+    install: "Instalează aplicația",
+    installHint: "În browserul telefonului: adaugă Fi-Track pe ecranul principal",
+    notifications: "Activează notificările",
+    notificationsHint: "Afișat până când notificările sunt activate",
+  },
+  notificationTip: {
+    title: "Activează notificările.",
+    text: "Primește mementouri să îți notezi cheltuielile și alerte despre bani.",
+    show: "Arată-mi",
   },
   installTip: {
     title: "Instalează Fi-Track:",

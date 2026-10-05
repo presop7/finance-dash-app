@@ -21,7 +21,9 @@ export function useAlertsMonitor() {
     );
 
     for (const result of results) {
-      if (result.notify) {
+      // Still marked as triggered while notifications are off, so turning
+      // them back on doesn't fire a backlog of old alerts.
+      if (result.notify && useFinanceStore.getState().notificationsEnabled) {
         sendLocalNotification(result.title, result.body);
       }
       updateAlertRule(result.rule.id, { lastTriggeredKey: result.newKey });

@@ -166,6 +166,13 @@ const en = {
     },
   },
   settings: {
+    notificationsSection: "Notifications & tips",
+    notifications: "Notifications",
+    notificationsHint: "Reminders and money alerts on this device",
+    notificationsBlockedTitle: "Notifications are blocked",
+    notificationsBlocked: "Allow notifications for Fi-Track in your browser or phone settings, then try again.",
+    tips: "Floating tips",
+    tipsHint: "Choose which tips pop up when you open the app",
     appearance: "Appearance",
     theme: "Theme",
     theme_light: "Light",
@@ -383,6 +390,19 @@ const en = {
     searchCategories: "Search categories",
     searchFunds: "Search funds",
     noMatch: "Nothing matches \"{{query}}\"",
+  },
+  tips: {
+    title: "Floating tips",
+    intro: "Tips that can pop up at the top when you open the app.",
+    install: "Install the app",
+    installHint: "In a phone browser: add Fi-Track to your home screen",
+    notifications: "Turn on notifications",
+    notificationsHint: "Shown until notifications are on",
+  },
+  notificationTip: {
+    title: "Turn on notifications.",
+    text: "Get reminders to log your spending and alerts about your money.",
+    show: "Show me",
   },
   installTip: {
     title: "Install Fi-Track:",

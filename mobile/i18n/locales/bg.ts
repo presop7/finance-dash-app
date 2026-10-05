@@ -167,6 +167,13 @@ const bg: Translations = {
     },
   },
   settings: {
+    notificationsSection: "Известия и съвети",
+    notifications: "Известия",
+    notificationsHint: "Напомняния и известия за парите на това устройство",
+    notificationsBlockedTitle: "Известията са блокирани",
+    notificationsBlocked: "Разрешете известия за Fi-Track в настройките на браузъра или телефона и опитайте отново.",
+    tips: "Плаващи съвети",
+    tipsHint: "Изберете кои съвети да се показват при отваряне на приложението",
     appearance: "Изглед",
     theme: "Тема",
     theme_light: "Светла",
@@ -384,6 +391,19 @@ const bg: Translations = {
     searchCategories: "Търсене на категории",
     searchFunds: "Търсене на съхранения",
     noMatch: "Няма съвпадения за „{{query}}“",
+  },
+  tips: {
+    title: "Плаващи съвети",
+    intro: "Съвети, които могат да се появят горе при отваряне на приложението.",
+    install: "Инсталиране на приложението",
+    installHint: "В браузър на телефона: добавете Fi-Track към началния екран",
+    notifications: "Включване на известия",
+    notificationsHint: "Показва се, докато известията са изключени",
+  },
+  notificationTip: {
+    title: "Включете известията.",
+    text: "Получавайте напомняния да въвеждате разходите си и известия за парите си.",
+    show: "Покажи ми",
   },
   installTip: {
     title: "Инсталирайте Fi-Track:",

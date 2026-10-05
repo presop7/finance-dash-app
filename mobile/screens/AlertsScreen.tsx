@@ -17,7 +17,7 @@ import AlertRuleModal from "./modals/AlertRuleModal";
 import { useTutorialTarget } from "../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
-import { isAppleMobileWeb, isAppleTooOldForPush } from "../utils/webPlatform";
+import { notificationsUnavailableKey } from "../utils/notificationHint";
 import { FONT } from "../constants/typography";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
@@ -55,9 +55,12 @@ export default function AlertsScreen() {
     hasNotificationPermission().then(setPermissionGranted);
   }, []);
 
+  const notificationsEnabled = useFinanceStore((s) => s.notificationsEnabled);
+  const setNotificationsEnabled = useFinanceStore((s) => s.setNotificationsEnabled);
   const handleEnable = async () => {
     const granted = await ensureNotificationPermission();
     setPermissionGranted(granted);
+    if (granted) setNotificationsEnabled(true);
   };
 
   const describeRule = (rule: AlertRule): string => {
@@ -132,17 +135,11 @@ export default function AlertsScreen() {
           <View style={[styles.banner, GlobalStyles.screenPadding]}>
             <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.bannerText}>
-              {Platform.OS !== "web"
-                ? t("reminders.expoGoNoNotifications")
-                : isAppleTooOldForPush
-                  ? t("reminders.webIosTooOldForNotifications")
-                  : isAppleMobileWeb
-                    ? t("reminders.webInstallForNotifications") // a Safari tab; the installed app can
-                  : t("reminders.webNoNotifications")}
+              {t(notificationsUnavailableKey())}
             </Text>
           </View>
         ) : (
-          !permissionGranted && (
+          !(permissionGranted && notificationsEnabled) && (
             <View style={[styles.banner, GlobalStyles.screenPadding]}>
               <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
               <Text style={styles.bannerText}>

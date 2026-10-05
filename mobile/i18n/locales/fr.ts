@@ -167,6 +167,13 @@ const fr: Locale = {
     },
   },
   settings: {
+    notificationsSection: "Notifications et astuces",
+    notifications: "Notifications",
+    notificationsHint: "Rappels et alertes sur votre argent sur cet appareil",
+    notificationsBlockedTitle: "Les notifications sont bloquées",
+    notificationsBlocked: "Autorisez les notifications de Fi-Track dans les réglages du navigateur ou du téléphone, puis réessayez.",
+    tips: "Astuces flottantes",
+    tipsHint: "Choisissez les astuces qui s'affichent à l'ouverture de l'app",
     appearance: "Apparence",
     theme: "Thème",
     theme_light: "Clair",
@@ -384,6 +391,19 @@ const fr: Locale = {
     searchCategories: "Rechercher des catégories",
     searchFunds: "Rechercher des comptes",
     noMatch: "Aucun résultat pour « {{query}} »",
+  },
+  tips: {
+    title: "Astuces flottantes",
+    intro: "Des astuces qui peuvent apparaître en haut à l'ouverture de l'app.",
+    install: "Installer l'app",
+    installHint: "Dans le navigateur du téléphone : ajoutez Fi-Track à l'écran d'accueil",
+    notifications: "Activer les notifications",
+    notificationsHint: "Affichée tant que les notifications sont désactivées",
+  },
+  notificationTip: {
+    title: "Activez les notifications.",
+    text: "Recevez des rappels pour noter vos dépenses et des alertes sur votre argent.",
+    show: "Me montrer",
   },
   installTip: {
     title: "Installer Fi-Track :",

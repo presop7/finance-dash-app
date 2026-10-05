@@ -168,6 +168,13 @@ const ko: Locale = {
     },
   },
   settings: {
+    notificationsSection: "알림 및 팁",
+    notifications: "알림",
+    notificationsHint: "이 기기의 리마인더와 금액 알림",
+    notificationsBlockedTitle: "알림이 차단되어 있습니다",
+    notificationsBlocked: "브라우저 또는 휴대폰 설정에서 Fi-Track 알림을 허용한 후 다시 시도하세요.",
+    tips: "플로팅 팁",
+    tipsHint: "앱을 열 때 표시할 팁을 선택하세요",
     appearance: "모양",
     theme: "테마",
     theme_light: "라이트",
@@ -385,6 +392,19 @@ const ko: Locale = {
     searchCategories: "카테고리 검색",
     searchFunds: "계좌 검색",
     noMatch: "\"{{query}}\"와(과) 일치하는 항목이 없어요",
+  },
+  tips: {
+    title: "플로팅 팁",
+    intro: "앱을 열 때 상단에 나타날 수 있는 팁입니다.",
+    install: "앱 설치",
+    installHint: "휴대폰 브라우저에서: Fi-Track을 홈 화면에 추가",
+    notifications: "알림 켜기",
+    notificationsHint: "알림이 켜질 때까지 표시됩니다",
+  },
+  notificationTip: {
+    title: "알림을 켜세요.",
+    text: "지출 기록 리마인더와 돈에 관한 알림을 받아 보세요.",
+    show: "보여 주기",
   },
   installTip: {
     title: "Fi-Track 설치:",

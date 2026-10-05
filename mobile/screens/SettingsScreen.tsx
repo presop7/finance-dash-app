@@ -1,5 +1,6 @@
-import { memo, useCallback, useRef, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from "react-native";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput, Animated } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
@@ -22,6 +23,14 @@ import { financeApi } from "../services/financeApi";
 import FeedbackModal from "./modals/FeedbackModal";
 import ShareAppModal from "./modals/ShareAppModal";
 import ChangePasswordModal from "./modals/ChangePasswordModal";
+import TipsModal from "./modals/TipsModal";
+import { useHighlightStore } from "../store/useHighlightStore";
+import {
+  ensureNotificationPermission,
+  hasNotificationPermission,
+  notificationsSupported,
+} from "../utils/notifications";
+import { notificationsUnavailableKey } from "../utils/notificationHint";
 import type { CategoryTabType } from "./modals/CategoriesModal";
 import { FONT } from "../constants/typography";
 
@@ -65,6 +74,46 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const categoriesRef = useTutorialTarget("settings:categories", scrollTo);
   const aboutRef = useTutorialTarget("settings:about", scrollTo);
   const startTutorial = useTutorialStore((s) => s.start);
+
+  // Notifications: on only when this device allows them (browser/phone
+  // permission) and they're switched on here. Permission is re-checked on
+  // every visit — it can change in the phone's or browser's settings.
+  const notificationsEnabled = useFinanceStore((s) => s.notificationsEnabled);
+  const setNotificationsEnabled = useFinanceStore((s) => s.setNotificationsEnabled);
+  const [permitted, setPermitted] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      hasNotificationPermission().then(setPermitted);
+    }, []),
+  );
+  const toggleNotifications = async (on: boolean) => {
+    if (!on) {
+      setNotificationsEnabled(false);
+      return;
+    }
+    const granted = await ensureNotificationPermission();
+    setPermitted(granted);
+    if (granted) setNotificationsEnabled(true);
+    else alertAsync(t("settings.notificationsBlockedTitle"), t("settings.notificationsBlocked"));
+  };
+
+  // Opened from the notifications tip ("Show me"): bring the switch into
+  // view and flash its border a few times.
+  const notificationsRowRef = useRef<View>(null);
+  const [flash] = useState(() => new Animated.Value(0));
+  const highlightTarget = useHighlightStore((s) => s.target);
+  useEffect(() => {
+    if (highlightTarget !== "notifications") return;
+    useHighlightStore.getState().clear();
+    const timer = setTimeout(() => {
+      if (notificationsRowRef.current) scrollTo(notificationsRowRef.current);
+      flash.setValue(0);
+      const step = (toValue: number) => Animated.timing(flash, { toValue, duration: 350, useNativeDriver: false });
+      Animated.loop(Animated.sequence([step(1), step(0)]), { iterations: 4 }).start();
+    }, 300); // after the switch to this tab has settled
+    return () => clearTimeout(timer);
+  }, [highlightTarget, flash, scrollTo]);
 
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
@@ -502,6 +551,52 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         </View>
         </View>
 
+        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.notificationsSection")}</Text>
+        <View style={styles.card}>
+          <View ref={notificationsRowRef} collapsable={false}>
+            <Animated.View
+              style={[
+                styles.highlightFrame,
+                { borderColor: flash.interpolate({ inputRange: [0, 1], outputRange: ["transparent", Colors.primary] }) },
+              ]}
+            >
+              <View style={styles.rowWrap}>
+                <View style={styles.rowHead}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <View style={styles.rowHeadInfo}>
+                    <Text style={styles.rowTitle}>{t("settings.notifications")}</Text>
+                    <Text style={styles.rowSubtitle}>
+                      {notificationsSupported ? t("settings.notificationsHint") : t(notificationsUnavailableKey())}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  style={{ marginLeft: "auto" }}
+                  value={notificationsSupported && permitted && notificationsEnabled}
+                  disabled={!notificationsSupported}
+                  onValueChange={toggleNotifications}
+                  trackColor={{ false: Colors.border, true: Colors.primary }}
+                />
+              </View>
+            </Animated.View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={() => setShowTips(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="bulb-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{t("settings.tips")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.tipsHint")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.categoriesStorage")}</Text>
         <View style={styles.card} ref={categoriesRef} collapsable={false}>
           <TouchableOpacity
@@ -694,6 +789,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       <FeedbackModal visible={showFeedback} onClose={() => setShowFeedback(false)} />
       <ShareAppModal visible={showShare} onClose={() => setShowShare(false)} />
       <ChangePasswordModal visible={showChangePassword} onClose={() => setShowChangePassword(false)} />
+      <TipsModal visible={showTips} onClose={() => setShowTips(false)} />
     </View>
   );
 }
@@ -734,6 +830,8 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   rowInfo: { flex: 1 },
+  // Flashed by "Show me" from a floating tip; invisible otherwise.
+  highlightFrame: { borderWidth: 2, borderRadius: 14, borderColor: "transparent" },
   // Rows with a control on the right (toggle, switch, input): when the title
   // and the control don't both fit — long translations, narrow phones — the
   // control moves to a second line instead of squeezing the title.

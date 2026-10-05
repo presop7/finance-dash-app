@@ -10,6 +10,9 @@ import i18n from "../i18n";
 // app restart.
 export function useDailyReminderSync() {
   const alertRules = useFinanceStore((s) => s.alertRules);
+  // Notifications turned off in Settings: every reminder is cancelled (on
+  // the web that also tells the server to stop pushing them).
+  const notificationsEnabled = useFinanceStore((s) => s.notificationsEnabled);
   // Rules that disappear entirely (deleted, or switched away from
   // "dailyReminder") wouldn't otherwise get their OS-scheduled notification
   // cancelled — they just wouldn't show up in the next pass. Tracking the
@@ -25,7 +28,7 @@ export function useDailyReminderSync() {
     }
 
     for (const rule of reminders) {
-      if (rule.enabled && rule.hour !== undefined && rule.minute !== undefined) {
+      if (notificationsEnabled && rule.enabled && rule.hour !== undefined && rule.minute !== undefined) {
         scheduleDailyReminder(
           rule.id,
           rule.hour,
@@ -40,5 +43,5 @@ export function useDailyReminderSync() {
 
     syncedIdsRef.current = currentIds;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alertRules]);
+  }, [alertRules, notificationsEnabled]);
 }

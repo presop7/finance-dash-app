@@ -58,7 +58,7 @@ import { applyLanguage, languageReady } from "./i18n";
 import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
-import InstallTip from "./components/InstallTip";
+import FloatingTips from "./components/FloatingTips";
 import CurrencyPromptModal from "./screens/modals/CurrencyPromptModal";
 import { detectCurrency } from "./utils/detectCurrency";
 
@@ -191,7 +191,11 @@ export default function App() {
               <RootNavigator />
             </NavigationContainer>
           </DesktopFrame>
-          <InstallTip />
+          <FloatingTips
+            onShowNotifications={() => {
+              if (navigationRef.isReady()) navigationRef.navigate("Settings");
+            }}
+          />
           {Platform.OS === "web" && <WebDialogHost />}
           {Platform.OS === "web" && <BackExitHint />}
         </SafeAreaProvider>

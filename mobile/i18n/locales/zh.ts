@@ -168,6 +168,13 @@ const zh: Locale = {
     },
   },
   settings: {
+    notificationsSection: "通知与提示",
+    notifications: "通知",
+    notificationsHint: "此设备上的提醒和资金提醒",
+    notificationsBlockedTitle: "通知已被阻止",
+    notificationsBlocked: "请在浏览器或手机设置中允许 Fi-Track 发送通知，然后重试。",
+    tips: "浮动提示",
+    tipsHint: "选择打开应用时显示哪些提示",
     appearance: "外观",
     theme: "主题",
     theme_light: "浅色",
@@ -385,6 +392,19 @@ const zh: Locale = {
     searchCategories: "搜索分类",
     searchFunds: "搜索账户",
     noMatch: "没有与“{{query}}”匹配的结果",
+  },
+  tips: {
+    title: "浮动提示",
+    intro: "打开应用时可能出现在顶部的提示。",
+    install: "安装应用",
+    installHint: "在手机浏览器中：将 Fi-Track 添加到主屏幕",
+    notifications: "开启通知",
+    notificationsHint: "在开启通知之前显示",
+  },
+  notificationTip: {
+    title: "开启通知。",
+    text: "接收记录支出的提醒和有关资金的提醒。",
+    show: "带我去",
   },
   installTip: {
     title: "安装 Fi-Track：",

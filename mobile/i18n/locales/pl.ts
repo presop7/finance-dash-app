@@ -183,6 +183,13 @@ const pl: Locale = {
     },
   },
   settings: {
+    notificationsSection: "Powiadomienia i wskazówki",
+    notifications: "Powiadomienia",
+    notificationsHint: "Przypomnienia i alerty o pieniądzach na tym urządzeniu",
+    notificationsBlockedTitle: "Powiadomienia są zablokowane",
+    notificationsBlocked: "Zezwól na powiadomienia Fi-Track w ustawieniach przeglądarki lub telefonu i spróbuj ponownie.",
+    tips: "Pływające wskazówki",
+    tipsHint: "Wybierz, które wskazówki pojawiają się po otwarciu aplikacji",
     appearance: "Wygląd",
     theme: "Motyw",
     theme_light: "Jasny",
@@ -414,6 +421,19 @@ const pl: Locale = {
     searchCategories: "Szukaj kategorii",
     searchFunds: "Szukaj kont",
     noMatch: "Nic nie pasuje do „{{query}}”",
+  },
+  tips: {
+    title: "Pływające wskazówki",
+    intro: "Wskazówki, które mogą pojawić się u góry po otwarciu aplikacji.",
+    install: "Zainstaluj aplikację",
+    installHint: "W przeglądarce telefonu: dodaj Fi-Track do ekranu początkowego",
+    notifications: "Włącz powiadomienia",
+    notificationsHint: "Widoczna, dopóki powiadomienia są wyłączone",
+  },
+  notificationTip: {
+    title: "Włącz powiadomienia.",
+    text: "Otrzymuj przypomnienia o zapisywaniu wydatków i alerty o swoich pieniądzach.",
+    show: "Pokaż mi",
   },
   installTip: {
     title: "Zainstaluj Fi-Track:",

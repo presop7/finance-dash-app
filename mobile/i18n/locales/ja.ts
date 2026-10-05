@@ -168,6 +168,13 @@ const ja: Locale = {
     },
   },
   settings: {
+    notificationsSection: "通知とヒント",
+    notifications: "通知",
+    notificationsHint: "このデバイスでのリマインダーとお金のアラート",
+    notificationsBlockedTitle: "通知がブロックされています",
+    notificationsBlocked: "ブラウザまたはスマートフォンの設定でFi-Trackの通知を許可してから、もう一度お試しください。",
+    tips: "フローティングヒント",
+    tipsHint: "アプリを開いたときに表示するヒントを選択",
     appearance: "外観",
     theme: "テーマ",
     theme_light: "ライト",
@@ -385,6 +392,19 @@ const ja: Locale = {
     searchCategories: "カテゴリを検索",
     searchFunds: "口座を検索",
     noMatch: "「{{query}}」に一致するものはありません",
+  },
+  tips: {
+    title: "フローティングヒント",
+    intro: "アプリを開いたときに上部に表示されるヒントです。",
+    install: "アプリをインストール",
+    installHint: "スマートフォンのブラウザ：Fi-Trackをホーム画面に追加",
+    notifications: "通知をオンにする",
+    notificationsHint: "通知がオンになるまで表示されます",
+  },
+  notificationTip: {
+    title: "通知をオンにしましょう。",
+    text: "支出の記録を促すリマインダーやお金に関するアラートを受け取れます。",
+    show: "表示する",
   },
   installTip: {
     title: "Fi-Trackをインストール：",
