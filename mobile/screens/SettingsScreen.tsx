@@ -105,8 +105,10 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const highlightTarget = useHighlightStore((s) => s.target);
   useEffect(() => {
     if (highlightTarget !== "notifications") return;
-    useHighlightStore.getState().clear();
+    // Cleared only once it's done: clearing first re-ran this effect, whose
+    // cleanup cancelled the timer below — nothing scrolled or flashed.
     const timer = setTimeout(() => {
+      useHighlightStore.getState().clear();
       if (notificationsRowRef.current) scrollTo(notificationsRowRef.current);
       flash.setValue(0);
       const step = (toValue: number) => Animated.timing(flash, { toValue, duration: 350, useNativeDriver: false });
