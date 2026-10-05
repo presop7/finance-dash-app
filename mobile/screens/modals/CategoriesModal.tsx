@@ -29,7 +29,8 @@ import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../../utils/con
 import { ApiError } from "../../services/api";
 import { financeApi } from "../../services/financeApi";
 import type { DeleteConflictDetail } from "../../services/financeApi";
-import HoldPressable from "../../components/HoldPressable";
+import { ReorderItem, useReorder } from "../../components/Reorderable";
+import { sortByOrder } from "../../utils/reorder";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
@@ -77,6 +78,10 @@ export default function CategoriesModal({
     addFundCategory,
     updateFundCategory,
     deleteFundCategory,
+    categoryOrder,
+    setCategoryOrder,
+    fundCardOrder,
+    setFundCardOrder,
   } = useFinanceStore();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
@@ -123,12 +128,14 @@ export default function CategoriesModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialType, initialEditId]);
 
+  // In the user's chosen order — the same one the transaction form's chips
+  // and (for funds) the Dashboard's savings cards use.
   const items: Array<Category | FundCategory> =
     activeType === "expense"
-      ? expenseCategories
+      ? sortByOrder(expenseCategories, categoryOrder)
       : activeType === "income"
-        ? incomeCategories
-        : fundCategories;
+        ? sortByOrder(incomeCategories, categoryOrder)
+        : sortByOrder(fundCategories, fundCardOrder);
 
   const getLabel = (item: Category | FundCategory) =>
     activeType === "fund" ? (item as FundCategory).name : (item as Category).label;
@@ -143,6 +150,15 @@ export default function CategoriesModal({
   // First screenful of chips right away, the rest a beat later — see
   // useStagedCount. Restarts on every open via `ready`.
   const visibleCount = useStagedCount(filteredItems.length, 14, ready);
+
+  // Hold a chip and move it to reorder (with the full list showing, not a
+  // search's few); hold and let go still starts multi-select.
+  const reorder = useReorder(
+    filteredItems.map((i) => i.id),
+    activeType === "fund" ? setFundCardOrder : setCategoryOrder,
+    !trimmedSearch,
+  );
+  const itemsById = new Map(filteredItems.map((i) => [i.id, i]));
 
   // How many transactions reference each category/fund — the empty ones
   // (0) are exactly the duplicates worth finding and clearing out.
@@ -541,7 +557,8 @@ export default function CategoriesModal({
               {ready && filteredItems.length === 0 && (
                 <Text style={styles.emptySearchText}>{t("pickers.noMatch", { query: search.trim() })}</Text>
               )}
-              {ready && filteredItems.slice(0, visibleCount).map((item) => {
+              {ready && reorder.order.slice(0, visibleCount).map((id) => {
+                const item = itemsById.get(id)!;
                 const count = countsById.get(item.id) ?? 0;
                 const isSelected = selectedIds.has(item.id);
                 const iconAndLabel = (
@@ -604,11 +621,14 @@ export default function CategoriesModal({
                 // the pencil right next to it.
                 const editIconScale = getEditIconScale(item.id);
                 return (
-                  <HoldPressable
+                  <ReorderItem
                     key={item.id}
+                    id={item.id}
+                    reorder={reorder}
                     style={styles.categoryChip}
+                    fillColor={Colors.primary + "22"}
                     onPress={onPick ? () => onPick(item.id) : undefined}
-                    onHoldComplete={() => enterSelectMode(item.id)}
+                    onHold={() => enterSelectMode(item.id)}
                   >
                     {iconAndLabel}
                     {!item.locked && (
@@ -638,7 +658,7 @@ export default function CategoriesModal({
                       </Animated.View>
                     </Pressable>
                     )}
-                  </HoldPressable>
+                  </ReorderItem>
                 );
               })}
             </View>

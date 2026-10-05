@@ -1,18 +1,22 @@
-export type Slots = Record<string, number>;
+// Items in the user's chosen order (ids in `order`); items missing from it
+// (e.g. newly created) go after, in their normal order.
+export function sortByOrder<T extends { id: string }>(items: T[], order: string[]): T[] {
+  const rank = (id: string) => {
+    const i = order.indexOf(id);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  return [...items].sort((a, b) => rank(a.id) - rank(b.id));
+}
 
-// Moves `id` to slot `to`, shifting the items in between by one. A worklet so
-// drag handlers can call it on the UI thread every frame.
-export function moveToSlot(slots: Slots, id: string, to: number): Slots {
-  "worklet";
-  const from = slots[id];
-  if (from === to) return slots;
-  const next: Slots = {};
-  for (const key in slots) {
-    const slot = slots[key];
-    if (key === id) next[key] = to;
-    else if (from < to && slot > from && slot <= to) next[key] = slot - 1;
-    else if (from > to && slot < from && slot >= to) next[key] = slot + 1;
-    else next[key] = slot;
-  }
+// Moves `id` into `target`'s spot; everything in between shifts by one.
+export function moveTo(order: string[], id: string, target: string): string[] {
+  const next = order.filter((o) => o !== id);
+  next.splice(order.indexOf(target), 0, id);
   return next;
+}
+
+// Saves one list's new order into the order of several lists (expense and
+// income categories share one), keeping the other lists' ids.
+export function mergeOrder(saved: string[], ids: string[]): string[] {
+  return [...ids, ...saved.filter((id) => !ids.includes(id))];
 }

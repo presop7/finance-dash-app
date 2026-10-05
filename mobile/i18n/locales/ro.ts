@@ -440,6 +440,7 @@ const ro: Locale = {
     bulkDeleteConfirm_few: "Ștergi {{count}} tranzacții selectate? Nu se poate anula.",
     bulkDeleteConfirm_other: "Ștergi {{count}} de tranzacții selectate? Nu se poate anula.",
     bulkEdit: "Editare multiplă",
+    bulkEditShort: "Editează",
     bulkEditApply_one: "Aplică la {{count}} tranzacție selectată",
     bulkEditApply_few: "Aplică la {{count}} tranzacții selectate",
     bulkEditApply_other: "Aplică la {{count}} de tranzacții selectate",
@@ -510,6 +511,7 @@ const ro: Locale = {
     tapToEdit: "Atinge pentru editare",
     webNoNotifications: "Acest browser nu poate afișa notificări — mementourile tale funcționează în continuare aici.",
     webInstallForNotifications: "Pentru notificări pe iPhone, adaugă Fi-Track pe ecranul principal: Partajare → „Adaugă pe ecranul principal”.",
+    webIosTooOldForNotifications: "Notificările pe iPhone necesită iOS 16.4 sau mai nou. Actualizează din Configurări → General → Actualizare software, apoi adaugă Fi-Track pe ecranul principal.",
     expoGoNoNotifications: "Mementourile urmăresc în continuare cheltuielile aici, dar notificările nu sunt disponibile în Expo Go — e nevoie de un development build.",
   },
   categories: {

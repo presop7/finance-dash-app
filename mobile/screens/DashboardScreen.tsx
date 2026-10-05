@@ -50,7 +50,9 @@ function DashboardScreen({
   const screenTop = useScreenTop();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
-  const { refreshing, onRefresh } = usePullToRefresh();
+  const { refreshing, onRefresh, webIndicator } = usePullToRefresh(
+    () => (scrollRef.current as any)?.getScrollableNode?.() as HTMLElement | undefined,
+  );
   const scrollRef = useRef<ScrollView>(null);
   const scrollTo = useCallback((view: View) => scrollIntoView(scrollRef, view), []);
   const heroRef = useTutorialTarget("hero", scrollTo);
@@ -150,6 +152,7 @@ function DashboardScreen({
         {/* Bottom padding for nav bar */}
         <View style={styles.bottomPadding} />
       </ScrollView>
+      {webIndicator}
     </View>
   );
 }

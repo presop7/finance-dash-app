@@ -423,6 +423,7 @@ const it: Locale = {
     bulkDeleteConfirm_one: "Eliminare {{count}} movimento selezionato? Non si può annullare.",
     bulkDeleteConfirm_other: "Eliminare {{count}} movimenti selezionati? Non si può annullare.",
     bulkEdit: "Modifica multipla",
+    bulkEditShort: "Modifica",
     bulkEditApply_one: "Applica a {{count}} movimento selezionato",
     bulkEditApply_other: "Applica a {{count}} movimenti selezionati",
     changeFund: "Cambia conto",
@@ -492,6 +493,7 @@ const it: Locale = {
     tapToEdit: "Tocca per modificare",
     webNoNotifications: "Questo browser non può mostrare notifiche — i promemoria continuano a funzionare qui.",
     webInstallForNotifications: "Per ricevere notifiche su iPhone, aggiungi Fi-Track alla schermata Home: Condividi → «Aggiungi alla schermata Home».",
+    webIosTooOldForNotifications: "Le notifiche su iPhone richiedono iOS 16.4 o successivo. Aggiorna da Impostazioni → Generali → Aggiornamento software, poi aggiungi Fi-Track alla schermata Home.",
     expoGoNoNotifications: "I promemoria continuano a monitorare le spese qui, ma le notifiche non sono disponibili in Expo Go — serve una development build.",
   },
   categories: {

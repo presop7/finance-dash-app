@@ -1,13 +1,7 @@
 import { RefObject, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
 import { FIELD_BOX, FIELD_INPUT } from "../constants/styles";
@@ -15,7 +9,9 @@ import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/use
 import { Category } from "../constants/categories";
 import { themedCategoryColor } from "../utils/color";
 import { useStagedCount } from "../hooks/useStagedCount";
-import HoldPressable from "./HoldPressable";
+import { ReorderItem, useReorder } from "./Reorderable";
+import { useFinanceStore } from "../store/useFinanceStore";
+import { sortByOrder } from "../utils/reorder";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "./FieldIcon";
 import { FONT } from "../constants/typography";
@@ -24,8 +20,9 @@ type CategoryPickerProps = {
   categories: Category[];
   selected: string;
   onSelect: (id: string) => void;
-  // Holding a chip opens it for editing in the category manager, instead of
-  // needing to go there via "+New" and find it again.
+  // Holding a chip and letting go opens it for editing in the category
+  // manager, instead of needing to go there via "+New" and find it again.
+  // Holding and moving it reorders the chips instead.
   onHoldEdit: (id: string) => void;
   // Lets a caller (the transaction form) focus the search box
   // programmatically — e.g. chaining the title/amount fields' keyboard
@@ -46,10 +43,16 @@ export default function CategoryPicker({
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
   const isDark = useResolvedScheme() === "dark";
+  const categoryOrder = useFinanceStore((s) => s.categoryOrder);
+  const setCategoryOrder = useFinanceStore((s) => s.setCategoryOrder);
   const trimmed = search.trim().toLowerCase();
+  const sorted = sortByOrder(categories, categoryOrder);
   const filtered = trimmed
-    ? categories.filter((c) => c.label.toLowerCase().includes(trimmed))
-    : categories;
+    ? sorted.filter((c) => c.label.toLowerCase().includes(trimmed))
+    : sorted;
+  // Reordering only with the full list showing, not a search's few.
+  const reorder = useReorder(filtered.map((c) => c.id), setCategoryOrder, !trimmed);
+  const byId = new Map(filtered.map((c) => [c.id, c]));
   // Only ~5 chips fit on screen at once — mount the first batch immediately
   // and the rest a beat later rather than all of them in one heavy pass.
   const visibleCount = useStagedCount(filtered.length, 8);
@@ -58,10 +61,9 @@ export default function CategoryPicker({
   // from outside a direct tap here — e.g. returning from the category
   // manager after picking one there, which could be scrolled off-screen.
   const scrollRef = useRef<ScrollView>(null);
-  const itemOffsetsRef = useRef(new Map<string, number>());
 
   useEffect(() => {
-    const x = itemOffsetsRef.current.get(selected);
+    const x = reorder.rects.get(selected)?.x;
     if (x !== undefined) {
       scrollRef.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
     }
@@ -97,7 +99,8 @@ export default function CategoryPicker({
         {filtered.length === 0 ? (
           <Text style={styles.emptyText}>{t("pickers.noMatch", { query: search.trim() })}</Text>
         ) : (
-          filtered.slice(0, visibleCount).map((category) => {
+          reorder.order.slice(0, visibleCount).map((id) => {
+            const category = byId.get(id)!;
             const isSelected = category.id === selected;
             const colorKey = category.id as keyof typeof Colors.categories;
             const colors = Colors.categories[colorKey] ?? Colors.categories.other;
@@ -105,14 +108,15 @@ export default function CategoryPicker({
             const bgColor = category.color ? category.color + "22" : colors.bg;
 
             return (
-              <HoldPressable
+              <ReorderItem
                 key={category.id}
+                id={category.id}
+                reorder={reorder}
                 style={styles.item}
                 onPress={() => onSelect(category.id)}
-                onHoldComplete={() => onHoldEdit(category.id)}
-                onLayout={(e) => itemOffsetsRef.current.set(category.id, e.nativeEvent.layout.x)}
+                onHold={() => onHoldEdit(category.id)}
               >
-                {(fillWidth) => (
+                {(fillStyle) => (
                   <>
                     <View
                       style={[
@@ -128,7 +132,7 @@ export default function CategoryPicker({
                           of the whole chip (icon + label below it). */}
                       <Animated.View
                         pointerEvents="none"
-                        style={[styles.iconFill, { width: fillWidth }]}
+                        style={[styles.iconFill, fillStyle]}
                       />
                       <Ionicons
                         name={category.icon as keyof typeof Ionicons.glyphMap}
@@ -146,7 +150,7 @@ export default function CategoryPicker({
                     </Text>
                   </>
                 )}
-              </HoldPressable>
+              </ReorderItem>
             );
           })
         )}

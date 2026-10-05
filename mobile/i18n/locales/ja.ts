@@ -424,6 +424,7 @@ const ja: Locale = {
     bulkDeleteConfirm_one: "選択した{{count}}件の取引を削除しますか？元に戻せません。",
     bulkDeleteConfirm_other: "選択した{{count}}件の取引を削除しますか？元に戻せません。",
     bulkEdit: "一括編集",
+    bulkEditShort: "編集",
     bulkEditApply_one: "選択した{{count}}件の取引に適用",
     bulkEditApply_other: "選択した{{count}}件の取引に適用",
     changeFund: "口座を変更",
@@ -493,6 +494,7 @@ const ja: Locale = {
     tapToEdit: "タップして編集",
     webNoNotifications: "このブラウザは通知を表示できません — リマインダーはここで引き続き確認できます。",
     webInstallForNotifications: "iPhoneで通知を受け取るには、Fi-Trackをホーム画面に追加してください：共有 →「ホーム画面に追加」。",
+    webIosTooOldForNotifications: "iPhoneで通知を受け取るにはiOS 16.4以降が必要です。設定 → 一般 → ソフトウェアアップデートで更新してから、Fi-Trackをホーム画面に追加してください。",
     expoGoNoNotifications: "リマインダーはここで支出を追跡しますが、Expo Goでは通知を使えません — development buildが必要です。",
   },
   categories: {

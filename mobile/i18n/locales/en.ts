@@ -422,6 +422,7 @@ const en = {
     bulkDeleteConfirm_one: "Delete {{count}} selected transaction? This can't be undone.",
     bulkDeleteConfirm_other: "Delete {{count}} selected transactions? This can't be undone.",
     bulkEdit: "Bulk Edit",
+    bulkEditShort: "Edit",
     bulkEditApply_one: "Apply to {{count}} selected transaction",
     bulkEditApply_other: "Apply to {{count}} selected transactions",
     changeFund: "Change Fund",
@@ -491,6 +492,7 @@ const en = {
     tapToEdit: "Tap to edit",
     webNoNotifications: "This browser can't show notifications — your reminders still keep track here.",
     webInstallForNotifications: "To get notifications on iPhone, add Fi-Track to your Home Screen: Share → \"Add to Home Screen\".",
+    webIosTooOldForNotifications: "Notifications on iPhone need iOS 16.4 or newer. Update in Settings → General → Software Update, then add Fi-Track to your Home Screen.",
     expoGoNoNotifications: "Reminders still track your spending here, but notifications aren't available in Expo Go — they need a development build.",
   },
   categories: {

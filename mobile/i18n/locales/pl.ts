@@ -457,6 +457,7 @@ const pl: Locale = {
     bulkDeleteConfirm_many: "Usunąć {{count}} zaznaczonych transakcji? Nie można tego cofnąć.",
     bulkDeleteConfirm_other: "Usunąć {{count}} zaznaczonej transakcji? Nie można tego cofnąć.",
     bulkEdit: "Edycja zbiorcza",
+    bulkEditShort: "Edytuj",
     bulkEditApply_one: "Zastosuj do {{count}} zaznaczonej transakcji",
     bulkEditApply_few: "Zastosuj do {{count}} zaznaczonych transakcji",
     bulkEditApply_many: "Zastosuj do {{count}} zaznaczonych transakcji",
@@ -528,6 +529,7 @@ const pl: Locale = {
     tapToEdit: "Dotknij, by edytować",
     webNoNotifications: "Ta przeglądarka nie wyświetla powiadomień — przypomnienia nadal działają tutaj.",
     webInstallForNotifications: "Aby dostawać powiadomienia na iPhonie, dodaj Fi-Track do ekranu początkowego: Udostępnij → „Do ekranu początkowego”.",
+    webIosTooOldForNotifications: "Powiadomienia na iPhonie wymagają iOS 16.4 lub nowszego. Zaktualizuj w Ustawienia → Ogólne → Uaktualnienia, a potem dodaj Fi-Track do ekranu początkowego.",
     expoGoNoNotifications: "Przypomnienia nadal śledzą wydatki tutaj, ale powiadomienia nie działają w Expo Go — potrzebny jest development build.",
   },
   categories: {

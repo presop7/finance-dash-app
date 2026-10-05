@@ -26,3 +26,10 @@ export const isAppleMobileWeb =
   isWeb &&
   (/iPhone|iPad|iPod/.test(window.navigator.userAgent) ||
     (/Macintosh/.test(window.navigator.userAgent) && window.navigator.maxTouchPoints > 1));
+
+// iPhone/iPad web push needs iOS 16.4+ (and the Home Screen app). Older ones
+// can't get notifications at all, installed or not. iPads that report as a
+// Mac carry no iOS version: recent enough to count as supported.
+const iosVersion = isWeb ? /OS (\d+)_(\d+)/.exec(window.navigator.userAgent) : null;
+export const isAppleTooOldForPush =
+  isAppleMobileWeb && !!iosVersion && Number(iosVersion[1]) * 100 + Number(iosVersion[2]) < 1604;

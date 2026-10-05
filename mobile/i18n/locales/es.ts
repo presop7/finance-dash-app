@@ -423,6 +423,7 @@ const es: Locale = {
     bulkDeleteConfirm_one: "¿Eliminar {{count}} movimiento seleccionado? No se puede deshacer.",
     bulkDeleteConfirm_other: "¿Eliminar {{count}} movimientos seleccionados? No se puede deshacer.",
     bulkEdit: "Editar varios",
+    bulkEditShort: "Editar",
     bulkEditApply_one: "Aplicar a {{count}} movimiento seleccionado",
     bulkEditApply_other: "Aplicar a {{count}} movimientos seleccionados",
     changeFund: "Cambiar cuenta",
@@ -492,6 +493,7 @@ const es: Locale = {
     tapToEdit: "Toca para editar",
     webNoNotifications: "Este navegador no puede mostrar notificaciones — tus avisos se siguen controlando aquí.",
     webInstallForNotifications: "Para recibir notificaciones en iPhone, añade Fi-Track a tu pantalla de inicio: Compartir → «Añadir a pantalla de inicio».",
+    webIosTooOldForNotifications: "Las notificaciones en iPhone requieren iOS 16.4 o posterior. Actualiza en Ajustes → General → Actualización de software y luego añade Fi-Track a tu pantalla de inicio.",
     expoGoNoNotifications: "Los avisos siguen controlando tus gastos aquí, pero las notificaciones no están disponibles en Expo Go — necesitan una development build.",
   },
   categories: {

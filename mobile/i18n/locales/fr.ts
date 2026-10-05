@@ -423,6 +423,7 @@ const fr: Locale = {
     bulkDeleteConfirm_one: "Supprimer {{count}} opération sélectionnée ? C'est irréversible.",
     bulkDeleteConfirm_other: "Supprimer {{count}} opérations sélectionnées ? C'est irréversible.",
     bulkEdit: "Modifier la sélection",
+    bulkEditShort: "Modifier",
     bulkEditApply_one: "Appliquer à {{count}} opération sélectionnée",
     bulkEditApply_other: "Appliquer à {{count}} opérations sélectionnées",
     changeFund: "Changer de compte",
@@ -492,6 +493,7 @@ const fr: Locale = {
     tapToEdit: "Touchez pour modifier",
     webNoNotifications: "Ce navigateur ne peut pas afficher de notifications — vos rappels restent suivis ici.",
     webInstallForNotifications: "Pour recevoir des notifications sur iPhone, ajoutez Fi-Track à l'écran d'accueil : Partager → « Sur l'écran d'accueil ».",
+    webIosTooOldForNotifications: "Les notifications sur iPhone nécessitent iOS 16.4 ou plus récent. Mettez à jour dans Réglages → Général → Mise à jour logicielle, puis ajoutez Fi-Track à l'écran d'accueil.",
     expoGoNoNotifications: "Les rappels suivent toujours vos dépenses ici, mais les notifications ne sont pas disponibles dans Expo Go — il faut une development build.",
   },
   categories: {

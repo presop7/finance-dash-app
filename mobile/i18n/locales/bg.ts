@@ -423,6 +423,7 @@ const bg: Translations = {
     bulkDeleteConfirm_one: "Да изтрием ли {{count}} избрана транзакция? Не може да се отмени.",
     bulkDeleteConfirm_other: "Да изтрием ли {{count}} избрани транзакции? Не може да се отмени.",
     bulkEdit: "Групова промяна",
+    bulkEditShort: "Промени",
     bulkEditApply_one: "За {{count}} избрана транзакция",
     bulkEditApply_other: "За {{count}} избрани транзакции",
     changeFund: "Смени съхранението",
@@ -492,6 +493,7 @@ const bg: Translations = {
     tapToEdit: "Докоснете за редакция",
     webNoNotifications: "Този браузър не може да показва известия — напомнянията ви пак се следят тук.",
     webInstallForNotifications: "За известия на iPhone добавете Fi-Track към началния екран: Споделяне → „Добави към начален екран“.",
+    webIosTooOldForNotifications: "Известията на iPhone изискват iOS 16.4 или по-нов. Обновете от Настройки → Общи → Актуализация на софтуера, след това добавете Fi-Track към началния екран.",
     expoGoNoNotifications: "Напомнянията се следят тук, но известията не работят в Expo Go — нужна е development версия.",
   },
   categories: {

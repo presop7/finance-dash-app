@@ -424,6 +424,7 @@ const ko: Locale = {
     bulkDeleteConfirm_one: "선택한 거래 {{count}}개를 삭제할까요? 되돌릴 수 없어요.",
     bulkDeleteConfirm_other: "선택한 거래 {{count}}개를 삭제할까요? 되돌릴 수 없어요.",
     bulkEdit: "일괄 수정",
+    bulkEditShort: "수정",
     bulkEditApply_one: "선택한 거래 {{count}}개에 적용",
     bulkEditApply_other: "선택한 거래 {{count}}개에 적용",
     changeFund: "계좌 변경",
@@ -493,6 +494,7 @@ const ko: Locale = {
     tapToEdit: "탭해서 수정",
     webNoNotifications: "이 브라우저는 알림을 표시할 수 없어요 — 알림 조건은 여기서 계속 확인돼요.",
     webInstallForNotifications: "iPhone에서 알림을 받으려면 Fi-Track을 홈 화면에 추가하세요: 공유 → \"홈 화면에 추가\".",
+    webIosTooOldForNotifications: "iPhone에서 알림을 받으려면 iOS 16.4 이상이 필요합니다. 설정 → 일반 → 소프트웨어 업데이트에서 업데이트한 후 Fi-Track을 홈 화면에 추가하세요.",
     expoGoNoNotifications: "알림 조건은 여기서 계속 지출을 확인하지만, Expo Go에서는 알림을 받을 수 없어요 — development build가 필요해요.",
   },
   categories: {

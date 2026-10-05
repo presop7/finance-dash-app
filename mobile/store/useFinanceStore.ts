@@ -18,6 +18,7 @@ import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
 import i18n from "../i18n";
 import { defaultCategoryKey, defaultFundKey } from "../constants/defaultNames";
+import { mergeOrder } from "../utils/reorder";
 
 export type Transaction = {
   id: string;
@@ -188,6 +189,10 @@ type FinanceStore = {
   // (e.g. newly created) go after, in their normal order.
   fundCardOrder: string[];
   setFundCardOrder: (order: string[]) => void;
+  // Expense + income category ids in the user's chosen order (one list:
+  // the ids never clash); same rules as fundCardOrder.
+  categoryOrder: string[];
+  setCategoryOrder: (order: string[]) => void;
   // App-tour sample rows (ids start with "demo-"): memory-only, never synced.
   addDemoTransactions: (demo: Transaction[]) => void;
   removeDemoTransactions: () => void;
@@ -560,6 +565,7 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
       fundCardOrder: [],
+      categoryOrder: [],
       themePreference: "system",
       language: null,
       displayNameOverride: null,
@@ -978,6 +984,7 @@ export const useFinanceStore = create<FinanceStore>()(
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
       setFundCardOrder: (order) => set({ fundCardOrder: order }),
+      setCategoryOrder: (order) => set((state) => ({ categoryOrder: mergeOrder(state.categoryOrder, order) })),
 
       addDemoTransactions: (demo) =>
         set((state) => ({
@@ -1011,6 +1018,7 @@ export const useFinanceStore = create<FinanceStore>()(
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,
+        categoryOrder: state.categoryOrder,
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,
         // Tour sample rows are memory-only: never written to disk.

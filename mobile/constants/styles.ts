@@ -23,9 +23,13 @@ export const GlobalStyles = StyleSheet.create({
 // Text fields. The typing area fills its box, so a tap anywhere in the box
 // lands in it, and keeps 6px between the text and the focus ring (the ring
 // itself is styled in public/index.html). 16px text is 1.2× the old 13 and
-// also stops iPhone Safari zooming in on a tapped field.
+// also stops iPhone Safari zooming in on a tapped field. minWidth 0: a web
+// <input> otherwise refuses to get narrower than its default ~20 characters,
+// pushing whatever sits beside it in the field (the amount's currency, ✕ and
+// keypad buttons) out past the field's edge.
 export const FIELD_INPUT = {
   flex: 1,
+  minWidth: 0,
   alignSelf: 'stretch',
   paddingHorizontal: 6,
   paddingVertical: 8,

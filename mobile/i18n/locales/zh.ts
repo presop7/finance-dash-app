@@ -424,6 +424,7 @@ const zh: Locale = {
     bulkDeleteConfirm_one: "删除选中的 {{count}} 笔交易？此操作无法撤销。",
     bulkDeleteConfirm_other: "删除选中的 {{count}} 笔交易？此操作无法撤销。",
     bulkEdit: "批量编辑",
+    bulkEditShort: "编辑",
     bulkEditApply_one: "应用到选中的 {{count}} 笔交易",
     bulkEditApply_other: "应用到选中的 {{count}} 笔交易",
     changeFund: "更改账户",
@@ -493,6 +494,7 @@ const zh: Locale = {
     tapToEdit: "点按编辑",
     webNoNotifications: "此浏览器无法显示通知——提醒仍会在这里跟踪。",
     webInstallForNotifications: "要在 iPhone 上收到通知，请将 Fi-Track 添加到主屏幕：分享 →“添加到主屏幕”。",
+    webIosTooOldForNotifications: "在 iPhone 上接收通知需要 iOS 16.4 或更高版本。请在“设置 → 通用 → 软件更新”中更新，然后将 Fi-Track 添加到主屏幕。",
     expoGoNoNotifications: "提醒仍会在这里跟踪你的支出，但 Expo Go 不支持通知——需要 development build。",
   },
   categories: {

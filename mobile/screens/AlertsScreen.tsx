@@ -17,7 +17,7 @@ import AlertRuleModal from "./modals/AlertRuleModal";
 import { useTutorialTarget } from "../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
-import { isAppleMobileWeb } from "../utils/webPlatform";
+import { isAppleMobileWeb, isAppleTooOldForPush } from "../utils/webPlatform";
 import { FONT } from "../constants/typography";
 
 const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
@@ -134,8 +134,10 @@ export default function AlertsScreen() {
             <Text style={styles.bannerText}>
               {Platform.OS !== "web"
                 ? t("reminders.expoGoNoNotifications")
-                : isAppleMobileWeb
-                  ? t("reminders.webInstallForNotifications") // a Safari tab; the installed app can
+                : isAppleTooOldForPush
+                  ? t("reminders.webIosTooOldForNotifications")
+                  : isAppleMobileWeb
+                    ? t("reminders.webInstallForNotifications") // a Safari tab; the installed app can
                   : t("reminders.webNoNotifications")}
             </Text>
           </View>

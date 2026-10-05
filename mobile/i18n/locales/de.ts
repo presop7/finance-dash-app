@@ -423,6 +423,7 @@ const de: Locale = {
     bulkDeleteConfirm_one: "{{count}} ausgewählte Buchung löschen? Das kann nicht rückgängig gemacht werden.",
     bulkDeleteConfirm_other: "{{count}} ausgewählte Buchungen löschen? Das kann nicht rückgängig gemacht werden.",
     bulkEdit: "Mehrere bearbeiten",
+    bulkEditShort: "Bearbeiten",
     bulkEditApply_one: "Auf {{count}} ausgewählte Buchung anwenden",
     bulkEditApply_other: "Auf {{count}} ausgewählte Buchungen anwenden",
     changeFund: "Konto ändern",
@@ -492,6 +493,7 @@ const de: Locale = {
     tapToEdit: "Tippen zum Bearbeiten",
     webNoNotifications: "Dieser Browser kann keine Benachrichtigungen anzeigen — deine Erinnerungen werden hier trotzdem verfolgt.",
     webInstallForNotifications: "Für Benachrichtigungen auf dem iPhone füge Fi-Track zum Home-Bildschirm hinzu: Teilen → „Zum Home-Bildschirm“.",
+    webIosTooOldForNotifications: "Benachrichtigungen auf dem iPhone brauchen iOS 16.4 oder neuer. Aktualisiere unter Einstellungen → Allgemein → Softwareupdate und füge Fi-Track dann zum Home-Bildschirm hinzu.",
     expoGoNoNotifications: "Erinnerungen verfolgen deine Ausgaben hier trotzdem, aber Benachrichtigungen gibt es in Expo Go nicht — dafür braucht es einen Development Build.",
   },
   categories: {

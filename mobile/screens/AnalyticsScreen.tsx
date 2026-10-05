@@ -217,7 +217,10 @@ function AnalyticsScreen({
   // Long-press a row to enter multi-select (mirrors CategoriesModal's own
   // hold-to-select pattern); the held row is auto-selected.
   const [selectMode, setSelectMode] = useState(false);
-  const { refreshing, onRefresh } = usePullToRefresh();
+  const { refreshing, onRefresh, webIndicator } = usePullToRefresh(
+    () => (flatListRef.current as any)?.getScrollableNode?.() as HTMLElement | undefined,
+    !selectMode, // in select mode a drag at the top selects rows instead
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // useCallback with empty deps (all of these use functional state updates,
@@ -969,7 +972,7 @@ function AnalyticsScreen({
             >
               <View style={styles.selectBtnContent}>
                 <FieldIcon name="pricetag-outline" color={Colors.primary} />
-                <Text style={styles.selectEditText}>{t("analytics.bulkEdit")}</Text>
+                <Text style={styles.selectEditText} numberOfLines={1}>{t("analytics.bulkEditShort")}</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity
@@ -982,7 +985,7 @@ function AnalyticsScreen({
             >
               <View style={styles.selectBtnContent}>
                 <FieldIcon name="trash-outline" color="#fff" />
-                <Text style={styles.selectDeleteText}>{t("common.delete")}</Text>
+                <Text style={styles.selectDeleteText} numberOfLines={1}>{t("common.delete")}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1243,6 +1246,7 @@ function AnalyticsScreen({
         // run into the hundreds of rows.
         removeClippedSubviews={true}
       />
+      {webIndicator}
       </View>
       </GestureDetector>
 
@@ -1408,8 +1412,9 @@ function createStyles(Colors: ColorsType) {
   selectDiscardBtn: { paddingHorizontal: 4, paddingVertical: 6 },
   selectDiscardText: { fontSize: FONT.body, fontWeight: "500", color: Colors.textSecondary },
   // Icon + label travel as one group centered in the button, always 8px
-  // apart (same icon slot as the text fields, FieldIcon); a label that wraps
-  // (longer languages) stays left-aligned against its icon.
+  // apart (same icon slot as the text fields, FieldIcon). Labels are kept to
+  // one short word: a wrapped label fills the whole button, which pushed the
+  // pair off-center and made the gap look uneven.
   selectBtnContent: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 },
   selectEditBtn: {
     flex: 1,

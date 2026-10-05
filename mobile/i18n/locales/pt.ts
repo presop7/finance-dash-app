@@ -424,6 +424,7 @@ const pt: Locale = {
     bulkDeleteConfirm_one: "Excluir {{count}} transação selecionada? Não dá para desfazer.",
     bulkDeleteConfirm_other: "Excluir {{count}} transações selecionadas? Não dá para desfazer.",
     bulkEdit: "Editar em lote",
+    bulkEditShort: "Editar",
     bulkEditApply_one: "Aplicar a {{count}} transação selecionada",
     bulkEditApply_other: "Aplicar a {{count}} transações selecionadas",
     changeFund: "Mudar conta",
@@ -493,6 +494,7 @@ const pt: Locale = {
     tapToEdit: "Toque para editar",
     webNoNotifications: "Este navegador não mostra notificações — seus lembretes continuam acompanhando aqui.",
     webInstallForNotifications: "Para receber notificações no iPhone, adicione o Fi-Track à Tela de Início: Compartilhar → \"Adicionar à Tela de Início\".",
+    webIosTooOldForNotifications: "As notificações no iPhone exigem o iOS 16.4 ou posterior. Atualize em Ajustes → Geral → Atualização de Software e depois adicione o Fi-Track à Tela de Início.",
     expoGoNoNotifications: "Os lembretes continuam acompanhando seus gastos aqui, mas as notificações não funcionam no Expo Go — é preciso uma development build.",
   },
   categories: {
