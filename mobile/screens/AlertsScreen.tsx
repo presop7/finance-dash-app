@@ -5,7 +5,9 @@ import { ColorsType } from "../constants/colors";
 import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useScreenTop } from "../hooks/useScreenTop";
-import { useFinanceStore, AlertRule, AlertRuleType } from "../store/useFinanceStore";
+import { useFinanceStore, AlertRule } from "../store/useFinanceStore";
+import { isTracker, trackerProgress } from "../utils/alertEvaluation";
+import { isDemoId } from "../utils/demoTransactions";
 import { formatCurrency } from "../utils/currency";
 import { confirmAsync } from "../utils/confirm";
 import {
@@ -13,25 +15,17 @@ import {
   ensureNotificationPermission,
   notificationsSupported,
 } from "../utils/notifications";
-import AlertRuleModal from "./modals/AlertRuleModal";
+import AlertRuleModal, { RULE_ICONS } from "./modals/AlertRuleModal";
 import { useTutorialTarget } from "../store/useTutorialStore";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "../i18n";
 import { notificationsUnavailableKey } from "../utils/notificationHint";
 import { FONT } from "../constants/typography";
 
-const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
-  lowBalance: "trending-down-outline",
-  balanceAbove: "trending-up-outline",
-  monthlyExpenseOver: "cash-outline",
-  monthlyIncomeOver: "wallet-outline",
-  categoryAmount: "pricetag-outline",
-  dailyReminder: "alarm-outline",
-};
-
 export default function AlertsScreen() {
   const {
     alertRules,
+    transactions,
     expenseCategories,
     incomeCategories,
     settings,
@@ -86,8 +80,23 @@ export default function AlertsScreen() {
         const time = d.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
         return t("reminders.desc.dailyReminder", { time });
       }
+      case "loanTracker":
+      case "lendTracker":
+      case "savingsTracker": {
+        const done = formatCurrency(Math.min(progressOf(rule), rule.amount), settings.currency);
+        const text = t(`reminders.desc.${rule.type}`, { done, total: amount });
+        if (rule.type !== "savingsTracker" || !rule.allIncome) return text;
+        const since = new Date(rule.startAt ?? 0).toLocaleDateString(currentLocale());
+        return `${text} · ${t("reminders.desc.allIncomeSince", { date: since })}`;
+      }
     }
   };
+
+  // Tracker progress, from real transactions only (not the tour's samples).
+  const realTransactions = transactions.filter((tx) => !isDemoId(tx.id));
+  const progressOf = (rule: AlertRule) => trackerProgress(rule, realTransactions);
+  const reminders = alertRules.filter((rule) => !isTracker(rule));
+  const trackers = alertRules.filter(isTracker);
 
   const ruleTitle = (rule: AlertRule): string => {
     switch (rule.type) {
@@ -103,6 +112,10 @@ export default function AlertsScreen() {
         return t("reminders.types.categoryAmount");
       case "dailyReminder":
         return t("reminders.types.dailyReminder");
+      case "loanTracker":
+      case "lendTracker":
+      case "savingsTracker":
+        return rule.name || t(`reminders.types.${rule.type}`);
     }
   };
 
@@ -110,6 +123,51 @@ export default function AlertsScreen() {
     const ok = await confirmAsync(t("reminders.deleteTitle"), t("reminders.deleteConfirm"));
     if (!ok) return;
     deleteAlertRule(rule.id);
+  };
+
+  const renderRule = (rule: AlertRule) => {
+    const tracker = isTracker(rule);
+    const share = tracker ? Math.min(1, progressOf(rule) / rule.amount) : 0;
+    return (
+      <TouchableOpacity
+        key={rule.id}
+        style={styles.ruleRow}
+        activeOpacity={0.7}
+        onPress={() => {
+          setEditingRule(rule);
+          setShowModal(true);
+        }}
+      >
+        <View style={styles.ruleIcon}>
+          <Ionicons name={RULE_ICONS[rule.type]} size={18} color={Colors.primary} />
+        </View>
+        <View style={styles.ruleInfo}>
+          <Text style={styles.ruleTitle}>{ruleTitle(rule)}</Text>
+          <Text style={styles.ruleDescription}>{describeRule(rule)}</Text>
+          {tracker ? (
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${share * 100}%`, backgroundColor: share >= 1 ? Colors.income : Colors.primary },
+                ]}
+              />
+            </View>
+          ) : (
+            <Text style={styles.ruleHint}>{t("reminders.tapToEdit")}</Text>
+          )}
+          {tracker && share >= 1 && <Text style={styles.ruleDone}>{t("reminders.desc.trackerDone")}</Text>}
+        </View>
+        <Switch
+          value={rule.enabled}
+          onValueChange={() => toggleAlertRule(rule.id)}
+          trackColor={{ false: Colors.border, true: Colors.primary }}
+        />
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(rule)} hitSlop={8}>
+          <Ionicons name="trash-outline" size={16} color={Colors.expense} />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -155,44 +213,28 @@ export default function AlertsScreen() {
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("reminders.listLabel")}</Text>
 
         <View style={styles.list} ref={listRef} collapsable={false}>
-          {alertRules.length === 0 ? (
+          {reminders.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.empty")}</Text>
             </View>
           ) : (
-            alertRules.map((rule) => (
-              <TouchableOpacity
-                key={rule.id}
-                style={styles.ruleRow}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setEditingRule(rule);
-                  setShowModal(true);
-                }}
-              >
-                <View style={styles.ruleIcon}>
-                  <Ionicons name={TYPE_ICONS[rule.type]} size={18} color={Colors.primary} />
-                </View>
-                <View style={styles.ruleInfo}>
-                  <Text style={styles.ruleTitle}>{ruleTitle(rule)}</Text>
-                  <Text style={styles.ruleDescription}>{describeRule(rule)}</Text>
-                  <Text style={styles.ruleHint}>{t("reminders.tapToEdit")}</Text>
-                </View>
-                <Switch
-                  value={rule.enabled}
-                  onValueChange={() => toggleAlertRule(rule.id)}
-                  trackColor={{ false: Colors.border, true: Colors.primary }}
-                />
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleDelete(rule)}
-                  hitSlop={8}
-                >
-                  <Ionicons name="trash-outline" size={16} color={Colors.expense} />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))
+            reminders.map(renderRule)
+          )}
+        </View>
+
+        {/* Loans, lends and savings goals: progress toward an amount. */}
+        <Text style={[styles.sectionLabel, styles.sectionGap, GlobalStyles.screenPadding]}>
+          {t("reminders.trackersLabel")}
+        </Text>
+        <View style={styles.list}>
+          {trackers.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="flag-outline" size={36} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>{t("reminders.trackersEmpty")}</Text>
+            </View>
+          ) : (
+            trackers.map(renderRule)
           )}
         </View>
 
@@ -278,6 +320,10 @@ function createStyles(Colors: ColorsType) {
   ruleTitle: { fontSize: FONT.body, fontWeight: "500", color: Colors.textPrimary },
   ruleDescription: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 2 },
   ruleHint: { fontSize: FONT.label, fontStyle: "italic", color: Colors.textMuted, marginTop: 2 },
+  ruleDone: { fontSize: FONT.label, fontWeight: "600", color: Colors.income, marginTop: 4 },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: Colors.border, marginTop: 6, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 3 },
+  sectionGap: { marginTop: 20 },
   deleteBtn: { padding: 4 },
   emptyContainer: { alignItems: "center", paddingVertical: 32 },
   emptyText: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 10 },

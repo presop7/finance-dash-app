@@ -18,7 +18,8 @@ import { ColorsType } from "../../constants/colors";
 import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
-import { confirmAsync } from "../../utils/confirm";
+import { alertAsync, confirmAsync } from "../../utils/confirm";
+import { isTracker, TRACKER_TYPES } from "../../utils/alertEvaluation";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
@@ -27,13 +28,17 @@ import { FONT } from "../../constants/typography";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
-const TYPE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
+// Also the icon of the category a tracker creates.
+export const RULE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
   lowBalance: "trending-down-outline",
   balanceAbove: "trending-up-outline",
   monthlyExpenseOver: "cash-outline",
   monthlyIncomeOver: "wallet-outline",
   categoryAmount: "pricetag-outline",
   dailyReminder: "alarm-outline",
+  loanTracker: "card-outline",
+  lendTracker: "hand-right-outline",
+  savingsTracker: "flag-outline",
 };
 
 const ALL_TYPES: AlertRuleType[] = [
@@ -43,6 +48,9 @@ const ALL_TYPES: AlertRuleType[] = [
   "monthlyIncomeOver",
   "categoryAmount",
   "dailyReminder",
+  "loanTracker",
+  "lendTracker",
+  "savingsTracker",
 ];
 
 type AlertRuleModalProps = {
@@ -59,6 +67,10 @@ export default function AlertRuleModal({
   const {
     expenseCategories,
     incomeCategories,
+    addExpenseCategory,
+    addIncomeCategory,
+    updateExpenseCategory,
+    updateIncomeCategory,
     addAlertRule,
     updateAlertRule,
     deleteAlertRule,
@@ -81,6 +93,12 @@ export default function AlertRuleModal({
     return d;
   });
   const [showTimePicker, setShowTimePicker] = useState(false);
+  // Trackers: a name (also their category's name) and, for savings, whether
+  // all income counts or only its own category.
+  const [name, setName] = useState("");
+  const [allIncome, setAllIncome] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const tracker = (TRACKER_TYPES as readonly AlertRuleType[]).includes(type);
 
   useEffect(() => {
     if (!visible) return;
@@ -89,6 +107,8 @@ export default function AlertRuleModal({
       setAmount(editingRule.amount.toString());
       setCategoryType(editingRule.categoryType ?? "expense");
       setCategoryId(editingRule.categoryId ?? null);
+      setName(editingRule.name ?? "");
+      setAllIncome(Boolean(editingRule.allIncome));
       if (editingRule.hour !== undefined && editingRule.minute !== undefined) {
         const d = new Date();
         d.setHours(editingRule.hour, editingRule.minute, 0, 0);
@@ -99,6 +119,8 @@ export default function AlertRuleModal({
       setAmount("");
       setCategoryType("expense");
       setCategoryId(null);
+      setName("");
+      setAllIncome(false);
       const d = new Date();
       d.setHours(20, 0, 0, 0);
       setTime(d);
@@ -107,7 +129,57 @@ export default function AlertRuleModal({
 
   const categories = categoryType === "expense" ? expenseCategories : incomeCategories;
 
+  // A new tracker gets its own category, named after it, to log against:
+  // repayments (expense) for a loan, money coming back (income) for a lend,
+  // savings (income) for a goal — unless the goal counts all income. Editing
+  // the name renames that category too.
+  const saveTracker = async (numericAmount: number) => {
+    const trimmed = name.trim();
+    const categoryKind = type === "loanTracker" ? "expense" : "income";
+    const needsCategory = !(type === "savingsTracker" && allIncome);
+    setSaving(true);
+    try {
+      let trackerCategoryId = editingRule?.categoryId;
+      const list = categoryKind === "expense" ? expenseCategories : incomeCategories;
+      const existing = list.find((c) => c.id === trackerCategoryId);
+      if (needsCategory && !existing) {
+        const fields = { label: trimmed, icon: RULE_ICONS[type] };
+        trackerCategoryId =
+          categoryKind === "expense" ? await addExpenseCategory(fields) : await addIncomeCategory(fields);
+      } else if (existing && existing.label !== trimmed) {
+        const fields = { label: trimmed, icon: existing.icon, color: existing.color };
+        if (categoryKind === "expense") await updateExpenseCategory(existing.id, fields);
+        else await updateIncomeCategory(existing.id, fields);
+      }
+      const changes = {
+        type,
+        name: trimmed,
+        amount: numericAmount,
+        categoryId: needsCategory ? trackerCategoryId : undefined,
+        categoryType: needsCategory ? categoryKind : undefined,
+        allIncome: type === "savingsTracker" ? allIncome : undefined,
+        startAt: editingRule?.startAt ?? Date.now(),
+        hour: undefined,
+        minute: undefined,
+        enabled: editingRule?.enabled ?? true,
+      } as const;
+      if (editingRule) updateAlertRule(editingRule.id, { ...changes, lastTriggeredKey: undefined });
+      else addAlertRule(changes);
+      onClose();
+    } catch {
+      await alertAsync(t("reminders.trackerSaveFailedTitle"), t("reminders.trackerSaveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = () => {
+    if (tracker) {
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0 || !name.trim()) return;
+      saveTracker(numericAmount);
+      return;
+    }
     if (type === "dailyReminder") {
       const changes = {
         type,
@@ -159,11 +231,21 @@ export default function AlertRuleModal({
 
   const numericAmount = parseFloat(amount);
   const canSave =
-    type === "dailyReminder"
+    !saving &&
+    (type === "dailyReminder"
       ? true
       : !isNaN(numericAmount) &&
         numericAmount > 0 &&
-        (type !== "categoryAmount" || Boolean(categoryId));
+        (type !== "categoryAmount" || Boolean(categoryId)) &&
+        (!tracker || name.trim().length > 0));
+  // A tracker keeps its type (its category was made for it); the others can
+  // switch between the non-tracker types.
+  const editingTracker = editingRule !== null && isTracker(editingRule);
+  const shownTypes = editingTracker
+    ? [editingRule.type]
+    : editingRule
+      ? ALL_TYPES.filter((ruleType) => !(TRACKER_TYPES as readonly AlertRuleType[]).includes(ruleType))
+      : ALL_TYPES;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -195,14 +277,14 @@ export default function AlertRuleModal({
             <View style={styles.body}>
               <Text style={styles.formLabel}>{t("reminders.type")}</Text>
               <View style={styles.typeGrid}>
-                {ALL_TYPES.map((ruleType) => (
+                {shownTypes.map((ruleType) => (
                   <TouchableOpacity
                     key={ruleType}
                     style={[styles.typeChip, type === ruleType && styles.typeChipActive]}
                     onPress={() => setType(ruleType)}
                   >
                     <Ionicons
-                      name={TYPE_ICONS[ruleType]}
+                      name={RULE_ICONS[ruleType]}
                       size={16}
                       color={type === ruleType ? "#fff" : Colors.textMuted}
                     />
@@ -268,7 +350,24 @@ export default function AlertRuleModal({
                 </>
               ) : (
                 <>
-                  <Text style={styles.formLabel}>{t("reminders.amount")}</Text>
+                  {tracker && (
+                    <>
+                      <Text style={styles.formLabel}>{t("reminders.trackerName")}</Text>
+                      <View style={styles.fieldContainer}>
+                        <FieldIcon name="text-outline" />
+                        <TextInput
+                          style={styles.fieldInput}
+                          placeholder={t(`reminders.trackerNamePlaceholder.${type}`)}
+                          placeholderTextColor={Colors.textMuted}
+                          value={name}
+                          onChangeText={setName}
+                        />
+                      </View>
+                    </>
+                  )}
+                  <Text style={styles.formLabel}>
+                    {tracker ? t(`reminders.trackerAmount.${type}`) : t("reminders.amount")}
+                  </Text>
                   <View style={styles.fieldContainer}>
                     <FieldIcon name="pricetag-outline" />
                     <TextInput
@@ -281,6 +380,36 @@ export default function AlertRuleModal({
                     />
                   </View>
                 </>
+              )}
+
+              {type === "savingsTracker" && (
+                <>
+                  <Text style={styles.formLabel}>{t("reminders.savingsCounts")}</Text>
+                  <View style={styles.typeToggle}>
+                    {[false, true].map((all) => (
+                      <TouchableOpacity
+                        key={String(all)}
+                        style={[styles.toggleOption, allIncome === all && { backgroundColor: Colors.primary }]}
+                        onPress={() => setAllIncome(all)}
+                        disabled={editingTracker}
+                      >
+                        <Text
+                          style={[styles.toggleText, allIncome === all ? styles.toggleActiveText : styles.toggleInactiveText]}
+                        >
+                          {all ? t("reminders.savingsAllIncome") : t("reminders.savingsOwnCategory")}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {tracker && (
+                <Text style={styles.trackerNote}>
+                  {type === "savingsTracker" && allIncome
+                    ? t("reminders.trackerNoteAllIncome")
+                    : t(`reminders.trackerNote.${type}`, { name: name.trim() || "…" })}
+                </Text>
               )}
 
               {type === "categoryAmount" && (
@@ -484,6 +613,7 @@ function createStyles(Colors: ColorsType) {
   toggleActiveText: { color: "#fff" },
   toggleInactiveText: { color: Colors.textMuted },
   formActions: { flexDirection: "row", gap: 10, marginTop: 20, marginBottom: 8 },
+  trackerNote: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 10 },
   cancelBtn: {
     flex: 1,
     padding: 14,

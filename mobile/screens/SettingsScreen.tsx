@@ -12,7 +12,9 @@ import { scrollIntoView, useTutorialStore, useTutorialTarget } from "../store/us
 import { CURRENCIES } from "../constants/currencies";
 import { DATE_FORMAT_PRESETS } from "../utils/formatDateTime";
 import { firstNameFromUser } from "../utils/greeting";
-import { confirmAsyncWithLabel, alertAsync } from "../utils/confirm";
+import { confirmAsyncWithLabel, alertAsync, showDialog } from "../utils/confirm";
+import { fetchExchangeRate } from "../utils/exchangeRate";
+import { isDemoId } from "../utils/demoTransactions";
 import { DEV_TOOLS } from "../constants/devTools";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES } from "../i18n";
@@ -146,6 +148,71 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         t("settings.saveFailed"),
         err instanceof Error ? err.message : t("common.somethingWrong"),
       );
+    }
+  };
+
+  // Changing currency with transactions saved: convert every amount at
+  // today's rate, or only switch the currency sign (amounts stay as typed).
+  // Converting happens on the server in one go, so it first makes sure
+  // nothing is still waiting to sync — a queued change sent afterwards would
+  // land in the old currency.
+  const [convertingCurrency, setConvertingCurrency] = useState(false);
+  const convertCurrency = useFinanceStore((s) => s.convertCurrency);
+  const handlePickCurrency = async (to: string) => {
+    const from = settings.currency;
+    if (to === from || convertingCurrency) return;
+    const count = transactions.filter((tx) => !isDemoId(tx.id)).length;
+    if (count === 0) {
+      handleUpdateSettings({ currency: to });
+      return;
+    }
+    const choice = await new Promise<"convert" | "sign" | null>((resolve) =>
+      showDialog(t("settings.currencyChangeTitle", { to }), t("settings.currencyChangeMessage", { from, to, count }), [
+        { text: t("common.cancel"), style: "cancel", onPress: () => resolve(null) },
+        { text: t("settings.currencyOnlySign"), onPress: () => resolve("sign") },
+        { text: t("settings.currencyConvert"), onPress: () => resolve("convert") },
+      ]),
+    );
+    if (choice === "sign") handleUpdateSettings({ currency: to });
+    if (choice !== "convert") return;
+
+    setConvertingCurrency(true);
+    try {
+      const store = useFinanceStore.getState();
+      if (!store.isConnected) {
+        await alertAsync(t("settings.currencyNotYetTitle"), t("settings.currencyOffline"));
+        return;
+      }
+      // Sends anything queued and reloads, then checks it all went through.
+      await store.hydrate();
+      const after = useFinanceStore.getState();
+      if (after.pendingOps.length > 0 || after.syncError || after.settings.currency !== from) {
+        await alertAsync(t("settings.currencyNotYetTitle"), t("settings.currencyUnsynced"));
+        return;
+      }
+      let rate: number;
+      try {
+        rate = await fetchExchangeRate(from, to);
+      } catch {
+        await alertAsync(t("settings.currencyNotYetTitle"), t("settings.currencyRateFailed"));
+        return;
+      }
+      const shown = rate >= 100 ? rate.toFixed(2) : rate.toPrecision(5);
+      const ok = await confirmAsyncWithLabel(
+        t("settings.currencyRateTitle", { from, to }),
+        t("settings.currencyRateMessage", { from, to, rate: shown, count }),
+        t("settings.currencyConvert"),
+        { destructive: false },
+      );
+      if (!ok) return;
+      await convertCurrency(to, rate);
+    } catch (err) {
+      await alertAsync(
+        t("settings.currencyConvertFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
+      );
+    } finally {
+      setConvertingCurrency(false);
     }
   };
 
@@ -406,7 +473,9 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
             <View style={styles.rowInfo}>
               <Text style={styles.rowTitle}>{t("settings.currency")}</Text>
-              <Text style={styles.rowSubtitle}>{settings.currency}</Text>
+              <Text style={styles.rowSubtitle}>
+                {convertingCurrency ? t("settings.currencyConverting") : settings.currency}
+              </Text>
             </View>
             <Ionicons
               name={currencyOpen ? "chevron-up" : "chevron-forward"}
@@ -422,8 +491,8 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
                   key={c.code}
                   style={[styles.dropdownItem, c.code === settings.currency && styles.dropdownItemActive]}
                   onPress={() => {
-                    handleUpdateSettings({ currency: c.code });
                     setCurrencyOpen(false);
+                    handlePickCurrency(c.code);
                   }}
                 >
                   <Text

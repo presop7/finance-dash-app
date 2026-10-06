@@ -96,6 +96,8 @@ export type DeleteConflictDetail = {
 export const financeApi = {
   getMe: () => api.get<ApiUser>("/auth/me"),
   updateSettings: (body: ApiUserSettingsUpdate) => api.patch<ApiUser>("/auth/me", body),
+  convertCurrency: (body: { from_currency: string; to_currency: string; rate: number }) =>
+    api.post<ApiUser>("/auth/me/convert-currency", body),
 
   listCategories: () => api.get<ApiCategory[]>("/categories"),
   createCategory: (body: ApiCategoryCreate) => api.post<ApiCategory>("/categories", body),

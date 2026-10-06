@@ -28,6 +28,25 @@ function sumInMonth(
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
+export const TRACKER_TYPES = ["loanTracker", "lendTracker", "savingsTracker"] as const;
+export const isTracker = (rule: AlertRule) => (TRACKER_TYPES as readonly string[]).includes(rule.type);
+
+// How far a tracker has got: a loan is paid back by expenses in its category,
+// lent money comes back as income in its category, and savings count income
+// in its category — or, set to all income, every income since it started.
+export function trackerProgress(rule: AlertRule, transactions: Transaction[]): number {
+  const counts = (tx: Transaction) => {
+    if (rule.type === "loanTracker") return tx.type === "expense" && tx.category === rule.categoryId;
+    if (rule.type === "lendTracker") return tx.type === "income" && tx.category === rule.categoryId;
+    if (rule.type === "savingsTracker") {
+      if (tx.type !== "income") return false;
+      return rule.allIncome ? new Date(tx.date).getTime() >= (rule.startAt ?? 0) : tx.category === rule.categoryId;
+    }
+    return false;
+  };
+  return transactions.reduce((sum, tx) => (counts(tx) ? sum + tx.amount : sum), 0);
+}
+
 // One rule's state right now: whether it's in alarm (`active`), the key that
 // remembers having told the user about this state, and what to tell them.
 // Balance rules (bothWays) record leaving the alarm state too, so that going
@@ -97,6 +116,19 @@ function checkRule(
         bothWays: false,
       };
     }
+    case "loanTracker":
+    case "lendTracker":
+    case "savingsTracker": {
+      // Told once, when it reaches its amount.
+      const titleKey = { loanTracker: "loanDone", lendTracker: "lendDone", savingsTracker: "savingsDone" }[rule.type];
+      return {
+        active: trackerProgress(rule, transactions) >= rule.amount,
+        key: "done",
+        title: i18n.t(`alerts.${titleKey}`),
+        body: i18n.t("alerts.trackerDoneBody", { name: rule.name ?? "", amount: rule.amount.toFixed(2) }),
+        bothWays: false,
+      };
+    }
     case "dailyReminder":
       // Time-based, not state-based — OS-scheduled directly (see
       // scheduleDailyReminder/useDailyReminderSync) rather than evaluated
@@ -137,7 +169,9 @@ export function activeAlerts(
   now: Date = new Date(),
 ): { id: string; title: string; body: string }[] {
   return rules.flatMap((rule) => {
-    if (!rule.enabled) return [];
+    // A finished tracker stays finished: shown on the Reminders screen, not
+    // as a tip on every opening.
+    if (!rule.enabled || isTracker(rule)) return [];
     const c = checkRule(rule, transactions, expenseCategories, incomeCategories, now);
     return c?.active ? [{ id: rule.id, title: c.title, body: c.body }] : [];
   });

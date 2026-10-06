@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserCreate(BaseModel):
@@ -15,6 +16,15 @@ class UserSettingsUpdate(BaseModel):
     hide_balance: bool | None = None
     time_format: str | None = None
     date_format: str | None = None
+
+
+class CurrencyConversion(BaseModel):
+    # from_currency must still be the account's currency: a retried request
+    # (after a timeout) then can't convert the amounts a second time.
+    from_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    to_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    # 1 from_currency = rate to_currency (the app shows it before confirming).
+    rate: Decimal = Field(gt=0, lt=1_000_000)
 
 
 class UserOut(BaseModel):

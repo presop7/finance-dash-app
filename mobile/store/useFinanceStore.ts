@@ -65,7 +65,11 @@ export type AlertRuleType =
   | "monthlyExpenseOver"
   | "monthlyIncomeOver"
   | "categoryAmount"
-  | "dailyReminder";
+  | "dailyReminder"
+  // Trackers: progress toward an amount, counted from their own category.
+  | "loanTracker" // money owed: expenses in its category pay it back
+  | "lendTracker" // money lent: income in its category is it coming back
+  | "savingsTracker"; // a goal: income in its category, or all income since startAt
 
 export type AlertRule = {
   id: string;
@@ -80,6 +84,10 @@ export type AlertRule = {
   minute?: number;
   enabled: boolean;
   lastTriggeredKey?: string;
+  // Trackers only.
+  name?: string;
+  startAt?: number; // ms; savings counting all income count from here
+  allIncome?: boolean; // savings: all income, not just its category
 };
 
 export const DEFAULT_ALERT_RULES: AlertRule[] = [
@@ -144,10 +152,11 @@ type FinanceStore = {
   updateTransaction: (id: string, changes: TransactionFields) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
 
-  addExpenseCategory: (category: CategoryFields) => Promise<void>;
+  // Resolve to the new category's id.
+  addExpenseCategory: (category: CategoryFields) => Promise<string>;
   updateExpenseCategory: (id: string, changes: CategoryFields) => Promise<void>;
   deleteExpenseCategory: (id: string, confirm?: boolean) => Promise<void>;
-  addIncomeCategory: (category: CategoryFields) => Promise<void>;
+  addIncomeCategory: (category: CategoryFields) => Promise<string>;
   updateIncomeCategory: (id: string, changes: CategoryFields) => Promise<void>;
   deleteIncomeCategory: (id: string, confirm?: boolean) => Promise<void>;
 
@@ -192,6 +201,10 @@ type FinanceStore = {
   displayNameOverride: string | null;
   setDisplayNameOverride: (name: string | null) => void;
   alertRules: AlertRule[];
+  // Switches currency and converts every saved amount at `rate` (1 old = rate
+  // new) on the server in one go; the caller checks first that everything
+  // is synced. Reminder and tracker amounts (kept on this device) follow.
+  convertCurrency: (to: string, rate: number) => Promise<void>;
   addAlertRule: (rule: Omit<AlertRule, "id">) => void;
   updateAlertRule: (id: string, changes: Partial<AlertRule>) => void;
   deleteAlertRule: (id: string) => void;
@@ -824,6 +837,7 @@ export const useFinanceStore = create<FinanceStore>()(
         set((state) => ({
           expenseCategories: [...state.expenseCategories, mapCategory(created)],
         }));
+        return created.id;
       },
 
       updateExpenseCategory: async (id, changes) => {
@@ -863,6 +877,7 @@ export const useFinanceStore = create<FinanceStore>()(
         set((state) => ({
           incomeCategories: [...state.incomeCategories, mapCategory(created)],
         }));
+        return created.id;
       },
 
       updateIncomeCategory: async (id, changes) => {
@@ -957,6 +972,16 @@ export const useFinanceStore = create<FinanceStore>()(
           ),
         }));
         await flushQueue(set, get);
+      },
+
+      convertCurrency: async (to, rate) => {
+        await financeApi.convertCurrency({ from_currency: get().settings.currency, to_currency: to, rate });
+        set((state) => ({
+          alertRules: state.alertRules.map((r) =>
+            r.amount ? { ...r, amount: Math.round(r.amount * rate * 100) / 100 } : r,
+          ),
+        }));
+        await get().hydrate();
       },
 
       addAlertRule: (rule) =>
