@@ -41,6 +41,10 @@ class Transaction(Base):
     client_generated_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), unique=True, nullable=False
     )
+    # An expense paid from a savings goal (marks the goal as used).
+    goal_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("goals.id", ondelete="SET NULL"), nullable=True
+    )
 
     fund_category: Mapped["FundCategory"] = relationship(back_populates="transactions")
     category: Mapped["Category"] = relationship(back_populates="transactions")

@@ -625,7 +625,7 @@ function AppContent() {
           setCategoryInitialEditId(initialEditId);
           setCategoriesModal("fund");
         }}
-        onSave={async (type, amount, category, fundCategory, title, note, date) => {
+        onSave={async (type, amount, category, fundCategory, title, note, date, goalId) => {
           // Errors propagate to AddTransactionModal's handleSave, which keeps
           // the modal open (with the entered data intact) so the user can retry.
           await addTransaction({
@@ -636,6 +636,7 @@ function AppContent() {
             fundCategory,
             note,
             date,
+            goalId,
           });
           setShowTransaction(false);
         }}

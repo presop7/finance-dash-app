@@ -7,6 +7,7 @@ import TransactionList from "../components/SwipeableTransactionList";
 import InsightBanner from "../components/InsightBanner";
 import TopExpensesCard from "../components/TopExpensesCard";
 import FundsCard from "../components/FundsCard";
+import GoalsCard from "../components/GoalsCard";
 import DashboardCardList, {
   DashboardCardDef,
 } from "../components/DashboardCardList";
@@ -97,6 +98,11 @@ function DashboardScreen({
           onNavigateToAnalytics={onNavigateToAnalytics}
         />
       ),
+    },
+    {
+      id: "goals",
+      title: t("goals.title"),
+      content: <GoalsCard />,
     },
     {
       id: "transactions",

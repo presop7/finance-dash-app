@@ -28,7 +28,6 @@ export default function AlertsScreen() {
     transactions,
     expenseCategories,
     incomeCategories,
-    fundCategories,
     settings,
     toggleAlertRule,
     deleteAlertRule,
@@ -82,14 +81,12 @@ export default function AlertsScreen() {
         return t("reminders.desc.dailyReminder", { time });
       }
       case "loanTracker":
-      case "lendTracker":
-      case "savingsTracker": {
+      case "lendTracker": {
         const done = formatCurrency(Math.min(progressOf(rule), rule.amount), settings.currency);
-        const text = t(`reminders.desc.${rule.type}`, { done, total: amount });
-        if (rule.type !== "savingsTracker") return text;
-        const fund = fundCategories.find((f) => f.id === rule.fundId);
-        return fund ? `${text} · ${fund.name}` : text;
+        return t(`reminders.desc.${rule.type}`, { done, total: amount });
       }
+      case "savingsTracker":
+        return ""; // retired: migrated to a Goal
     }
   };
 

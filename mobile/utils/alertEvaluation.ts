@@ -28,19 +28,16 @@ function sumInMonth(
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-export const TRACKER_TYPES = ["loanTracker", "lendTracker", "savingsTracker"] as const;
+// Savings goals are Goals now (store/useFinanceStore), not trackers.
+export const TRACKER_TYPES = ["loanTracker", "lendTracker"] as const;
 export const isTracker = (rule: AlertRule) => (TRACKER_TYPES as readonly string[]).includes(rule.type);
 
 // How far a tracker has got: a loan is paid back by expenses in its category,
-// lent money comes back as income in its category, and a savings goal is the
-// balance of its fund — money put into it minus money taken out.
+// lent money comes back as income in its category.
 export function trackerProgress(rule: AlertRule, transactions: Transaction[]): number {
   return transactions.reduce((sum, tx) => {
     if (rule.type === "loanTracker" && tx.type === "expense" && tx.category === rule.categoryId) return sum + tx.amount;
     if (rule.type === "lendTracker" && tx.type === "income" && tx.category === rule.categoryId) return sum + tx.amount;
-    if (rule.type === "savingsTracker" && rule.fundId && tx.fundCategory === rule.fundId) {
-      return sum + (tx.type === "income" ? tx.amount : -tx.amount);
-    }
     return sum;
   }, 0);
 }
@@ -114,11 +111,12 @@ function checkRule(
         bothWays: false,
       };
     }
+    case "savingsTracker":
+      return null; // retired: migrated to a Goal
     case "loanTracker":
-    case "lendTracker":
-    case "savingsTracker": {
+    case "lendTracker": {
       // Told once, when it reaches its amount.
-      const titleKey = { loanTracker: "loanDone", lendTracker: "lendDone", savingsTracker: "savingsDone" }[rule.type];
+      const titleKey = rule.type === "loanTracker" ? "loanDone" : "lendDone";
       return {
         active: trackerProgress(rule, transactions) >= rule.amount,
         key: "done",

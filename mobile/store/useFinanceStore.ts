@@ -13,6 +13,8 @@ import {
   ApiFundCategory,
   ApiTransaction,
   ApiUser,
+  ApiGoal,
+  ApiGoalAllocation,
 } from "../services/financeApi";
 import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
@@ -29,14 +31,31 @@ export type Transaction = {
   fundCategory: string;
   note: string;
   date: Date;
+  // An expense paid from a savings goal (marks the goal as used).
+  goalId?: string;
   // Set while a create/edit for this row is still waiting in the sync queue.
   isPending?: boolean;
 };
+
+// A savings goal: money set aside toward a target, while it stays in the
+// user's real funds. Each allocation is money set aside (+) or released (−)
+// from one fund; it moves no money and isn't income or expense.
+export type GoalAllocation = { id: string; fundId: string; amount: number; date: number };
+export type Goal = {
+  id: string;
+  name: string;
+  target: number;
+  icon: string;
+  color: string | null;
+  allocations: GoalAllocation[];
+};
+export type GoalFields = { name: string; target: number; icon: string; color?: string | null };
 
 export const DEFAULT_DASHBOARD_CARD_ORDER = [
   "insights",
   "transactions",
   "funds",
+  "goals",
   "topExpenses",
 ];
 
@@ -69,7 +88,7 @@ export type AlertRuleType =
   // Trackers: progress toward an amount, counted from their own category.
   | "loanTracker" // money owed: expenses in its category pay it back
   | "lendTracker" // money lent: income in its category is it coming back
-  | "savingsTracker"; // a goal: the balance of a fund (where the money is kept)
+  | "savingsTracker"; // retired: became a Goal (see migrateSavingsTrackers)
 
 export type AlertRule = {
   id: string;
@@ -86,7 +105,6 @@ export type AlertRule = {
   lastTriggeredKey?: string;
   // Trackers only.
   name?: string;
-  fundId?: string; // savings: the fund it follows
 };
 
 export const DEFAULT_ALERT_RULES: AlertRule[] = [
@@ -158,6 +176,19 @@ type FinanceStore = {
   addIncomeCategory: (category: CategoryFields) => Promise<string>;
   updateIncomeCategory: (id: string, changes: CategoryFields) => Promise<void>;
   deleteIncomeCategory: (id: string, confirm?: boolean) => Promise<void>;
+
+  goals: Goal[];
+  // Goals already told "reached" (so it's told once, again only after
+  // dropping below and reaching it again).
+  goalsNotified: string[];
+  setGoalsNotified: (ids: string[]) => void;
+  // Online-only, like categories: they're saved straight to the server.
+  addGoal: (fields: GoalFields) => Promise<string>;
+  updateGoal: (id: string, fields: GoalFields) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  // amount > 0 sets money aside from the fund, < 0 releases it back.
+  addGoalAllocation: (goalId: string, fundId: string, amount: number) => Promise<void>;
+  deleteGoalAllocation: (goalId: string, allocationId: string) => Promise<void>;
 
   // Resolves to the new fund's id.
   addFundCategory: (fundCategory: FundCategoryFields) => Promise<string>;
@@ -362,7 +393,44 @@ function mapTransaction(t: ApiTransaction): Transaction {
     fundCategory: t.fund_category_id,
     note: t.note ?? "",
     date: new Date(t.occurred_at),
+    ...(t.goal_id ? { goalId: t.goal_id } : {}),
   };
+}
+
+function mapGoal(g: ApiGoal): Goal {
+  return {
+    id: g.id,
+    name: g.name,
+    target: Number(g.target),
+    icon: g.icon ?? "flag-outline",
+    color: g.color,
+    allocations: g.allocations.map(mapGoalAllocation),
+  };
+}
+
+function mapGoalAllocation(a: ApiGoalAllocation): GoalAllocation {
+  return { id: a.id, fundId: a.fund_category_id, amount: Number(a.amount), date: new Date(a.occurred_at).getTime() };
+}
+
+// Savings goals were briefly reminder "trackers" that followed a fund of their
+// own. They're now Goals on the server: each old one becomes a goal with the
+// same name and target (its fund stays an ordinary fund). Runs after a
+// successful load; a failure just leaves it for the next one.
+let migratingTrackers = false;
+async function migrateSavingsTrackers(get: () => FinanceStore) {
+  const old = get().alertRules.filter((r) => r.type === "savingsTracker");
+  if (old.length === 0 || migratingTrackers) return;
+  migratingTrackers = true;
+  try {
+    for (const rule of old) {
+      await get().addGoal({ name: rule.name || "Goal", target: rule.amount, icon: "flag-outline" });
+      get().deleteAlertRule(rule.id);
+    }
+  } catch {
+    // Offline or the server said no: tried again after the next load.
+  } finally {
+    migratingTrackers = false;
+  }
 }
 
 function mapSettings(u: ApiUser): Settings {
@@ -392,6 +460,7 @@ function toCreatePayload(fields: TransactionFields, currency: string, clientGene
     note: fields.note || null,
     occurred_at: fields.date.toISOString(),
     client_generated_id: clientGeneratedId,
+    goal_id: fields.goalId ?? null,
   };
 }
 
@@ -404,6 +473,7 @@ function toUpdatePayload(fields: TransactionFields) {
     type: fields.type,
     note: fields.note || null,
     occurred_at: fields.date.toISOString(),
+    goal_id: fields.goalId ?? null,
   };
 }
 
@@ -629,11 +699,13 @@ export const useFinanceStore = create<FinanceStore>()(
         const settingsVersionAtFetch = get().settingsVersion;
 
         try {
-          const [me, apiCategories, apiFundCategories, apiTransactions] = await Promise.all([
+          const [me, apiCategories, apiFundCategories, apiTransactions, apiGoals] = await Promise.all([
             financeApi.getMe(),
             financeApi.listCategories(),
             financeApi.listFundCategories(),
             financeApi.listTransactions(),
+            // Not fatal: keeps the last-known goals if this one call fails.
+            financeApi.listGoals().catch(() => null),
           ]);
           if (userSwitched()) return;
 
@@ -658,10 +730,12 @@ export const useFinanceStore = create<FinanceStore>()(
             expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
             incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
             fundCategories: apiFundCategories.map(mapFundCategory),
+            ...(apiGoals ? { goals: apiGoals.map(mapGoal) } : {}),
             transactions: [...localPending, ...serverRows].sort(
               (a, b) => b.date.getTime() - a.date.getTime(),
             ),
           });
+          if (apiGoals) migrateSavingsTrackers(get);
         } catch (err) {
           if (userSwitched()) return;
           const message = err instanceof Error ? err.message : "Failed to load your data";
@@ -684,6 +758,7 @@ export const useFinanceStore = create<FinanceStore>()(
           expenseCategories: [],
           incomeCategories: [],
           fundCategories: [],
+          goals: [],
           settings: DEFAULT_SETTINGS,
           // Clears in memory only — the signed-out user's queue stays on disk in
           // their own slot (activeUserId is already null here, so this write
@@ -975,6 +1050,48 @@ export const useFinanceStore = create<FinanceStore>()(
         await flushQueue(set, get);
       },
 
+      goals: [],
+      goalsNotified: [],
+      setGoalsNotified: (ids) => set({ goalsNotified: ids }),
+
+      addGoal: async (fields) => {
+        const created = await financeApi.createGoal(fields);
+        set((state) => ({ goals: [...state.goals, mapGoal(created)] }));
+        return created.id;
+      },
+
+      updateGoal: async (id, fields) => {
+        const updated = await financeApi.updateGoal(id, fields);
+        set((state) => ({ goals: state.goals.map((g) => (g.id === id ? mapGoal(updated) : g)) }));
+      },
+
+      deleteGoal: async (id) => {
+        await financeApi.deleteGoal(id);
+        // The server unlinks its expenses too; mirror that locally.
+        set((state) => ({
+          goals: state.goals.filter((g) => g.id !== id),
+          transactions: state.transactions.map((t) => (t.goalId === id ? { ...t, goalId: undefined } : t)),
+        }));
+      },
+
+      addGoalAllocation: async (goalId, fundId, amount) => {
+        const created = await financeApi.addGoalAllocation(goalId, { fund_category_id: fundId, amount });
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === goalId ? { ...g, allocations: [...g.allocations, mapGoalAllocation(created)] } : g,
+          ),
+        }));
+      },
+
+      deleteGoalAllocation: async (goalId, allocationId) => {
+        await financeApi.deleteGoalAllocation(goalId, allocationId);
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === goalId ? { ...g, allocations: g.allocations.filter((a) => a.id !== allocationId) } : g,
+          ),
+        }));
+      },
+
       convertCurrency: async (to, rate) => {
         await financeApi.convertCurrency({ from_currency: get().settings.currency, to_currency: to, rate });
         set((state) => ({
@@ -1076,6 +1193,8 @@ export const useFinanceStore = create<FinanceStore>()(
         expenseCategories: state.expenseCategories,
         incomeCategories: state.incomeCategories,
         fundCategories: state.fundCategories,
+        goals: state.goals,
+        goalsNotified: state.goalsNotified,
         settings: state.settings,
         lastSyncedAt: state.lastSyncedAt,
       }),

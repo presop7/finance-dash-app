@@ -49,6 +49,7 @@ export type ApiTransaction = {
   occurred_at: string;
   created_at: string;
   client_generated_id: string;
+  goal_id?: string | null;
 };
 export type ApiTransactionCreate = {
   title: string;
@@ -60,8 +61,21 @@ export type ApiTransactionCreate = {
   note?: string | null;
   occurred_at: string;
   client_generated_id: string;
+  goal_id?: string | null;
 };
 export type ApiTransactionUpdate = Partial<Omit<ApiTransactionCreate, "client_generated_id">>;
+
+export type ApiGoalAllocation = { id: string; fund_category_id: string; amount: string; occurred_at: string };
+export type ApiGoal = {
+  id: string;
+  name: string;
+  target: string;
+  icon: string | null;
+  color: string | null;
+  created_at: string;
+  allocations: ApiGoalAllocation[];
+};
+export type ApiGoalFields = { name: string; target: number; icon?: string | null; color?: string | null };
 
 export type ApiTransactionBulkFailure = { index: number; detail: string };
 export type ApiTransactionBulkResult = {
@@ -122,6 +136,15 @@ export const financeApi = {
   updateTransaction: (id: string, body: ApiTransactionUpdate) =>
     api.patch<ApiTransaction>(`/transactions/${id}`, body),
   deleteTransaction: (id: string) => api.delete<void>(`/transactions/${id}`),
+
+  listGoals: () => api.get<ApiGoal[]>("/goals"),
+  createGoal: (body: ApiGoalFields) => api.post<ApiGoal>("/goals", body),
+  updateGoal: (id: string, body: Partial<ApiGoalFields>) => api.patch<ApiGoal>(`/goals/${id}`, body),
+  deleteGoal: (id: string) => api.delete<void>(`/goals/${id}`),
+  addGoalAllocation: (goalId: string, body: { fund_category_id: string; amount: number }) =>
+    api.post<ApiGoalAllocation>(`/goals/${goalId}/allocations`, body),
+  deleteGoalAllocation: (goalId: string, allocationId: string) =>
+    api.delete<void>(`/goals/${goalId}/allocations/${allocationId}`),
 
   // Multipart: title/description/app_info as fields, each picture as an
   // `attachments` part. The backend emails it to the developer.

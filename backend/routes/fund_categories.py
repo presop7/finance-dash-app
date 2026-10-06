@@ -7,6 +7,7 @@ from auth import get_current_user
 from database import get_db
 from default_categories import UNASSIGNED
 from models.fund_category import FundCategory
+from models.goal import GoalAllocation
 from models.transaction import Transaction
 from models.user import User
 from schemas.fund_category import FundCategoryCreate, FundCategoryOut, FundCategoryUpdate
@@ -112,6 +113,10 @@ def delete_fund_category(
     referencing_count = (
         db.query(Transaction).filter(Transaction.fund_category_id == fund_category.id).count()
     )
+    has_allocations = (
+        db.query(GoalAllocation.id).filter(GoalAllocation.fund_category_id == fund_category.id).first()
+        is not None
+    )
 
     if referencing_count > 0 and not confirm:
         raise HTTPException(
@@ -126,10 +131,15 @@ def delete_fund_category(
             },
         )
 
-    if referencing_count > 0:
+    if referencing_count > 0 or has_allocations:
+        # Money set aside for goals from this fund moves along with its
+        # transactions, so the goals keep their progress.
         unassigned = _get_or_create_unassigned_fund_category(db, current_user)
         db.query(Transaction).filter(Transaction.fund_category_id == fund_category.id).update(
             {Transaction.fund_category_id: unassigned.id}
+        )
+        db.query(GoalAllocation).filter(GoalAllocation.fund_category_id == fund_category.id).update(
+            {GoalAllocation.fund_category_id: unassigned.id}
         )
 
     db.delete(fund_category)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from database import get_db
 from models.fund_category import FundCategory
+from models.goal import Goal, GoalAllocation
 from models.transaction import Transaction
 from models.user import User
 from schemas.user import CurrencyConversion, UserOut, UserSettingsUpdate
@@ -51,6 +52,19 @@ def convert_currency(
         update(Transaction)
         .where(Transaction.fund_category_id.in_(own_funds))
         .values(amount=func.round(Transaction.amount * payload.rate, 2), currency=payload.to_currency)
+        .execution_options(synchronize_session=False)
+    )
+    own_goals = select(Goal.id).where(Goal.user_id == current_user.id)
+    db.execute(
+        update(Goal)
+        .where(Goal.user_id == current_user.id)
+        .values(target=func.round(Goal.target * payload.rate, 2))
+        .execution_options(synchronize_session=False)
+    )
+    db.execute(
+        update(GoalAllocation)
+        .where(GoalAllocation.goal_id.in_(own_goals))
+        .values(amount=func.round(GoalAllocation.amount * payload.rate, 2))
         .execution_options(synchronize_session=False)
     )
     db.execute(

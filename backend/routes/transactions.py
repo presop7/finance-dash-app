@@ -9,6 +9,7 @@ from auth import get_current_user
 from database import get_db
 from models.category import Category
 from models.fund_category import FundCategory
+from models.goal import Goal
 from models.transaction import Transaction
 from models.user import User
 from schemas.transaction import (
@@ -48,6 +49,13 @@ def _assert_category_accessible(db: Session, category_id: uuid.UUID, current_use
         raise HTTPException(status_code=404, detail="Category not found")
 
 
+def _assert_goal_owned(db: Session, goal_id: uuid.UUID | None, current_user: User) -> None:
+    if goal_id is None:
+        return
+    if db.query(Goal.id).filter(Goal.id == goal_id, Goal.user_id == current_user.id).first() is None:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+
 def _get_owned_transaction(
     db: Session, transaction_id: uuid.UUID, current_user: User
 ) -> Transaction:
@@ -70,6 +78,7 @@ def create_transaction(
 ):
     _assert_fund_category_owned(db, payload.fund_category_id, current_user)
     _assert_category_accessible(db, payload.category_id, current_user)
+    _assert_goal_owned(db, payload.goal_id, current_user)
 
     transaction = Transaction(**payload.model_dump())
     db.add(transaction)
@@ -142,7 +151,8 @@ def bulk_create_transactions(
             failed.append(TransactionBulkFailure(index=index, detail="Category not found"))
             continue
         seen_ids.add(row.client_generated_id)
-        to_insert.append(Transaction(**row.model_dump()))
+        # Imports never link goals.
+        to_insert.append(Transaction(**row.model_dump(exclude={"goal_id"})))
 
     db.add_all(to_insert)
     db.commit()
@@ -189,6 +199,8 @@ def update_transaction(
         _assert_fund_category_owned(db, data["fund_category_id"], current_user)
     if "category_id" in data:
         _assert_category_accessible(db, data["category_id"], current_user)
+    if "goal_id" in data:
+        _assert_goal_owned(db, data["goal_id"], current_user)
     for field, value in data.items():
         setattr(transaction, field, value)
     db.commit()

@@ -17,6 +17,7 @@ class TransactionCreate(BaseModel):
     note: str | None = None
     occurred_at: datetime
     client_generated_id: uuid.UUID
+    goal_id: uuid.UUID | None = None
 
 
 class TransactionUpdate(BaseModel):
@@ -28,6 +29,7 @@ class TransactionUpdate(BaseModel):
     type: TransactionType | None = None
     note: str | None = None
     occurred_at: datetime | None = None
+    goal_id: uuid.UUID | None = None
 
 
 class TransactionOut(BaseModel):
@@ -44,6 +46,7 @@ class TransactionOut(BaseModel):
     occurred_at: datetime
     created_at: datetime
     client_generated_id: uuid.UUID
+    goal_id: uuid.UUID | None = None
 
 
 class TransactionBulkCreate(BaseModel):

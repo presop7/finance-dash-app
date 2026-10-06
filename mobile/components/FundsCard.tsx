@@ -11,6 +11,8 @@ import { daysAgo, percentageChange } from "../utils/dateRanges";
 import { formatCurrency } from "../utils/currency";
 import { themedCategoryColor } from "../utils/color";
 import { sortByOrder } from "../utils/reorder";
+import { reservedByFund } from "../utils/goals";
+import { isDemoId } from "../utils/demoTransactions";
 import { ReorderItem, useReorder } from "./Reorderable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 import { useTranslation } from "react-i18next";
@@ -36,6 +38,8 @@ export default function FundsCard({
   const isDark = useResolvedScheme() === "dark";
   const currency = useFinanceStore((s) => s.settings.currency);
   const fundCardOrder = useFinanceStore((s) => s.fundCardOrder);
+  const goals = useFinanceStore((s) => s.goals);
+  const reserved = reservedByFund(goals, transactions.filter((tx) => !isDemoId(tx.id)));
   const setFundCardOrder = useFinanceStore((s) => s.setFundCardOrder);
 
   const funds = useMemo(() => {
@@ -119,6 +123,11 @@ export default function FundsCard({
                 </Text>
 
                 <Text style={styles.balance}>{formatCurrency(balance, currency)}</Text>
+                {(reserved.get(fund.id) ?? 0) > 0 && (
+                  <Text style={styles.reserved} numberOfLines={1}>
+                    {t("goals.reservedInFund", { amount: formatCurrency(reserved.get(fund.id)!, currency) })}
+                  </Text>
+                )}
 
                 {hasHistory && (
                   <View style={styles.trendRow}>
@@ -182,6 +191,7 @@ function createStyles(Colors: ColorsType) {
     color: Colors.textPrimary,
     marginBottom: 6,
   },
+  reserved: { fontSize: FONT.label, color: Colors.textMuted, marginTop: -4, marginBottom: 6 },
   trendRow: {
     flexDirection: "row",
     alignItems: "center",

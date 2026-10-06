@@ -76,14 +76,18 @@ export default function DashboardCardList({
   const knownIdsKey = cards.map((c) => c.id).join("|");
 
   // Self-heal a persisted order that predates a card being added/removed
-  // from `cards` (append missing ids, drop stale ones). Skipped while
-  // actively reordering.
+  // from `cards`: drop stale ids, and put a new card right after the card it
+  // follows in `cards` (so a new "Goals" card lands under "Funds", not at the
+  // end). Skipped while actively reordering.
   useEffect(() => {
     if (reorderMode) return;
     const knownIds = knownIdsKey.split("|").filter(Boolean);
-    const kept = order.filter((id) => knownIds.includes(id));
-    const missing = knownIds.filter((id) => !order.includes(id));
-    const reconciled = [...kept, ...missing];
+    const reconciled = order.filter((id) => knownIds.includes(id));
+    knownIds.forEach((id, i) => {
+      if (reconciled.includes(id)) return;
+      const after = knownIds.slice(0, i).reverse().find((prev) => reconciled.includes(prev));
+      reconciled.splice(after ? reconciled.indexOf(after) + 1 : 0, 0, id);
+    });
 
     if (reconciled.join("|") !== order.join("|")) {
       onReorder(reconciled);

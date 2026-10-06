@@ -37,6 +37,8 @@ import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
+import { isDemoId } from "../../utils/demoTransactions";
+import { goalSpent } from "../../utils/goals";
 
 type TransactionType = "expense" | "income";
 
@@ -51,6 +53,7 @@ type AddTransactionModalProps = {
     title: string,
     note: string,
     date: Date,
+    goalId?: string,
   ) => Promise<void>;
   // Takes a callback: if the user picks an existing category/fund directly
   // from the manager instead of adding a new one, this modal's own
@@ -71,7 +74,7 @@ export default function AddTransactionModal({
   onOpenManageFundCategories,
   editTransaction,
 }: AddTransactionModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings } =
+  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings, goals, transactions } =
     useFinanceStore();
   const Colors = useThemeColors();
   const { t } = useTranslation();
@@ -89,6 +92,9 @@ export default function AddTransactionModal({
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date());
   const [saving, setSaving] = useState(false);
+  // An expense can be paid from a savings goal ("От цел"): goals still being
+  // saved for, plus the one this expense already uses when editing.
+  const [goalId, setGoalId] = useState<string | undefined>(undefined);
 
   // Chains title -> amount -> category search on the keyboard's own
   // next/enter key, so filling out the mandatory fields for a new
@@ -125,6 +131,8 @@ export default function AddTransactionModal({
   const AMOUNT_ACCESSORY_ID = "amountAccessory";
 
   const isExpense = type === "expense";
+  const realTransactions = transactions.filter((tx) => !isDemoId(tx.id));
+  const goalChoices = goals.filter((g) => g.id === goalId || !goalSpent(g, realTransactions));
   const activeColor = isExpense ? Colors.expense : Colors.income;
   const categories = isExpense ? expenseCategories : incomeCategories;
 
@@ -140,6 +148,7 @@ export default function AddTransactionModal({
       setSelectedFundCategory(editTransaction.fundCategory);
       setNote(editTransaction.note);
       setDate(new Date(editTransaction.date));
+      setGoalId(editTransaction.goalId);
     } else {
       setSelectedCategory(expenseCategories[0]?.id ?? "");
       setSelectedFundCategory(fundCategories[0]?.id ?? "");
@@ -157,6 +166,7 @@ export default function AddTransactionModal({
     setSelectedFundCategory(fundCategories[0]?.id ?? "");
     setNote("");
     setDate(new Date());
+    setGoalId(undefined);
     onClose();
     useTutorialStore.getState().addSheetClosed();
   };
@@ -189,6 +199,7 @@ export default function AddTransactionModal({
           title,
           note,
           date,
+          goalId: isExpense ? goalId : undefined,
         });
       } else {
         await onSave(
@@ -199,6 +210,7 @@ export default function AddTransactionModal({
           title,
           note,
           date,
+          isExpense ? goalId : undefined,
         );
         tutorialEmit("transactionSaved");
       }
@@ -542,6 +554,25 @@ export default function AddTransactionModal({
             )}
             </View>
 
+            {/* Paid from a savings goal: marks the goal as used. */}
+            {isExpense && goalChoices.length > 0 && (
+              <>
+                <Text style={[styles.sectionLabel, styles.goalLabel]}>{t("goals.fromGoal")}</Text>
+                <View style={styles.goalChips}>
+                  {goalChoices.map((g) => (
+                    <TouchableOpacity
+                      key={g.id}
+                      style={[styles.goalChip, goalId === g.id && { backgroundColor: activeColor, borderColor: activeColor }]}
+                      onPress={() => setGoalId(goalId === g.id ? undefined : g.id)}
+                    >
+                      <Ionicons name="flag-outline" size={14} color={goalId === g.id ? "#fff" : Colors.textMuted} />
+                      <Text style={[styles.goalChipText, goalId === g.id && { color: "#fff" }]}>{g.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
             {/* Date and Time — native tap-to-open pickers on iOS/Android,
                 typeable fields + custom calendar/time popovers on web
                 (see components/DateTimeFields.web.tsx) */}
@@ -719,6 +750,20 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
     gap: 8,
   },
+  goalLabel: { marginHorizontal: 16, marginBottom: 8 },
+  goalChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 12 },
+  goalChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  goalChipText: { fontSize: FONT.body, color: Colors.textPrimary },
   noteFieldContainer: {
     alignItems: "flex-start",
   },
