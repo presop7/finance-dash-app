@@ -28,5 +28,12 @@ class User(Base):
         String, nullable=False, server_default="DD/MM/YYYY"
     )
 
+    # Plan (see plan.py): Premium while either is in the future.
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    premium_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The Play test version (dev link) only lets these in.
+    dev_access: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    dev_access_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")

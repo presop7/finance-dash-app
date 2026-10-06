@@ -8,6 +8,7 @@ from database import get_db
 from models.fund_category import FundCategory
 from models.goal import Goal, GoalAllocation
 from models.user import User
+from plan import FREE_GOALS, require_premium_for
 from schemas.goal import GoalAllocationCreate, GoalAllocationOut, GoalCreate, GoalOut, GoalUpdate
 
 router = APIRouter(prefix="/goals", tags=["goals"])
@@ -31,6 +32,8 @@ def create_goal(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    own = db.query(Goal).filter(Goal.user_id == current_user.id).count()
+    require_premium_for(current_user, own, FREE_GOALS, "goals")
     goal = Goal(**payload.model_dump(), user_id=current_user.id)
     db.add(goal)
     db.commit()

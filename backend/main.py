@@ -1,3 +1,4 @@
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,6 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Compress answers over 1 KB (the transaction lists shrink about 5x).
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(auth_router)
 app.include_router(fund_categories_router)
 app.include_router(categories_router)

@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta, timezone
+
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -17,10 +19,23 @@ _jwks_client = jwt.PyJWKClient(JWKS_URL)
 _bearer_scheme = HTTPBearer()
 
 
+# On the dev-only backend, what a user without dev_access may still reach:
+# their profile (to see they're locked out) and the access request.
+_DEV_OPEN_PATHS = {"/auth/me", "/auth/me/request-dev-access"}
+
+
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
+    user = _resolve_user(credentials, db)
+    if settings.DEV_ONLY and not user.dev_access and request.url.path not in _DEV_OPEN_PATHS:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={"code": "dev_access_required"})
+    return user
+
+
+def _resolve_user(credentials: HTTPAuthorizationCredentials, db: Session) -> User:
     token = credentials.credentials
     try:
         signing_key = _jwks_client.get_signing_key_from_jwt(token)
@@ -56,6 +71,8 @@ def get_current_user(
             auth_provider_id=auth_provider_id,
             email=email,
             display_name=display_name,
+            # Reverse trial: every new account starts on Premium.
+            trial_ends_at=datetime.now(timezone.utc) + timedelta(days=settings.TRIAL_DAYS),
         )
         db.add(user)
         try:

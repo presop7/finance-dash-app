@@ -49,6 +49,12 @@ class TransactionOut(BaseModel):
     goal_id: uuid.UUID | None = None
 
 
+class TransactionChanges(BaseModel):
+    transactions: list[TransactionOut]
+    deleted_ids: list[uuid.UUID]
+    server_time: datetime
+
+
 class TransactionBulkCreate(BaseModel):
     # Capped so one request can't be used to force an unbounded batch insert -
     # nothing else in this app limits request body size.

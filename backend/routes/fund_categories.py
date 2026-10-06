@@ -10,6 +10,7 @@ from models.fund_category import FundCategory
 from models.goal import GoalAllocation
 from models.transaction import Transaction
 from models.user import User
+from plan import FREE_FUNDS, require_premium_for
 from schemas.fund_category import FundCategoryCreate, FundCategoryOut, FundCategoryUpdate
 
 router = APIRouter(prefix="/fund_categories", tags=["fund_categories"])
@@ -60,6 +61,12 @@ def create_fund_category(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    own = (
+        db.query(FundCategory)
+        .filter(FundCategory.user_id == current_user.id, FundCategory.name != UNASSIGNED)
+        .count()
+    )
+    require_premium_for(current_user, own, FREE_FUNDS, "funds")
     fund_category = FundCategory(**payload.model_dump(), user_id=current_user.id)
     db.add(fund_category)
     db.commit()

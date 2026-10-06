@@ -60,7 +60,7 @@ def _token(drop=(), key=KEY, alg="ES256", **overrides):
 def _accepts(token) -> bool:
     creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
     try:
-        return auth.get_current_user(creds, _FakeDb()) == "existing-user"
+        return auth._resolve_user(creds, _FakeDb()) == "existing-user"
     except HTTPException as exc:
         assert exc.status_code == 401, exc.status_code
         return False
@@ -76,6 +76,29 @@ def demo():
     assert not _accepts(_token(key=OTHER_KEY)), "signed by someone else's key"
     assert not _accepts(_token(key="s" * 32, alg="HS256")), "algorithm swap"
     assert not _accepts(_token() + "x"), "tampered signature"
+    # Dev-only backend: users without dev_access only reach their profile.
+    class _Req:
+        def __init__(self, path):
+            self.url = type("U", (), {"path": path})()
+
+    class _User:
+        dev_access = False
+
+    original = auth._resolve_user
+    auth._resolve_user = lambda creds, db: _User()
+    settings.DEV_ONLY = True
+    try:
+        assert isinstance(auth.get_current_user(_Req("/auth/me"), None, None), _User), "profile must stay open"
+        try:
+            auth.get_current_user(_Req("/transactions"), None, None)
+            raise AssertionError("dev gate let a user without access through")
+        except HTTPException as exc:
+            assert exc.status_code == 403, exc.status_code
+        _User.dev_access = True
+        assert isinstance(auth.get_current_user(_Req("/transactions"), None, None), _User), "access ticked"
+    finally:
+        settings.DEV_ONLY = False
+        auth._resolve_user = original
     print("auth checks passed")
 
 

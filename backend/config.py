@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     # Shared secret the scheduler (Supabase pg_cron) sends to POST /push/send-due.
     CRON_SECRET: str = ""
 
+    # Days of Premium every new account starts with (reverse trial, no card).
+    TRIAL_DAYS: int = 10
+    # The Play test version's backend sets this: only users with dev_access
+    # (ticked in Supabase) get past their profile; others can ask for access.
+    DEV_ONLY: bool = False
+    # Lets DELETE /auth/me remove the sign-in itself, not just the data.
+    # Supabase → Project Settings → API → service_role. Server only, never in
+    # the app or in git.
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

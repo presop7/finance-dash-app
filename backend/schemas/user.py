@@ -39,3 +39,7 @@ class UserOut(BaseModel):
     hide_balance: bool
     time_format: str
     date_format: str
+    trial_ends_at: datetime | None = None
+    premium_until: datetime | None = None
+    dev_access: bool = False
+    dev_access_requested_at: datetime | None = None

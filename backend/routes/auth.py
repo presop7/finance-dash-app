@@ -1,16 +1,26 @@
+import json
+import logging
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
+from config import settings
 from database import get_db
+from models.category import Category
 from models.fund_category import FundCategory
 from models.goal import Goal, GoalAllocation
-from models.transaction import Transaction
+from models.push_subscription import PushSubscription
+from models.transaction import DeletedTransaction, Transaction
 from models.user import User
 from schemas.user import CurrencyConversion, UserOut, UserSettingsUpdate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/me", response_model=UserOut)
@@ -77,3 +87,58 @@ def convert_currency(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post("/me/request-dev-access", response_model=UserOut)
+def request_dev_access(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Asks for the Play test version. Shows up in the users table as
+    dev_access_requested_at; ticking dev_access there lets them in."""
+    if current_user.dev_access_requested_at is None:
+        current_user.dev_access_requested_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(current_user)
+    return current_user
+
+
+@router.delete("/me", status_code=204)
+def delete_account(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Deletes the account and everything in it, then the sign-in itself.
+    (A store subscription is separate: it's cancelled in Google Play.)"""
+    if not settings.SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(status_code=503, detail="Account deletion isn't set up on the server yet.")
+    own_funds = select(FundCategory.id).where(FundCategory.user_id == current_user.id)
+    db.query(Goal).filter(Goal.user_id == current_user.id).delete(synchronize_session=False)
+    db.query(Transaction).filter(Transaction.fund_category_id.in_(own_funds)).delete(synchronize_session=False)
+    db.query(DeletedTransaction).filter(DeletedTransaction.user_id == current_user.id).delete(synchronize_session=False)
+    db.query(FundCategory).filter(FundCategory.user_id == current_user.id).delete(synchronize_session=False)
+    db.query(Category).filter(Category.user_id == current_user.id).delete(synchronize_session=False)
+    db.query(PushSubscription).filter(PushSubscription.user_id == current_user.id).delete(synchronize_session=False)
+    auth_id = current_user.auth_provider_id
+    db.delete(current_user)
+    db.commit()
+    _delete_sign_in(auth_id)
+
+
+def _delete_sign_in(auth_provider_id: str) -> None:
+    """Removes the Supabase Auth user (email, Google link). The data is
+    already gone; if this fails, signing in again just starts a new, empty
+    account, so it's logged rather than reported to the user."""
+    key = settings.SUPABASE_SERVICE_ROLE_KEY
+    request = urllib.request.Request(
+        f"{settings.SUPABASE_URL}/auth/v1/admin/users/{auth_provider_id}",
+        method="DELETE",
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "User-Agent": "finance-dash-api/1.0"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20):
+            return
+    except urllib.error.HTTPError as exc:
+        logger.error("Supabase refused deleting auth user %s: %s %s", auth_provider_id, exc.code, exc.read()[:300])
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.error("Couldn't reach Supabase to delete auth user %s: %s", auth_provider_id, exc)
