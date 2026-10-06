@@ -514,18 +514,18 @@ const es: Locale = {
     dailyBody: "No olvides añadir los movimientos de hoy.",
   },
   reminders: {
+    savingsWhere: "Dónde lo guardas",
+    savingsNewFund: "Una cuenta nueva",
+    savingsExistingFund: "Una cuenta que tengo",
+    trackerNoteExistingFund: "Sigue el saldo de la cuenta que elijas: el dinero que entra menos el que sale.",
     trackerName: "Nombre",
-    savingsCounts: "Qué cuenta",
-    savingsAllIncome: "Todos los ingresos",
-    savingsOwnCategory: "Su propia categoría",
-    trackerNoteAllIncome: "Cuenta todos tus ingresos desde el día en que lo creas.",
     trackerSaveFailedTitle: "No se pudo guardar el seguimiento",
     trackerSaveFailed: "Crear su categoría necesita conexión a internet. Compruébala e inténtalo de nuevo.",
     trackersLabel: "Seguimientos",
     trackersEmpty: "Aún no hay seguimientos: añade uno para un préstamo, dinero prestado o una meta de ahorro",
     trackerNamePlaceholder: {
       loanTracker: "p. ej. Préstamo del coche",
-      lendTracker: "p. ej. Prestado a Iván",
+      lendTracker: "p. ej. Prestado a Pablo",
       savingsTracker: "p. ej. Móvil nuevo",
     },
     trackerAmount: {
@@ -536,13 +536,12 @@ const es: Locale = {
     trackerNote: {
       loanTracker: "Crea la categoría de gasto «{{name}}». Añade tus pagos en ella.",
       lendTracker: "Crea la categoría de ingreso «{{name}}». Añade en ella el dinero que te devuelvan.",
-      savingsTracker: "Crea la categoría de ingreso «{{name}}». Añade tus ahorros en ella.",
+      savingsTracker: "Crea la cuenta «{{name}}». Cuando apartes dinero, añádelo como ingreso en esta cuenta.",
     },
     desc: {
       loanTracker: "Devuelto {{done}} de {{total}}",
       lendTracker: "Recuperado {{done}} de {{total}}",
       savingsTracker: "Ahorrado {{done}} de {{total}}",
-      allIncomeSince: "todos los ingresos desde {{date}}",
       trackerDone: "Completado",
       lowBalance: "Avisar cuando el saldo baje de {{amount}}",
       balanceAbove: "Avisar cuando el saldo supere {{amount}}",

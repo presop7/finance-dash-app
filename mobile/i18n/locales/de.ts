@@ -514,18 +514,18 @@ const de: Locale = {
     dailyBody: "Vergiss nicht, die heutigen Buchungen einzutragen.",
   },
   reminders: {
+    savingsWhere: "Wo du es aufbewahrst",
+    savingsNewFund: "Ein neues Konto",
+    savingsExistingFund: "Ein bestehendes Konto",
+    trackerNoteExistingFund: "Folgt dem Saldo des gewählten Kontos: eingezahltes minus entnommenes Geld.",
     trackerName: "Name",
-    savingsCounts: "Was zählt",
-    savingsAllIncome: "Alle Einnahmen",
-    savingsOwnCategory: "Eigene Kategorie",
-    trackerNoteAllIncome: "Zählt alle deine Einnahmen ab dem Tag, an dem du ihn anlegst.",
     trackerSaveFailedTitle: "Tracker nicht gespeichert",
     trackerSaveFailed: "Zum Anlegen seiner Kategorie ist eine Internetverbindung nötig. Prüfe sie und versuche es erneut.",
     trackersLabel: "Tracker",
     trackersEmpty: "Noch keine Tracker: lege einen für einen Kredit, verliehenes Geld oder ein Sparziel an",
     trackerNamePlaceholder: {
       loanTracker: "z. B. Autokredit",
-      lendTracker: "z. B. An Ivan verliehen",
+      lendTracker: "z. B. An Lukas verliehen",
       savingsTracker: "z. B. Neues Handy",
     },
     trackerAmount: {
@@ -536,13 +536,12 @@ const de: Locale = {
     trackerNote: {
       loanTracker: "Legt die Ausgabenkategorie „{{name}}“ an. Buche deine Raten darauf.",
       lendTracker: "Legt die Einnahmenkategorie „{{name}}“ an. Buche das zurückerhaltene Geld darauf.",
-      savingsTracker: "Legt die Einnahmenkategorie „{{name}}“ an. Buche deine Ersparnisse darauf.",
+      savingsTracker: "Legt das Konto „{{name}}“ an. Wenn du Geld zurücklegst, buche es als Einnahme auf dieses Konto.",
     },
     desc: {
       loanTracker: "{{done}} von {{total}} zurückgezahlt",
       lendTracker: "{{done}} von {{total}} zurückerhalten",
       savingsTracker: "{{done}} von {{total}} gespart",
-      allIncomeSince: "alle Einnahmen seit {{date}}",
       trackerDone: "Erledigt",
       lowBalance: "Benachrichtigen, wenn der Kontostand unter {{amount}} fällt",
       balanceAbove: "Benachrichtigen, wenn der Kontostand über {{amount}} steigt",

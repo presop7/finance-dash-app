@@ -515,18 +515,18 @@ const zh: Locale = {
     dailyBody: "别忘了添加今天的交易。",
   },
   reminders: {
+    savingsWhere: "存放位置",
+    savingsNewFund: "新账户",
+    savingsExistingFund: "已有账户",
+    trackerNoteExistingFund: "跟踪所选账户的余额：存入的钱减去取出的钱。",
     trackerName: "名称",
-    savingsCounts: "计入方式",
-    savingsAllIncome: "所有收入",
-    savingsOwnCategory: "专属分类",
-    trackerNoteAllIncome: "计入从创建当天起的所有收入。",
     trackerSaveFailedTitle: "无法保存追踪",
     trackerSaveFailed: "创建其分类需要网络连接。请检查后重试。",
     trackersLabel: "追踪",
     trackersEmpty: "还没有追踪：可为贷款、借出的钱或储蓄目标添加",
     trackerNamePlaceholder: {
       loanTracker: "例如：车贷",
-      lendTracker: "例如：借给伊万",
+      lendTracker: "例如：借给小王",
       savingsTracker: "例如：新手机",
     },
     trackerAmount: {
@@ -537,13 +537,12 @@ const zh: Locale = {
     trackerNote: {
       loanTracker: "将创建支出分类“{{name}}”。请把还款记在其中。",
       lendTracker: "将创建收入分类“{{name}}”。请把收回的钱记在其中。",
-      savingsTracker: "将创建收入分类“{{name}}”。请把存下的钱记在其中。",
+      savingsTracker: "将创建账户“{{name}}”。存钱时，把它记为该账户的收入。",
     },
     desc: {
       loanTracker: "已还 {{done}} / {{total}}",
       lendTracker: "已收回 {{done}} / {{total}}",
       savingsTracker: "已存 {{done}} / {{total}}",
-      allIncomeSince: "{{date}} 以来的所有收入",
       trackerDone: "已完成",
       lowBalance: "余额低于 {{amount}} 时通知",
       balanceAbove: "余额高于 {{amount}} 时通知",

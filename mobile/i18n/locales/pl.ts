@@ -550,18 +550,18 @@ const pl: Locale = {
     dailyBody: "Nie zapomnij dodać dzisiejszych transakcji.",
   },
   reminders: {
+    savingsWhere: "Gdzie je trzymasz",
+    savingsNewFund: "Nowe konto",
+    savingsExistingFund: "Istniejące konto",
+    trackerNoteExistingFund: "Śledzi saldo wybranego konta: wpłacone pieniądze minus wypłacone.",
     trackerName: "Nazwa",
-    savingsCounts: "Co się liczy",
-    savingsAllIncome: "Wszystkie przychody",
-    savingsOwnCategory: "Własna kategoria",
-    trackerNoteAllIncome: "Liczy wszystkie Twoje przychody od dnia, w którym go utworzysz.",
     trackerSaveFailedTitle: "Nie udało się zapisać trackera",
     trackerSaveFailed: "Utworzenie jego kategorii wymaga połączenia z internetem. Sprawdź je i spróbuj ponownie.",
     trackersLabel: "Trackery",
     trackersEmpty: "Brak trackerów: dodaj tracker pożyczki, pożyczonych pieniędzy lub celu oszczędnościowego",
     trackerNamePlaceholder: {
       loanTracker: "np. Kredyt na auto",
-      lendTracker: "np. Pożyczone Iwanowi",
+      lendTracker: "np. Pożyczone Piotrowi",
       savingsTracker: "np. Nowy telefon",
     },
     trackerAmount: {
@@ -572,13 +572,12 @@ const pl: Locale = {
     trackerNote: {
       loanTracker: "Tworzy kategorię wydatków „{{name}}”. Dodawaj do niej swoje raty.",
       lendTracker: "Tworzy kategorię przychodów „{{name}}”. Dodawaj do niej zwracane pieniądze.",
-      savingsTracker: "Tworzy kategorię przychodów „{{name}}”. Dodawaj do niej swoje oszczędności.",
+      savingsTracker: "Tworzy konto „{{name}}”. Gdy odkładasz pieniądze, dodawaj je jako przychód na to konto.",
     },
     desc: {
       loanTracker: "Spłacono {{done}} z {{total}}",
       lendTracker: "Odzyskano {{done}} z {{total}}",
       savingsTracker: "Odłożono {{done}} z {{total}}",
-      allIncomeSince: "wszystkie przychody od {{date}}",
       trackerDone: "Zakończono",
       lowBalance: "Powiadom, gdy saldo spadnie poniżej {{amount}}",
       balanceAbove: "Powiadom, gdy saldo przekroczy {{amount}}",

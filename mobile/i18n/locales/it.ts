@@ -514,18 +514,18 @@ const it: Locale = {
     dailyBody: "Non dimenticare di aggiungere i movimenti di oggi.",
   },
   reminders: {
+    savingsWhere: "Dove li tieni",
+    savingsNewFund: "Un nuovo conto",
+    savingsExistingFund: "Un conto che ho",
+    trackerNoteExistingFund: "Segue il saldo del conto scelto: i soldi versati meno quelli prelevati.",
     trackerName: "Nome",
-    savingsCounts: "Cosa conta",
-    savingsAllIncome: "Tutte le entrate",
-    savingsOwnCategory: "Categoria propria",
-    trackerNoteAllIncome: "Conta tutte le tue entrate dal giorno in cui lo crei.",
     trackerSaveFailedTitle: "Impossibile salvare il tracker",
     trackerSaveFailed: "Per creare la sua categoria serve una connessione a internet. Controllala e riprova.",
     trackersLabel: "Tracker",
     trackersEmpty: "Nessun tracker: aggiungine uno per un prestito, soldi prestati o un obiettivo di risparmio",
     trackerNamePlaceholder: {
       loanTracker: "es. Prestito auto",
-      lendTracker: "es. Prestati a Ivan",
+      lendTracker: "es. Prestati a Marco",
       savingsTracker: "es. Telefono nuovo",
     },
     trackerAmount: {
@@ -536,13 +536,12 @@ const it: Locale = {
     trackerNote: {
       loanTracker: "Crea la categoria di spesa «{{name}}». Aggiungi lì le tue rate.",
       lendTracker: "Crea la categoria di entrata «{{name}}». Aggiungi lì i soldi che ti restituiscono.",
-      savingsTracker: "Crea la categoria di entrata «{{name}}». Aggiungi lì i tuoi risparmi.",
+      savingsTracker: "Crea il conto «{{name}}». Quando metti da parte dei soldi, aggiungili come entrata su questo conto.",
     },
     desc: {
       loanTracker: "Restituiti {{done}} su {{total}}",
       lendTracker: "Recuperati {{done}} su {{total}}",
       savingsTracker: "Risparmiati {{done}} su {{total}}",
-      allIncomeSince: "tutte le entrate dal {{date}}",
       trackerDone: "Completato",
       lowBalance: "Avvisa quando il saldo scende sotto {{amount}}",
       balanceAbove: "Avvisa quando il saldo supera {{amount}}",

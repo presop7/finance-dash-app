@@ -515,18 +515,18 @@ const ja: Locale = {
     dailyBody: "今日の取引の追加を忘れずに。",
   },
   reminders: {
+    savingsWhere: "お金の保管先",
+    savingsNewFund: "新しい口座",
+    savingsExistingFund: "既存の口座",
+    trackerNoteExistingFund: "選んだ口座の残高（入れたお金から出したお金を引いた額）を追跡します。",
     trackerName: "名前",
-    savingsCounts: "カウント対象",
-    savingsAllIncome: "すべての収入",
-    savingsOwnCategory: "専用カテゴリ",
-    trackerNoteAllIncome: "作成した日以降のすべての収入をカウントします。",
     trackerSaveFailedTitle: "トラッカーを保存できませんでした",
     trackerSaveFailed: "カテゴリの作成にはインターネット接続が必要です。接続を確認して、もう一度お試しください。",
     trackersLabel: "トラッカー",
     trackersEmpty: "トラッカーはまだありません：ローン、貸したお金、貯金目標に追加できます",
     trackerNamePlaceholder: {
       loanTracker: "例：自動車ローン",
-      lendTracker: "例：イワンに貸した",
+      lendTracker: "例：田中さんに貸した",
       savingsTracker: "例：新しいスマホ",
     },
     trackerAmount: {
@@ -537,13 +537,12 @@ const ja: Locale = {
     trackerNote: {
       loanTracker: "支出カテゴリ「{{name}}」を作成します。返済はここに記録してください。",
       lendTracker: "収入カテゴリ「{{name}}」を作成します。返ってきたお金はここに記録してください。",
-      savingsTracker: "収入カテゴリ「{{name}}」を作成します。貯金はここに記録してください。",
+      savingsTracker: "口座「{{name}}」を作成します。お金を取り分けたら、この口座への収入として記録してください。",
     },
     desc: {
       loanTracker: "{{total}}中{{done}}を返済",
       lendTracker: "{{total}}中{{done}}が返済済み",
       savingsTracker: "{{total}}中{{done}}を貯金",
-      allIncomeSince: "{{date}}以降のすべての収入",
       trackerDone: "完了",
       lowBalance: "残高が{{amount}}を下回ったら通知",
       balanceAbove: "残高が{{amount}}を超えたら通知",

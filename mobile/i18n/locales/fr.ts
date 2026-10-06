@@ -514,18 +514,18 @@ const fr: Locale = {
     dailyBody: "N'oubliez pas d'ajouter les opérations d'aujourd'hui.",
   },
   reminders: {
+    savingsWhere: "Où vous le gardez",
+    savingsNewFund: "Un nouveau compte",
+    savingsExistingFund: "Un compte existant",
+    trackerNoteExistingFund: "Suit le solde du compte choisi : l'argent versé moins l'argent retiré.",
     trackerName: "Nom",
-    savingsCounts: "Ce qui compte",
-    savingsAllIncome: "Tous les revenus",
-    savingsOwnCategory: "Sa propre catégorie",
-    trackerNoteAllIncome: "Compte tous vos revenus à partir du jour où vous le créez.",
     trackerSaveFailedTitle: "Impossible d'enregistrer le suivi",
     trackerSaveFailed: "Créer sa catégorie nécessite une connexion internet. Vérifiez-la et réessayez.",
     trackersLabel: "Suivis",
     trackersEmpty: "Aucun suivi pour l'instant : ajoutez-en un pour un prêt, de l'argent prêté ou un objectif d'épargne",
     trackerNamePlaceholder: {
       loanTracker: "ex. Prêt auto",
-      lendTracker: "ex. Prêté à Ivan",
+      lendTracker: "ex. Prêté à Lucas",
       savingsTracker: "ex. Nouveau téléphone",
     },
     trackerAmount: {
@@ -536,13 +536,12 @@ const fr: Locale = {
     trackerNote: {
       loanTracker: "Crée la catégorie de dépense « {{name}} ». Ajoutez-y vos remboursements.",
       lendTracker: "Crée la catégorie de revenu « {{name}} ». Ajoutez-y l'argent qu'on vous rend.",
-      savingsTracker: "Crée la catégorie de revenu « {{name}} ». Ajoutez-y votre épargne.",
+      savingsTracker: "Crée le compte « {{name}} ». Quand vous mettez de l'argent de côté, ajoutez-le comme revenu sur ce compte.",
     },
     desc: {
       loanTracker: "Remboursé {{done}} sur {{total}}",
       lendTracker: "Récupéré {{done}} sur {{total}}",
       savingsTracker: "Épargné {{done}} sur {{total}}",
-      allIncomeSince: "tous les revenus depuis le {{date}}",
       trackerDone: "Terminé",
       lowBalance: "Prévenir quand le solde passe sous {{amount}}",
       balanceAbove: "Prévenir quand le solde dépasse {{amount}}",

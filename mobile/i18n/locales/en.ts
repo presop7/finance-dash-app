@@ -513,18 +513,18 @@ const en = {
     dailyBody: "Don't forget to add today's transactions.",
   },
   reminders: {
+    savingsWhere: "Where you keep it",
+    savingsNewFund: "A new fund",
+    savingsExistingFund: "A fund I have",
+    trackerNoteExistingFund: "Follows the balance of the fund you pick: money put into it minus money taken out.",
     trackerName: "Name",
-    savingsCounts: "What counts",
-    savingsAllIncome: "All income",
-    savingsOwnCategory: "Its own category",
-    trackerNoteAllIncome: "Counts all your income from the day you create it.",
     trackerSaveFailedTitle: "Couldn't save the tracker",
     trackerSaveFailed: "Creating its category needs an internet connection. Check it and try again.",
     trackersLabel: "Trackers",
     trackersEmpty: "No trackers yet: add one for a loan, money you lent, or a savings goal",
     trackerNamePlaceholder: {
       loanTracker: "e.g. Car loan",
-      lendTracker: "e.g. Lent to Ivan",
+      lendTracker: "e.g. Lent to Alex",
       savingsTracker: "e.g. New phone",
     },
     trackerAmount: {
@@ -535,13 +535,12 @@ const en = {
     trackerNote: {
       loanTracker: "Creates the expense category “{{name}}”. Add your repayments to it.",
       lendTracker: "Creates the income category “{{name}}”. Add the money you get back to it.",
-      savingsTracker: "Creates the income category “{{name}}”. Add your savings to it.",
+      savingsTracker: "Creates the fund “{{name}}”. When you put money aside, add it as income into this fund.",
     },
     desc: {
       loanTracker: "Paid back {{done}} of {{total}}",
       lendTracker: "Got back {{done}} of {{total}}",
       savingsTracker: "Saved {{done}} of {{total}}",
-      allIncomeSince: "all income since {{date}}",
       trackerDone: "Completed",
       lowBalance: "Notify when balance drops below {{amount}}",
       balanceAbove: "Notify when balance rises above {{amount}}",

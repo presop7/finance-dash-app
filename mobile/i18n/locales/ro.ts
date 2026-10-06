@@ -532,18 +532,18 @@ const ro: Locale = {
     dailyBody: "Nu uita să adaugi tranzacțiile de azi.",
   },
   reminders: {
+    savingsWhere: "Unde îi ții",
+    savingsNewFund: "Un cont nou",
+    savingsExistingFund: "Un cont existent",
+    trackerNoteExistingFund: "Urmărește soldul contului ales: banii puși minus banii scoși.",
     trackerName: "Nume",
-    savingsCounts: "Ce se socotește",
-    savingsAllIncome: "Toate veniturile",
-    savingsOwnCategory: "Categorie proprie",
-    trackerNoteAllIncome: "Socotește toate veniturile tale din ziua în care îl creezi.",
     trackerSaveFailedTitle: "Urmăritorul nu a putut fi salvat",
     trackerSaveFailed: "Crearea categoriei lui necesită conexiune la internet. Verific-o și încearcă din nou.",
     trackersLabel: "Urmăritoare",
     trackersEmpty: "Niciun urmăritor încă: adaugă unul pentru un împrumut, bani împrumutați sau un obiectiv de economisire",
     trackerNamePlaceholder: {
       loanTracker: "ex. Credit auto",
-      lendTracker: "ex. Împrumutat lui Ivan",
+      lendTracker: "ex. Împrumutat lui Andrei",
       savingsTracker: "ex. Telefon nou",
     },
     trackerAmount: {
@@ -554,13 +554,12 @@ const ro: Locale = {
     trackerNote: {
       loanTracker: "Creează categoria de cheltuieli „{{name}}”. Adaugă în ea ratele tale.",
       lendTracker: "Creează categoria de venituri „{{name}}”. Adaugă în ea banii primiți înapoi.",
-      savingsTracker: "Creează categoria de venituri „{{name}}”. Adaugă în ea economiile tale.",
+      savingsTracker: "Creează contul „{{name}}”. Când pui bani deoparte, adaugă-i ca venit în acest cont.",
     },
     desc: {
       loanTracker: "Returnat {{done}} din {{total}}",
       lendTracker: "Recuperat {{done}} din {{total}}",
       savingsTracker: "Economisit {{done}} din {{total}}",
-      allIncomeSince: "toate veniturile din {{date}}",
       trackerDone: "Finalizat",
       lowBalance: "Anunță când soldul scade sub {{amount}}",
       balanceAbove: "Anunță când soldul trece de {{amount}}",

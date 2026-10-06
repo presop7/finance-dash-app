@@ -69,7 +69,7 @@ export type AlertRuleType =
   // Trackers: progress toward an amount, counted from their own category.
   | "loanTracker" // money owed: expenses in its category pay it back
   | "lendTracker" // money lent: income in its category is it coming back
-  | "savingsTracker"; // a goal: income in its category, or all income since startAt
+  | "savingsTracker"; // a goal: the balance of a fund (where the money is kept)
 
 export type AlertRule = {
   id: string;
@@ -86,8 +86,7 @@ export type AlertRule = {
   lastTriggeredKey?: string;
   // Trackers only.
   name?: string;
-  startAt?: number; // ms; savings counting all income count from here
-  allIncome?: boolean; // savings: all income, not just its category
+  fundId?: string; // savings: the fund it follows
 };
 
 export const DEFAULT_ALERT_RULES: AlertRule[] = [
@@ -160,7 +159,8 @@ type FinanceStore = {
   updateIncomeCategory: (id: string, changes: CategoryFields) => Promise<void>;
   deleteIncomeCategory: (id: string, confirm?: boolean) => Promise<void>;
 
-  addFundCategory: (fundCategory: FundCategoryFields) => Promise<void>;
+  // Resolves to the new fund's id.
+  addFundCategory: (fundCategory: FundCategoryFields) => Promise<string>;
   updateFundCategory: (id: string, changes: FundCategoryFields) => Promise<void>;
   deleteFundCategory: (id: string, confirm?: boolean) => Promise<void>;
 
@@ -917,6 +917,7 @@ export const useFinanceStore = create<FinanceStore>()(
         set((state) => ({
           fundCategories: [...state.fundCategories, mapFundCategory(created)],
         }));
+        return created.id;
       },
 
       updateFundCategory: async (id, changes) => {

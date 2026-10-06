@@ -27,6 +27,8 @@ import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
+// The color of a fund a savings goal creates (the app's green).
+const SAVINGS_FUND_COLOR = "#1D9E75";
 
 // Also the icon of the category a tracker creates.
 export const RULE_ICONS: Record<AlertRuleType, keyof typeof Ionicons.glyphMap> = {
@@ -71,6 +73,9 @@ export default function AlertRuleModal({
     addIncomeCategory,
     updateExpenseCategory,
     updateIncomeCategory,
+    fundCategories,
+    addFundCategory,
+    updateFundCategory,
     addAlertRule,
     updateAlertRule,
     deleteAlertRule,
@@ -93,10 +98,12 @@ export default function AlertRuleModal({
     return d;
   });
   const [showTimePicker, setShowTimePicker] = useState(false);
-  // Trackers: a name (also their category's name) and, for savings, whether
-  // all income counts or only its own category.
+  // Trackers: a name (also their category's or fund's name) and, for a
+  // savings goal, which fund it follows: a new one named after it, or one the
+  // user already has.
   const [name, setName] = useState("");
-  const [allIncome, setAllIncome] = useState(false);
+  const [newFund, setNewFund] = useState(true);
+  const [fundId, setFundId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const tracker = (TRACKER_TYPES as readonly AlertRuleType[]).includes(type);
 
@@ -108,7 +115,8 @@ export default function AlertRuleModal({
       setCategoryType(editingRule.categoryType ?? "expense");
       setCategoryId(editingRule.categoryId ?? null);
       setName(editingRule.name ?? "");
-      setAllIncome(Boolean(editingRule.allIncome));
+      setNewFund(false);
+      setFundId(editingRule.fundId ?? null);
       if (editingRule.hour !== undefined && editingRule.minute !== undefined) {
         const d = new Date();
         d.setHours(editingRule.hour, editingRule.minute, 0, 0);
@@ -120,7 +128,8 @@ export default function AlertRuleModal({
       setCategoryType("expense");
       setCategoryId(null);
       setName("");
-      setAllIncome(false);
+      setNewFund(true);
+      setFundId(null);
       const d = new Date();
       d.setHours(20, 0, 0, 0);
       setTime(d);
@@ -129,20 +138,42 @@ export default function AlertRuleModal({
 
   const categories = categoryType === "expense" ? expenseCategories : incomeCategories;
 
-  // A new tracker gets its own category, named after it, to log against:
-  // repayments (expense) for a loan, money coming back (income) for a lend,
-  // savings (income) for a goal — unless the goal counts all income. Editing
-  // the name renames that category too.
+  // A loan or lend gets its own category, named after it, to log against:
+  // repayments (expense) for a loan, money coming back (income) for a lend.
+  // A savings goal follows a fund — a new one named after it, or an existing
+  // one. Renaming the tracker renames the category, or the fund it made.
   const saveTracker = async (numericAmount: number) => {
     const trimmed = name.trim();
+    if (type === "savingsTracker") {
+      setSaving(true);
+      try {
+        let id = fundId;
+        if (newFund) {
+          id = await addFundCategory({ name: trimmed, icon: RULE_ICONS.savingsTracker, color: SAVINGS_FUND_COLOR });
+        } else {
+          const fund = fundCategories.find((f) => f.id === id);
+          if (fund && editingRule && fund.name === editingRule.name && fund.name !== trimmed) {
+            await updateFundCategory(fund.id, { name: trimmed, icon: fund.icon, color: fund.color });
+          }
+        }
+        const changes = { type, name: trimmed, amount: numericAmount, fundId: id ?? undefined, enabled: editingRule?.enabled ?? true };
+        if (editingRule) updateAlertRule(editingRule.id, { ...changes, lastTriggeredKey: undefined });
+        else addAlertRule(changes);
+        onClose();
+      } catch {
+        await alertAsync(t("reminders.trackerSaveFailedTitle"), t("reminders.trackerSaveFailed"));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     const categoryKind = type === "loanTracker" ? "expense" : "income";
-    const needsCategory = !(type === "savingsTracker" && allIncome);
     setSaving(true);
     try {
       let trackerCategoryId = editingRule?.categoryId;
       const list = categoryKind === "expense" ? expenseCategories : incomeCategories;
       const existing = list.find((c) => c.id === trackerCategoryId);
-      if (needsCategory && !existing) {
+      if (!existing) {
         const fields = { label: trimmed, icon: RULE_ICONS[type] };
         trackerCategoryId =
           categoryKind === "expense" ? await addExpenseCategory(fields) : await addIncomeCategory(fields);
@@ -155,10 +186,8 @@ export default function AlertRuleModal({
         type,
         name: trimmed,
         amount: numericAmount,
-        categoryId: needsCategory ? trackerCategoryId : undefined,
-        categoryType: needsCategory ? categoryKind : undefined,
-        allIncome: type === "savingsTracker" ? allIncome : undefined,
-        startAt: editingRule?.startAt ?? Date.now(),
+        categoryId: trackerCategoryId,
+        categoryType: categoryKind,
         hour: undefined,
         minute: undefined,
         enabled: editingRule?.enabled ?? true,
@@ -237,7 +266,8 @@ export default function AlertRuleModal({
       : !isNaN(numericAmount) &&
         numericAmount > 0 &&
         (type !== "categoryAmount" || Boolean(categoryId)) &&
-        (!tracker || name.trim().length > 0));
+        (!tracker || name.trim().length > 0) &&
+        (type !== "savingsTracker" || newFund || Boolean(fundId)));
   // A tracker keeps its type (its category was made for it); the others can
   // switch between the non-tracker types.
   const editingTracker = editingRule !== null && isTracker(editingRule);
@@ -384,30 +414,57 @@ export default function AlertRuleModal({
 
               {type === "savingsTracker" && (
                 <>
-                  <Text style={styles.formLabel}>{t("reminders.savingsCounts")}</Text>
-                  <View style={styles.typeToggle}>
-                    {[false, true].map((all) => (
-                      <TouchableOpacity
-                        key={String(all)}
-                        style={[styles.toggleOption, allIncome === all && { backgroundColor: Colors.primary }]}
-                        onPress={() => setAllIncome(all)}
-                        disabled={editingTracker}
-                      >
-                        <Text
-                          style={[styles.toggleText, allIncome === all ? styles.toggleActiveText : styles.toggleInactiveText]}
+                  <Text style={styles.formLabel}>{t("reminders.savingsWhere")}</Text>
+                  {!editingTracker && (
+                    <View style={styles.typeToggle}>
+                      {[true, false].map((isNew) => (
+                        <TouchableOpacity
+                          key={String(isNew)}
+                          style={[styles.toggleOption, newFund === isNew && { backgroundColor: Colors.primary }]}
+                          onPress={() => setNewFund(isNew)}
                         >
-                          {all ? t("reminders.savingsAllIncome") : t("reminders.savingsOwnCategory")}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                          <Text
+                            style={[styles.toggleText, newFund === isNew ? styles.toggleActiveText : styles.toggleInactiveText]}
+                          >
+                            {isNew ? t("reminders.savingsNewFund") : t("reminders.savingsExistingFund")}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                  {!newFund && (
+                    <View style={[styles.typeGrid, styles.fundGrid]}>
+                      {fundCategories
+                        .filter((f) => !f.locked)
+                        .map((fund) => (
+                          <TouchableOpacity
+                            key={fund.id}
+                            style={[styles.typeChip, fundId === fund.id && styles.typeChipActive]}
+                            onPress={() => setFundId(fund.id)}
+                          >
+                            <Ionicons
+                              name={fund.icon as keyof typeof Ionicons.glyphMap}
+                              size={16}
+                              color={fundId === fund.id ? "#fff" : fund.color}
+                            />
+                            <Text
+                              style={[styles.typeChipText, styles.categoryChipText, fundId === fund.id && styles.typeChipTextActive]}
+                            >
+                              {fund.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+                  )}
                 </>
               )}
 
               {tracker && (
                 <Text style={styles.trackerNote}>
-                  {type === "savingsTracker" && allIncome
-                    ? t("reminders.trackerNoteAllIncome")
+                  {type === "savingsTracker"
+                    ? newFund
+                      ? t("reminders.trackerNote.savingsTracker", { name: name.trim() || "…" })
+                      : t("reminders.trackerNoteExistingFund")
                     : t(`reminders.trackerNote.${type}`, { name: name.trim() || "…" })}
                 </Text>
               )}
@@ -614,6 +671,7 @@ function createStyles(Colors: ColorsType) {
   toggleInactiveText: { color: Colors.textMuted },
   formActions: { flexDirection: "row", gap: 10, marginTop: 20, marginBottom: 8 },
   trackerNote: { fontSize: FONT.small, color: Colors.textMuted, marginTop: 10 },
+  fundGrid: { marginTop: 10 },
   cancelBtn: {
     flex: 1,
     padding: 14,

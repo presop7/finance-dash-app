@@ -32,19 +32,17 @@ export const TRACKER_TYPES = ["loanTracker", "lendTracker", "savingsTracker"] as
 export const isTracker = (rule: AlertRule) => (TRACKER_TYPES as readonly string[]).includes(rule.type);
 
 // How far a tracker has got: a loan is paid back by expenses in its category,
-// lent money comes back as income in its category, and savings count income
-// in its category — or, set to all income, every income since it started.
+// lent money comes back as income in its category, and a savings goal is the
+// balance of its fund — money put into it minus money taken out.
 export function trackerProgress(rule: AlertRule, transactions: Transaction[]): number {
-  const counts = (tx: Transaction) => {
-    if (rule.type === "loanTracker") return tx.type === "expense" && tx.category === rule.categoryId;
-    if (rule.type === "lendTracker") return tx.type === "income" && tx.category === rule.categoryId;
-    if (rule.type === "savingsTracker") {
-      if (tx.type !== "income") return false;
-      return rule.allIncome ? new Date(tx.date).getTime() >= (rule.startAt ?? 0) : tx.category === rule.categoryId;
+  return transactions.reduce((sum, tx) => {
+    if (rule.type === "loanTracker" && tx.type === "expense" && tx.category === rule.categoryId) return sum + tx.amount;
+    if (rule.type === "lendTracker" && tx.type === "income" && tx.category === rule.categoryId) return sum + tx.amount;
+    if (rule.type === "savingsTracker" && rule.fundId && tx.fundCategory === rule.fundId) {
+      return sum + (tx.type === "income" ? tx.amount : -tx.amount);
     }
-    return false;
-  };
-  return transactions.reduce((sum, tx) => (counts(tx) ? sum + tx.amount : sum), 0);
+    return sum;
+  }, 0);
 }
 
 // One rule's state right now: whether it's in alarm (`active`), the key that

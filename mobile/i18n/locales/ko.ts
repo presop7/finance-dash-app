@@ -515,18 +515,18 @@ const ko: Locale = {
     dailyBody: "오늘의 거래를 잊지 말고 추가하세요.",
   },
   reminders: {
+    savingsWhere: "보관할 곳",
+    savingsNewFund: "새 계좌",
+    savingsExistingFund: "기존 계좌",
+    trackerNoteExistingFund: "선택한 계좌의 잔액(넣은 돈에서 꺼낸 돈을 뺀 금액)을 따라갑니다.",
     trackerName: "이름",
-    savingsCounts: "계산 대상",
-    savingsAllIncome: "모든 수입",
-    savingsOwnCategory: "전용 카테고리",
-    trackerNoteAllIncome: "만든 날부터의 모든 수입을 계산합니다.",
     trackerSaveFailedTitle: "트래커를 저장하지 못했습니다",
     trackerSaveFailed: "카테고리를 만들려면 인터넷 연결이 필요합니다. 연결을 확인하고 다시 시도하세요.",
     trackersLabel: "트래커",
     trackersEmpty: "아직 트래커가 없습니다: 대출, 빌려준 돈, 저축 목표용으로 추가하세요",
     trackerNamePlaceholder: {
       loanTracker: "예: 자동차 대출",
-      lendTracker: "예: 이반에게 빌려줌",
+      lendTracker: "예: 민준에게 빌려줌",
       savingsTracker: "예: 새 휴대폰",
     },
     trackerAmount: {
@@ -537,13 +537,12 @@ const ko: Locale = {
     trackerNote: {
       loanTracker: "지출 카테고리 \"{{name}}\"을(를) 만듭니다. 상환금을 여기에 기록하세요.",
       lendTracker: "수입 카테고리 \"{{name}}\"을(를) 만듭니다. 돌려받은 돈을 여기에 기록하세요.",
-      savingsTracker: "수입 카테고리 \"{{name}}\"을(를) 만듭니다. 저축한 돈을 여기에 기록하세요.",
+      savingsTracker: "계좌 \"{{name}}\"을(를) 만듭니다. 돈을 따로 모을 때 이 계좌에 수입으로 기록하세요.",
     },
     desc: {
       loanTracker: "{{total}} 중 {{done}} 상환",
       lendTracker: "{{total}} 중 {{done}} 회수",
       savingsTracker: "{{total}} 중 {{done}} 저축",
-      allIncomeSince: "{{date}} 이후 모든 수입",
       trackerDone: "완료",
       lowBalance: "잔액이 {{amount}} 아래로 떨어지면 알림",
       balanceAbove: "잔액이 {{amount}}을(를) 넘으면 알림",

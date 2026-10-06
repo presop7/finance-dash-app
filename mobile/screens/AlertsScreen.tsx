@@ -28,6 +28,7 @@ export default function AlertsScreen() {
     transactions,
     expenseCategories,
     incomeCategories,
+    fundCategories,
     settings,
     toggleAlertRule,
     deleteAlertRule,
@@ -85,9 +86,9 @@ export default function AlertsScreen() {
       case "savingsTracker": {
         const done = formatCurrency(Math.min(progressOf(rule), rule.amount), settings.currency);
         const text = t(`reminders.desc.${rule.type}`, { done, total: amount });
-        if (rule.type !== "savingsTracker" || !rule.allIncome) return text;
-        const since = new Date(rule.startAt ?? 0).toLocaleDateString(currentLocale());
-        return `${text} · ${t("reminders.desc.allIncomeSince", { date: since })}`;
+        if (rule.type !== "savingsTracker") return text;
+        const fund = fundCategories.find((f) => f.id === rule.fundId);
+        return fund ? `${text} · ${fund.name}` : text;
       }
     }
   };

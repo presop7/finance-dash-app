@@ -515,18 +515,18 @@ const pt: Locale = {
     dailyBody: "Não se esqueça de adicionar as transações de hoje.",
   },
   reminders: {
+    savingsWhere: "Onde você guarda",
+    savingsNewFund: "Uma conta nova",
+    savingsExistingFund: "Uma conta que já tenho",
+    trackerNoteExistingFund: "Acompanha o saldo da conta escolhida: o dinheiro que entra menos o que sai.",
     trackerName: "Nome",
-    savingsCounts: "O que conta",
-    savingsAllIncome: "Toda a receita",
-    savingsOwnCategory: "Categoria própria",
-    trackerNoteAllIncome: "Conta toda a sua receita a partir do dia em que você o criar.",
     trackerSaveFailedTitle: "Não foi possível salvar o acompanhamento",
     trackerSaveFailed: "Criar a categoria dele precisa de conexão com a internet. Verifique e tente novamente.",
     trackersLabel: "Acompanhamentos",
     trackersEmpty: "Nenhum acompanhamento ainda: adicione um para um empréstimo, dinheiro emprestado ou uma meta de economia",
     trackerNamePlaceholder: {
       loanTracker: "ex.: Financiamento do carro",
-      lendTracker: "ex.: Emprestado ao Ivan",
+      lendTracker: "ex.: Emprestado ao João",
       savingsTracker: "ex.: Celular novo",
     },
     trackerAmount: {
@@ -537,13 +537,12 @@ const pt: Locale = {
     trackerNote: {
       loanTracker: "Cria a categoria de despesa “{{name}}”. Registre nela os seus pagamentos.",
       lendTracker: "Cria a categoria de receita “{{name}}”. Registre nela o dinheiro que voltar.",
-      savingsTracker: "Cria a categoria de receita “{{name}}”. Registre nela as suas economias.",
+      savingsTracker: "Cria a conta “{{name}}”. Quando guardar dinheiro, registre-o como receita nesta conta.",
     },
     desc: {
       loanTracker: "Pago {{done}} de {{total}}",
       lendTracker: "Recebido {{done}} de {{total}}",
       savingsTracker: "Economizado {{done}} de {{total}}",
-      allIncomeSince: "toda a receita desde {{date}}",
       trackerDone: "Concluído",
       lowBalance: "Avisar quando o saldo ficar abaixo de {{amount}}",
       balanceAbove: "Avisar quando o saldo passar de {{amount}}",
