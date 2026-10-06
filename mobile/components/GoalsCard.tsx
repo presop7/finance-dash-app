@@ -10,6 +10,8 @@ import { formatCurrency } from "../utils/currency";
 import { goalSaved, goalSpent } from "../utils/goals";
 import { isDemoId } from "../utils/demoTransactions";
 import GoalModal from "../screens/modals/GoalModal";
+import { FREE } from "../constants/plan";
+import { requirePremium } from "../store/usePremiumStore";
 import { useTranslation } from "react-i18next";
 
 const CARD_WIDTH = 148;
@@ -58,7 +60,10 @@ export default function GoalsCard() {
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity style={[styles.card, styles.addCard]} activeOpacity={0.7} onPress={() => setOpen({ goal: null })}>
+        <TouchableOpacity style={[styles.card, styles.addCard]} activeOpacity={0.7} onPress={() => {
+            if (goals.length >= FREE.goals && !requirePremium("goals")) return;
+            setOpen({ goal: null });
+          }}>
           <Ionicons name="add-circle-outline" size={26} color={Colors.primary} />
           <Text style={styles.addText}>{t("goals.new")}</Text>
           {goals.length === 0 && <Text style={styles.addHint}>{t("goals.emptyHint")}</Text>}

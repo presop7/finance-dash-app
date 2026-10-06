@@ -19,6 +19,8 @@ import { themedCategoryColor } from "../../utils/color";
 import { useDeferredReady } from "../../hooks/useDeferredReady";
 import { PillRowsSkeleton } from "../../components/Skeleton";
 import { useFinanceStore } from "../../store/useFinanceStore";
+import { FREE_RANGES } from "../../constants/plan";
+import { requirePremium, usePlan } from "../../store/usePremiumStore";
 import { confirmUnsavedChanges } from "../../utils/confirm";
 import CalendarRangePicker from "../../components/CalendarRangePicker";
 import HoldPressable from "../../components/HoldPressable";
@@ -66,6 +68,7 @@ export default function TransactionFiltersModal({
   const isDark = useResolvedScheme() === "dark";
 
   const [draft, setDraft] = useState<TransactionFilters>(filters);
+  const { premium } = usePlan();
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [fundSearch, setFundSearch] = useState("");
   const [expenseSearch, setExpenseSearch] = useState("");
@@ -209,6 +212,8 @@ export default function TransactionFiltersModal({
                           styles.dropdownItemActive,
                       ]}
                       onPress={() => {
+                        const free = (FREE_RANGES as readonly string[]).includes(p);
+                        if (!free && !requirePremium("ranges")) return;
                         setDraft((d) => ({ ...d, dateRangePreset: p }));
                         if (p !== "custom") setDateDropdownOpen(false);
                       }}
@@ -222,6 +227,9 @@ export default function TransactionFiltersModal({
                       >
                         {dateRangeLabel(p)}
                       </Text>
+                      {!premium && !(FREE_RANGES as readonly string[]).includes(p) && (
+                        <Ionicons name="lock-closed-outline" size={13} color={Colors.textMuted} />
+                      )}
                       {p === draft.dateRangePreset && (
                         <Ionicons
                           name="checkmark"

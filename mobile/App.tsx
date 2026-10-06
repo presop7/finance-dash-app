@@ -31,6 +31,10 @@ import AuthScreen from "./screens/AuthScreen";
 // Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
 import DevAccessScreen from "./screens/DevAccessScreen";
+import PremiumModal from "./screens/modals/PremiumModal";
+import MonthlyReportModal from "./screens/modals/MonthlyReportModal";
+import KeepWithinLimitsModal from "./screens/modals/KeepWithinLimitsModal";
+import { useOffersEngine } from "./hooks/useOffersEngine";
 
 // Components
 import FABButton from "./components/FABButton";
@@ -545,6 +549,8 @@ function AppContent() {
   useAlertsMonitor();
   useDailyReminderSync();
   useTutorialAutoStart();
+  // Offers and the trial-end screen; never while the new-transaction form is open.
+  useOffersEngine(showTransaction);
 
   // The "nothing added in a while" tip's button opens the new-transaction form.
   useEffect(() => {
@@ -669,6 +675,9 @@ function AppContent() {
         }
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
+      <PremiumModal />
+      <MonthlyReportModal />
+      <KeepWithinLimitsModal />
       <NamePromptModal />
       <CurrencyPromptModal />
 

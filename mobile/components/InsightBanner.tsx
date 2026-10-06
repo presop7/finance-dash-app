@@ -7,6 +7,8 @@ import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import { getInsights } from "../utils/insights";
 import { FONT } from "../constants/typography";
+import { useTranslation } from "react-i18next";
+import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 
 type InsightBannerProps = {
   transactions: Transaction[];
@@ -29,12 +31,47 @@ export default function InsightBanner({
   const [index, setIndex] = useState(() => Math.floor(Math.random() * 1000));
   const message = insights[index % insights.length];
   const canCycle = insights.length > 1;
+  const { t } = useTranslation();
+  const { premium } = usePlan();
+  // Free plan, per app opening at random: one free insight, or the Premium
+  // message ("tap to see the free one"). Tapping the free insight again shows
+  // "get Premium for the rest" until the next opening.
+  const [teaser, setTeaser] = useState<"insight" | "promo" | "locked">(() =>
+    Math.random() < 0.5 ? "insight" : "promo",
+  );
+
+  if (!premium) {
+    const text = teaser === "insight" ? insights[0] : teaser === "promo" ? t("insights.promo") : t("insights.locked");
+    return (
+      <Pressable
+        style={styles.banner}
+        onPress={() => setTeaser((m) => (m === "promo" ? "insight" : "locked"))}
+      >
+        <View style={styles.iconContainer}>
+          <Ionicons name={teaser === "insight" ? "bulb-outline" : "lock-closed-outline"} size={16} color={Colors.primary} />
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.message} numberOfLines={3}>
+            {text}
+          </Text>
+        </View>
+        {teaser !== "insight" && (
+          <Pressable style={styles.premiumBtn} onPress={() => usePremiumStore.getState().showPremium("insights")} hitSlop={6}>
+            <Text style={styles.premiumBtnText}>{t("premium.short")}</Text>
+          </Pressable>
+        )}
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
       style={styles.banner}
       disabled={!canCycle}
-      onPress={() => setIndex((i) => i + 1)}
+      onPress={() => {
+        setIndex((i) => i + 1);
+        usePremiumStore.getState().recordPremiumUse(); // more insights: a Premium use in the trial
+      }}
     >
       {/* Icon */}
       <View style={styles.iconContainer}>
@@ -91,6 +128,14 @@ function createStyles(Colors: ColorsType) {
     color: Colors.textSecondary,
     lineHeight: 18,
   },
+  premiumBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    flexShrink: 0,
+  },
+  premiumBtnText: { fontSize: FONT.label, fontWeight: "700", color: "#fff" },
   counter: {
     fontSize: FONT.label,
     color: Colors.textMuted,

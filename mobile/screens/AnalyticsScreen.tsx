@@ -39,6 +39,8 @@ import StaggeredRow from "../components/StaggeredRow";
 import Carousel from "../components/Carousel";
 import CategoryPieChart from "../components/CategoryPieChart";
 import CategoryBarChart from "../components/CategoryBarChart";
+import PremiumLock from "../components/PremiumLock";
+import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 import { useCategoryBreakdown } from "../hooks/useCategoryBreakdown";
 // TEMPORARY diagnostics for the current performance pass — see
 // utils/perfProbe.ts (a windowed frame-gap report per interaction) and
@@ -213,6 +215,7 @@ function AnalyticsScreen({
   // Breakdown" while the pie is up rather than staying "Summary" for a page
   // that isn't one anymore.
   const [summaryPage, setSummaryPage] = useState(0);
+  const { premium } = usePlan();
 
   // Long-press a row to enter multi-select (mirrors CategoriesModal's own
   // hold-to-select pattern); the held row is auto-selected.
@@ -903,6 +906,14 @@ function AnalyticsScreen({
                 <Ionicons name="close-outline" size={16} color={Colors.textMuted} />
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.quickResetBtn}
+              onPress={() => usePremiumStore.getState().setReportOpen(true)}
+              hitSlop={6}
+              accessibilityLabel={t("report.title")}
+            >
+              <Ionicons name="document-text-outline" size={16} color={Colors.primary} />
+            </TouchableOpacity>
             <View ref={filtersTargetRef} collapsable={false}>
               <TouchableOpacity
                 style={styles.filterBtn}
@@ -1125,7 +1136,11 @@ function AnalyticsScreen({
               onToggleCollapse={() => setSummaryCollapsed((v) => !v)}
             >
               <Carousel
-                onIndexChange={setSummaryPage}
+                onIndexChange={(page) => {
+                  setSummaryPage(page);
+                  // Looking at a chart during the trial counts as a Premium use.
+                  if (page > 0 && premium) usePremiumStore.getState().recordPremiumUse();
+                }}
                 pages={[
                   <View style={styles.summaryCard} key="totals">
                     {/* Under a single-type filter the other type's bar would
@@ -1187,21 +1202,29 @@ function AnalyticsScreen({
                     </View>
                   </View>,
                   <View style={styles.summaryCard} key="pie">
-                    <CategoryPieChart
-                      slices={chartSlices}
-                      total={chartTotal}
-                      currencyCode={currencyCode}
-                      onHoldCategory={handleHoldWedgeCategory}
-                      emptyLabel={chartEmptyLabel}
-                    />
+                    {premium ? (
+                      <CategoryPieChart
+                        slices={chartSlices}
+                        total={chartTotal}
+                        currencyCode={currencyCode}
+                        onHoldCategory={handleHoldWedgeCategory}
+                        emptyLabel={chartEmptyLabel}
+                      />
+                    ) : (
+                      <PremiumLock reason="charts" text={t("premium.chartsLocked")} />
+                    )}
                   </View>,
                   <View style={styles.summaryCard} key="bar">
-                    <CategoryBarChart
-                      slices={chartSlices}
-                      currencyCode={currencyCode}
-                      onHoldCategory={handleHoldWedgeCategory}
-                      emptyLabel={chartEmptyLabel}
-                    />
+                    {premium ? (
+                      <CategoryBarChart
+                        slices={chartSlices}
+                        currencyCode={currencyCode}
+                        onHoldCategory={handleHoldWedgeCategory}
+                        emptyLabel={chartEmptyLabel}
+                      />
+                    ) : (
+                      <PremiumLock reason="charts" text={t("premium.chartsLocked")} />
+                    )}
                   </View>,
                 ]}
               />

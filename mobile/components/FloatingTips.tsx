@@ -12,6 +12,8 @@ import { useHighlightStore } from "../store/useHighlightStore";
 import { hasNotificationPermission, notificationsSupported } from "../utils/notifications";
 import { activeAlerts } from "../utils/alertEvaluation";
 import { isDemoId } from "../utils/demoTransactions";
+import { currentLocale } from "../i18n";
+import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 
 export type Tip = {
   id: string;
@@ -20,6 +22,9 @@ export type Tip = {
   text: string;
   action?: string;
   onAction?: () => void;
+  // Called when it's closed (✕ or its button): for tips that must not come
+  // back at the next opening, like an offer.
+  onDismiss?: () => void;
 };
 
 // Hours without a newly added transaction before the reminder tip shows.
@@ -45,6 +50,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
   const notifications = useNotificationTip(onShowNotifications);
   const alerts = useAlertTips(notifications.delivered);
   const reminder = useReminderTip();
+  const premium = usePremiumTips();
 
   const queue = [
     enabled.install ? install : null,
@@ -53,6 +59,9 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
       ? []
       : [
           enabled.notifications ? notifications.tip : null,
+          premium.timer,
+          enabled.offers ? premium.offer : null,
+          premium.report,
           ...(enabled.alerts ? alerts : []),
           enabled.reminder ? reminder : null,
         ]),
@@ -60,7 +69,10 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
 
   const tip = queue[0];
   if (!tip) return null;
-  const close = () => setClosed((prev) => new Set(prev).add(tip.id));
+  const close = () => {
+    tip.onDismiss?.();
+    setClosed((prev) => new Set(prev).add(tip.id));
+  };
 
   return (
     <View pointerEvents="box-none" style={[styles.stack, { top: insets.top + 8 }]}>
@@ -183,6 +195,72 @@ function useReminderTip(): Tip | null {
     action: t("reminderTip.add"),
     onAction: () => openAddTransaction?.(),
   };
+}
+
+// Premium tips:
+//   - timer: the trial-end offer's last hour, on every opening until it ends;
+//   - offer: the one offer the offers engine picked today (utils/offers);
+//   - report: on the first opening of a month, last month's report is ready.
+function usePremiumTips(): { timer: Tip | null; offer: Tip | null; report: Tip | null } {
+  const { t } = useTranslation();
+  const signedIn = useAuthStore((s) => s.session !== null);
+  const offer = usePremiumStore((s) => s.offer);
+  const offerUntil = usePremiumStore((s) => s.trialEndOfferUntil);
+  const reportTipMonth = usePremiumStore((s) => s.reportTipMonth);
+  const transactions = useFinanceStore((s) => s.transactions);
+  const { paid } = usePlan();
+  if (!signedIn) return { timer: null, offer: null, report: null };
+  const premium = usePremiumStore.getState();
+
+  const now = Date.now();
+  const timer: Tip | null =
+    !paid && offerUntil !== null && offerUntil > now
+      ? {
+          id: "offerTimer",
+          icon: "time-outline",
+          title: t("offers.timerTitle"),
+          text: t("offers.timerText", { minutes: Math.max(1, Math.ceil((offerUntil - now) / 60000)) }),
+          action: t("offers.see"),
+          onAction: () => premium.showPremium("offer"),
+        }
+      : null;
+
+  const offerTip: Tip | null = offer
+    ? {
+        id: `offer-${offer}`,
+        icon: "diamond-outline",
+        title: t(`offers.${offer}.title`),
+        text: t(`offers.${offer}.text`),
+        action: t("offers.see"),
+        onAction: () => premium.showPremium("offer"),
+        onDismiss: () => premium.clearOffer(),
+      }
+    : null;
+
+  // Last month's report, on the first opening of a new month (if last month
+  // had anything in it).
+  const today = new Date();
+  const monthKey = `${today.getFullYear()}-${today.getMonth()}`;
+  const last = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthHasData =
+    reportTipMonth !== monthKey &&
+    transactions.some((tx) => {
+      const d = new Date(tx.date);
+      return !isDemoId(tx.id) && d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+    });
+  const report: Tip | null = lastMonthHasData
+    ? {
+        id: `report-${monthKey}`,
+        icon: "document-text-outline",
+        title: t("report.tipTitle"),
+        text: t("report.tipText", { month: last.toLocaleDateString(currentLocale(), { month: "long" }) }),
+        action: t("report.open"),
+        onAction: () => premium.setReportOpen(true),
+        onDismiss: () => premium.setReportTipMonth(monthKey),
+      }
+    : null;
+
+  return { timer, offer: offerTip, report };
 }
 
 const styles = StyleSheet.create({

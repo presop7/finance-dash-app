@@ -28,6 +28,9 @@ import { fundBalance, goalByFund, goalSaved, goalSpent, reservedByFund } from ".
 import { isDemoId } from "../../utils/demoTransactions";
 import { currentLocale } from "../../i18n";
 import { useTranslation } from "react-i18next";
+import { FREE } from "../../constants/plan";
+import { usePlan } from "../../store/usePremiumStore";
+import PremiumLock from "../../components/PremiumLock";
 
 // A savings goal's sheet. Opened on a goal: its progress, where its money
 // sits, "Задели" (set money aside from a fund) and "Освободи" (release it
@@ -167,6 +170,11 @@ export default function GoalModal({
     </View>
   );
 
+  // On a free plan only the first goal(s) stay editable; the rest are
+  // read-only (still shown, nothing removed).
+  const { premium } = usePlan();
+  const locked = !premium && current !== null && goals.findIndex((g) => g.id === current.id) >= FREE.goals;
+
   const renderDetails = () => {
     if (!current) return null;
     const saved = goalSaved(current);
@@ -194,7 +202,8 @@ export default function GoalModal({
           </Text>
         )}
 
-        {!spent && (
+        {locked && <PremiumLock reason="goals" text={t("goals.lockedExtra")} />}
+        {!spent && !locked && (
           <View style={styles.actions}>
             <TouchableOpacity style={[styles.actionBtn, styles.actionPrimary]} onPress={() => openAllocate("setAside")}>
               <Ionicons name="add" size={18} color="#fff" />
@@ -210,7 +219,7 @@ export default function GoalModal({
             </TouchableOpacity>
           </View>
         )}
-        {!spent && <Text style={styles.hint}>{t("goals.spendHint")}</Text>}
+        {!spent && !locked && <Text style={styles.hint}>{t("goals.spendHint")}</Text>}
 
         <Text style={styles.label}>{t("goals.history")}</Text>
         {current.allocations.length === 0 ? (
@@ -331,7 +340,7 @@ export default function GoalModal({
                   {title}
                 </Text>
               </View>
-              {view === "details" && current && (
+              {view === "details" && current && !locked && (
                 <TouchableOpacity onPress={() => setView("form")} hitSlop={8} style={styles.editBtn} accessibilityLabel={t("goals.edit")}>
                   <Ionicons name="pencil" size={16} color={Colors.textMuted} />
                 </TouchableOpacity>

@@ -141,7 +141,7 @@ export const DEV_GATE = process.env.EXPO_PUBLIC_DEV_GATE === "true";
 // being saved during that sync is then picked up next time (repeats are fine).
 const SYNC_OVERLAP_MS = 2 * 60_000;
 
-export type TipId = "install" | "notifications" | "alerts" | "reminder";
+export type TipId = "install" | "notifications" | "alerts" | "reminder" | "offers";
 
 export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
 
@@ -692,7 +692,7 @@ export const useFinanceStore = create<FinanceStore>()(
       categoryOrder: [],
       themePreference: "system",
       notificationsEnabled: true,
-      tips: { install: true, notifications: true, alerts: true, reminder: true },
+      tips: { install: true, notifications: true, alerts: true, reminder: true, offers: true },
       lastAddedAt: null,
       language: null,
       displayNameOverride: null,

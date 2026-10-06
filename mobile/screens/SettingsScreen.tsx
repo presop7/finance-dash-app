@@ -26,6 +26,7 @@ import FeedbackModal from "./modals/FeedbackModal";
 import ShareAppModal from "./modals/ShareAppModal";
 import ChangePasswordModal from "./modals/ChangePasswordModal";
 import TipsModal from "./modals/TipsModal";
+import { requirePremium, usePlan, usePremiumStore } from "../store/usePremiumStore";
 import { useHighlightStore } from "../store/useHighlightStore";
 import {
   ensureNotificationPermission,
@@ -76,6 +77,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const categoriesRef = useTutorialTarget("settings:categories", scrollTo);
   const aboutRef = useTutorialTarget("settings:about", scrollTo);
   const startTutorial = useTutorialStore((s) => s.start);
+  const plan = usePlan();
 
   // Notifications: on only when this device allows them (browser/phone
   // permission) and they're switched on here. Permission is re-checked on
@@ -396,6 +398,24 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
         </View>
 
         <View ref={generalRef} collapsable={false}>
+        {/* Premium: what you have, and the way to it (offers included). */}
+        <TouchableOpacity
+          style={[styles.card, styles.row, styles.premiumRow]}
+          onPress={() => usePremiumStore.getState().showPremium("general")}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.rowIcon, { backgroundColor: Colors.primary }]}>
+            <Ionicons name="diamond-outline" size={18} color="#fff" />
+          </View>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowTitle}>{t("premium.title")}</Text>
+            <Text style={styles.rowSubtitle}>
+              {plan.paid ? t("premium.active") : plan.inTrial ? t("premium.inTrialShort") : t("premium.settingsHint")}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        </TouchableOpacity>
+
         <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("settings.appearance")}</Text>
         <View style={styles.card}>
           <View style={styles.rowWrap}>
@@ -723,7 +743,11 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.row} onPress={onOpenImport} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => requirePremium("csv") && onOpenImport()}
+            activeOpacity={0.7}
+          >
             <View style={styles.rowIcon}>
               <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
             </View>
@@ -951,6 +975,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   rowInfo: { flex: 1 },
+  premiumRow: { marginBottom: 20 },
   // Flashed by "Show me" from a floating tip; invisible otherwise.
   highlightFrame: { borderWidth: 2, borderRadius: 14, borderColor: "transparent" },
   // Rows with a control on the right (toggle, switch, input): when the title

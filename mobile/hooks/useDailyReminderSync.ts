@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useFinanceStore } from "../store/useFinanceStore";
-import { scheduleDailyReminder, cancelDailyReminder } from "../utils/notifications";
+import {
+  scheduleDailyReminder,
+  cancelDailyReminder,
+  scheduleMonthlyReport,
+  cancelMonthlyReport,
+} from "../utils/notifications";
 import i18n from "../i18n";
 
 // Keeps the OS-scheduled daily reminder notifications in sync with the
@@ -42,6 +47,10 @@ export function useDailyReminderSync() {
     }
 
     syncedIdsRef.current = currentIds;
+
+    // The monthly report notification follows the notifications switch.
+    if (notificationsEnabled) scheduleMonthlyReport(i18n.t("report.notifyTitle"), i18n.t("report.notifyBody"));
+    else cancelMonthlyReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertRules, notificationsEnabled]);
 }

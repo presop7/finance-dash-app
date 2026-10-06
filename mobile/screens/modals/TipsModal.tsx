@@ -9,11 +9,12 @@ import FieldIcon from "../../components/FieldIcon";
 
 // Settings → Floating tips: which of the tips that pop up over the app (see
 // FloatingTips) may show on this device.
-const TIPS: { id: TipId; icon: "download-outline" | "notifications-outline" | "warning-outline" | "time-outline" }[] = [
+const TIPS: { id: TipId; icon: "download-outline" | "notifications-outline" | "warning-outline" | "time-outline" | "pricetag-outline" }[] = [
   { id: "install", icon: "download-outline" },
   { id: "notifications", icon: "notifications-outline" },
   { id: "alerts", icon: "warning-outline" },
   { id: "reminder", icon: "time-outline" },
+  { id: "offers", icon: "pricetag-outline" },
 ];
 
 export default function TipsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {

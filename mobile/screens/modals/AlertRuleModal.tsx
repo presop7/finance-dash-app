@@ -25,6 +25,8 @@ import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
+import { FREE } from "../../constants/plan";
+import { requirePremium } from "../../store/usePremiumStore";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
@@ -165,6 +167,12 @@ export default function AlertRuleModal({
   };
 
   const handleSave = () => {
+    // A new one beyond the free plan's limit for its type needs Premium.
+    if (!editingRule) {
+      const sameType = useFinanceStore.getState().alertRules.filter((r) => r.type === type).length;
+      const limit = type === "categoryAmount" ? FREE.categoryLimits : FREE.remindersPerType;
+      if (sameType >= limit && !requirePremium("reminders")) return;
+    }
     if (tracker) {
       const numericAmount = parseFloat(amount);
       if (isNaN(numericAmount) || numericAmount <= 0 || !name.trim()) return;

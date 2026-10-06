@@ -37,6 +37,8 @@ import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
+import { FREE } from "../../constants/plan";
+import { requirePremium } from "../../store/usePremiumStore";
 
 export type CategoryTabType = "expense" | "income" | "fund";
 
@@ -675,7 +677,14 @@ export default function CategoriesModal({
               sheet instead of scrolling away with the grid. */}
           {!selectMode && (
             <View style={styles.addNewFooter}>
-              <TouchableOpacity style={styles.addNewBtn} onPress={() => setEditTarget("new")}>
+              <TouchableOpacity
+                style={styles.addNewBtn}
+                onPress={() => {
+                  const own = fundCategories.filter((f) => !f.locked).length;
+                  if (activeType === "fund" && own >= FREE.funds && !requirePremium("funds")) return;
+                  setEditTarget("new");
+                }}
+              >
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.addNewText}>{t(`categories.addNew_${noun === "Fund" ? "fund" : "category"}`)}</Text>
               </TouchableOpacity>
