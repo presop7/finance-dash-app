@@ -20,10 +20,11 @@ module.exports = {
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: IS_DEV ? "com.presop7.financedash.dev" : "com.presop7.financedash",
+      bundleIdentifier: IS_DEV ? "com.presop7.fitrack.dev" : "com.presop7.fitrack",
     },
     android: {
-      package: IS_DEV ? "com.presop7.financedash.dev" : "com.presop7.financedash",
+      // The Google Play id: can never change after the first upload.
+      package: IS_DEV ? "com.presop7.fitrack.dev" : "com.presop7.fitrack",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#17181c",

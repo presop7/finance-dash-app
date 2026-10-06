@@ -121,6 +121,26 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 ];
 
 // "refreshing" = showing cached data while a background hydrate is in flight.
+export type Plan = {
+  trialEndsAt: number | null; // ms
+  premiumUntil: number | null; // ms
+  devAccess: boolean;
+  devAccessRequestedAt: number | null; // ms
+};
+const NO_PLAN: Plan = { trialEndsAt: null, premiumUntil: null, devAccess: false, devAccessRequestedAt: null };
+const ms = (iso?: string | null) => (iso ? new Date(iso).getTime() : null);
+export const mapPlan = (u: ApiUser): Plan => ({
+  trialEndsAt: ms(u.trial_ends_at),
+  premiumUntil: ms(u.premium_until),
+  devAccess: Boolean(u.dev_access),
+  devAccessRequestedAt: ms(u.dev_access_requested_at),
+});
+// The Play test version (dev link): only accounts given access get in.
+export const DEV_GATE = process.env.EXPO_PUBLIC_DEV_GATE === "true";
+// Asked again a bit earlier than the last sync's server time: a change still
+// being saved during that sync is then picked up next time (repeats are fine).
+const SYNC_OVERLAP_MS = 2 * 60_000;
+
 export type TipId = "install" | "notifications" | "alerts" | "reminder";
 
 export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
@@ -160,7 +180,13 @@ type FinanceStore = {
   // local change) can tell it's stale and skip overwriting settings.
   settingsVersion: number;
 
-  hydrate: () => Promise<void>;
+  // full: re-download every transaction (pull-to-refresh) instead of only
+  // what changed since the last sync.
+  hydrate: (options?: { full?: boolean }) => Promise<void>;
+  // The account's plan and dev-link access, from the server (see usePlan).
+  plan: Plan;
+  // Server time of the last transaction sync; the next one asks for changes since.
+  transactionsSyncedAt: string | null;
   reset: () => void;
 
   updateSettings: (changes: Partial<Settings>) => Promise<void>;
@@ -672,7 +698,10 @@ export const useFinanceStore = create<FinanceStore>()(
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
 
-      hydrate: async () => {
+      plan: NO_PLAN,
+      transactionsSyncedAt: null,
+
+      hydrate: async (options) => {
         // With cached data already on screen this is a background refresh, not
         // a cold load — don't blank the UI out behind a spinner for it.
         const hasCache = get().status === "loaded";
@@ -698,12 +727,30 @@ export const useFinanceStore = create<FinanceStore>()(
         // reflects pre-update server state and must not overwrite it.
         const settingsVersionAtFetch = get().settingsVersion;
 
+        // Dev link: an account without access sees only the lock screen
+        // (the dev backend refuses everything else for it anyway).
+        if (DEV_GATE) {
+          try {
+            const me = await financeApi.getMe();
+            if (userSwitched()) return;
+            set({ plan: mapPlan(me) });
+            if (!me.dev_access) {
+              set({ status: "loaded", lastSyncedAt: Date.now() });
+              return;
+            }
+          } catch {
+            // Falls through to the normal load, which reports the error.
+          }
+        }
+        const syncedAt = options?.full ? null : get().transactionsSyncedAt;
+        const since = syncedAt ? new Date(new Date(syncedAt).getTime() - SYNC_OVERLAP_MS).toISOString() : "1970-01-01T00:00:00Z";
+
         try {
-          const [me, apiCategories, apiFundCategories, apiTransactions, apiGoals] = await Promise.all([
+          const [me, apiCategories, apiFundCategories, changes, apiGoals] = await Promise.all([
             financeApi.getMe(),
             financeApi.listCategories(),
             financeApi.listFundCategories(),
-            financeApi.listTransactions(),
+            financeApi.listTransactionChanges(since),
             // Not fatal: keeps the last-known goals if this one call fails.
             financeApi.listGoals().catch(() => null),
           ]);
@@ -719,21 +766,36 @@ export const useFinanceStore = create<FinanceStore>()(
           const localPending = get().transactions.filter(
             (t) => pendingKeys.has(t.id) || isDemoId(t.id),
           );
-          const serverRows = apiTransactions
+          const serverRows = changes.transactions
             .filter((t) => !pendingKeys.has(t.id) && !pendingKeys.has(t.client_generated_id))
             .map(mapTransaction);
+          // A full load replaces the list; a change sync updates what it has:
+          // drops what was deleted, then adds or replaces what changed.
+          let merged: Transaction[];
+          if (!syncedAt) {
+            merged = [...localPending, ...serverRows];
+          } else {
+            const deleted = new Set(changes.deleted_ids);
+            const byId = new Map(
+              get()
+                .transactions.filter((t) => !deleted.has(t.id))
+                .map((t) => [t.id, t] as const),
+            );
+            for (const row of serverRows) byId.set(row.id, row);
+            merged = [...byId.values()];
+          }
 
           set({
             status: "loaded",
             lastSyncedAt: Date.now(),
             ...(settingsStale ? {} : { settings: mapSettings(me) }),
+            plan: mapPlan(me),
+            transactionsSyncedAt: changes.server_time,
             expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
             incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
             fundCategories: apiFundCategories.map(mapFundCategory),
             ...(apiGoals ? { goals: apiGoals.map(mapGoal) } : {}),
-            transactions: [...localPending, ...serverRows].sort(
-              (a, b) => b.date.getTime() - a.date.getTime(),
-            ),
+            transactions: merged.sort((a, b) => b.date.getTime() - a.date.getTime()),
           });
           if (apiGoals) migrateSavingsTrackers(get);
         } catch (err) {
@@ -759,6 +821,8 @@ export const useFinanceStore = create<FinanceStore>()(
           incomeCategories: [],
           fundCategories: [],
           goals: [],
+          plan: NO_PLAN,
+          transactionsSyncedAt: null,
           settings: DEFAULT_SETTINGS,
           // Clears in memory only — the signed-out user's queue stays on disk in
           // their own slot (activeUserId is already null here, so this write
@@ -1195,6 +1259,8 @@ export const useFinanceStore = create<FinanceStore>()(
         fundCategories: state.fundCategories,
         goals: state.goals,
         goalsNotified: state.goalsNotified,
+        plan: state.plan,
+        transactionsSyncedAt: state.transactionsSyncedAt,
         settings: state.settings,
         lastSyncedAt: state.lastSyncedAt,
       }),

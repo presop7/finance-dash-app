@@ -56,6 +56,11 @@ jest.mock("../services/financeApi", () => ({
       await mockRespond();
       return [...mockServer.values()];
     },
+    listTransactionChanges: async () => {
+      await mockRespond();
+      return { transactions: [...mockServer.values()], deleted_ids: [], server_time: new Date().toISOString() };
+    },
+    listGoals: async () => [],
     getMe: async () => ({
       id: "user-1",
       auth_provider_id: "user-1",

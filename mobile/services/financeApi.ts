@@ -94,7 +94,12 @@ export type ApiUser = {
   hide_balance: boolean;
   time_format: "12h" | "24h";
   date_format: "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD" | "D MMM YYYY";
+  trial_ends_at?: string | null;
+  premium_until?: string | null;
+  dev_access?: boolean;
+  dev_access_requested_at?: string | null;
 };
+export type ApiTransactionChanges = { transactions: ApiTransaction[]; deleted_ids: string[]; server_time: string };
 export type ApiUserSettingsUpdate = Partial<
   Pick<ApiUser, "currency" | "hide_balance" | "time_format" | "date_format">
 >;
@@ -109,6 +114,8 @@ export type DeleteConflictDetail = {
 
 export const financeApi = {
   getMe: () => api.get<ApiUser>("/auth/me"),
+  requestDevAccess: () => api.post<ApiUser>("/auth/me/request-dev-access", {}),
+  deleteAccount: () => api.delete<void>("/auth/me"),
   updateSettings: (body: ApiUserSettingsUpdate) => api.patch<ApiUser>("/auth/me", body),
   convertCurrency: (body: { from_currency: string; to_currency: string; rate: number }) =>
     api.post<ApiUser>("/auth/me/convert-currency", body),
@@ -129,6 +136,9 @@ export const financeApi = {
     api.delete<void>(`/fund_categories/${id}${confirm ? "?confirm=true" : ""}`),
 
   listTransactions: () => api.get<ApiTransaction[]>("/transactions"),
+  // Added/edited after `since` and ids deleted after it (since the epoch: all).
+  listTransactionChanges: (since: string) =>
+    api.get<ApiTransactionChanges>(`/transactions/changes?since=${encodeURIComponent(since)}`),
   createTransaction: (body: ApiTransactionCreate) =>
     api.post<ApiTransaction>("/transactions", body),
   bulkCreateTransactions: (transactions: ApiTransactionCreate[]) =>

@@ -37,7 +37,7 @@ export function usePullToRefresh(
     setTimeout(() => setRefreshing(false), ACK_MS);
     const store = useFinanceStore.getState();
     // Already syncing (app start, reconnect, an earlier pull): that one will do.
-    if (store.status !== "refreshing" && store.status !== "loading") store.hydrate();
+    if (store.status !== "refreshing" && store.status !== "loading") store.hydrate({ full: true });
   }, []);
 
   const getNodeRef = useRef(getScrollNode);

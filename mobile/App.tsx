@@ -18,7 +18,7 @@ import {
 } from "@react-navigation/bottom-tabs";
 
 // Import zustand store
-import { useFinanceStore, Transaction } from "./store/useFinanceStore";
+import { useFinanceStore, DEV_GATE, Transaction } from "./store/useFinanceStore";
 import { useAuthStore } from "./store/useAuthStore";
 
 // Screens
@@ -30,6 +30,7 @@ import AuthScreen from "./screens/AuthScreen";
 
 // Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
+import DevAccessScreen from "./screens/DevAccessScreen";
 
 // Components
 import FABButton from "./components/FABButton";
@@ -234,7 +235,7 @@ function DesktopFrame({ children }: { children: ReactNode }) {
 
 function RootNavigator() {
   const { session, initializing } = useAuthStore();
-  const { status, syncError, persistHydrated, hydrate, reset } = useFinanceStore();
+  const { status, syncError, persistHydrated, hydrate, reset, plan } = useFinanceStore();
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
 
@@ -310,12 +311,18 @@ function RootNavigator() {
     );
   }
 
+  // Dev link (the Play test version): accounts without access get the
+  // request screen instead of the app.
+  if (DEV_GATE && status === "loaded" && !plan.devAccess) {
+    return <DevAccessScreen />;
+  }
+
   if (status === "error") {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
         <Text style={styles.errorText}>{syncError ?? t("app.loadFailed")}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={hydrate}>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => hydrate()}>
           <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
         </TouchableOpacity>
       </View>
