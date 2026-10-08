@@ -178,10 +178,12 @@ const ko: Locale = {
     failed: "연결을 확인하고 다시 시도하세요.",
   },
   premium: {
+    save: "{{amount}} 절약 (−{{pct}}%)",
     title: "Fi-Track Premium",
     trialEndedTitle: "Premium 체험이 끝났습니다",
     short: "Premium",
     reason: {
+      tips: "팁 끄기는 Premium 기능입니다. 다시 켜는 것은 언제든 가능합니다.",
       funds: "무료 플랜은 계좌 {{funds}}개까지입니다. Premium은 무제한입니다.",
       goals: "무료 플랜은 저축 목표 {{goals}}개까지입니다. Premium은 무제한입니다.",
       reminders: "무료 플랜은 종류별 알림 1개(카테고리 한도 2개)입니다. Premium은 무제한입니다.",
@@ -252,6 +254,7 @@ const ko: Locale = {
     },
   },
   report: {
+    short: "보고서",
     title: "이번 달 숫자",
     empty: "이번 달에 기록된 내용이 없습니다.",
     net: "순액",
@@ -272,6 +275,13 @@ const ko: Locale = {
     keep: "{{count}}개 유지",
     confirm: "이것으로 유지",
     keepAll: "Premium으로 모두 유지",
+  },
+  funds: {
+    counter: "무료: {{max}}개 중 {{used}}개",
+    add: "새 계좌",
+    unlockMore: "계좌 더 열기",
+    withPremium: "Premium으로",
+    left: "무료 플랜 남은 수: {{count}}",
   },
   settings: {
     deleteAccount: "계정 삭제",

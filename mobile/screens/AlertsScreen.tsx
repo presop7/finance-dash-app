@@ -123,6 +123,18 @@ export default function AlertsScreen() {
     deleteAlertRule(rule.id);
   };
 
+  // Both lists fold away from their heading (tap it); the count stays visible.
+  const [showReminders, setShowReminders] = useState(true);
+  const [showTrackers, setShowTrackers] = useState(true);
+  const sectionHeader = (label: string, count: number, open: boolean, toggle: () => void) => (
+    <TouchableOpacity style={[styles.sectionHeader, GlobalStyles.screenPadding]} onPress={toggle} activeOpacity={0.6}>
+      <Text style={styles.sectionLabel}>
+        {label} · {count}
+      </Text>
+      <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={Colors.textMuted} />
+    </TouchableOpacity>
+  );
+
   const renderRule = (rule: AlertRule) => {
     const tracker = isTracker(rule);
     const share = tracker ? Math.min(1, progressOf(rule) / rule.amount) : 0;
@@ -208,10 +220,10 @@ export default function AlertsScreen() {
           )
         )}
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("reminders.listLabel")}</Text>
+        {sectionHeader(t("reminders.listLabel"), reminders.length, showReminders, () => setShowReminders((v) => !v))}
 
         <View style={styles.list} ref={listRef} collapsable={false}>
-          {reminders.length === 0 ? (
+          {!showReminders ? null : reminders.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.empty")}</Text>
@@ -222,11 +234,10 @@ export default function AlertsScreen() {
         </View>
 
         {/* Loans, lends and savings goals: progress toward an amount. */}
-        <Text style={[styles.sectionLabel, styles.sectionGap, GlobalStyles.screenPadding]}>
-          {t("reminders.trackersLabel")}
-        </Text>
+        <View style={styles.sectionGap} />
+        {sectionHeader(t("reminders.trackersLabel"), trackers.length, showTrackers, () => setShowTrackers((v) => !v))}
         <View style={styles.list}>
-          {trackers.length === 0 ? (
+          {!showTrackers ? null : trackers.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="flag-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.trackersEmpty")}</Text>
@@ -289,6 +300,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary,
   },
   enableBtnText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
   sectionLabel: {
     fontSize: FONT.label,
     fontWeight: "500",

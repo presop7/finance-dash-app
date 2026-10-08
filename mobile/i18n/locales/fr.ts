@@ -177,10 +177,12 @@ const fr: Locale = {
     failed: "Vérifiez votre connexion et réessayez.",
   },
   premium: {
+    save: "Économisez {{amount}} (−{{pct}} %)",
     title: "Fi-Track Premium",
     trialEndedTitle: "Votre essai Premium est terminé",
     short: "Premium",
     reason: {
+      tips: "Désactiver les astuces fait partie de Premium. Vous pouvez les réactiver à tout moment.",
       funds: "Le forfait gratuit inclut {{funds}} comptes. Premium n'a pas de limite.",
       goals: "Le forfait gratuit inclut {{goals}} objectif d'épargne. Premium n'a pas de limite.",
       reminders: "Le forfait gratuit inclut un rappel de chaque type (deux limites de catégorie). Premium n'a pas de limite.",
@@ -251,6 +253,7 @@ const fr: Locale = {
     },
   },
   report: {
+    short: "Rapport",
     title: "Votre mois en chiffres",
     empty: "Rien d'enregistré ce mois-ci.",
     net: "Net",
@@ -271,6 +274,13 @@ const fr: Locale = {
     keep: "garder {{count}}",
     confirm: "Garder ceux-ci",
     keepAll: "Tout garder avec Premium",
+  },
+  funds: {
+    counter: "Gratuit : {{used}} sur {{max}}",
+    add: "Nouveau compte",
+    unlockMore: "Débloquer plus de comptes",
+    withPremium: "avec Premium",
+    left: "Restant en gratuit : {{count}}",
   },
   settings: {
     deleteAccount: "Supprimer le compte",

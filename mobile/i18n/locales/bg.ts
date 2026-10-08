@@ -177,10 +177,12 @@ const bg: Translations = {
     failed: "Проверете връзката и опитайте отново.",
   },
   premium: {
+    save: "Спестявате {{amount}} (−{{pct}}%)",
     title: "Fi-Track Premium",
     trialEndedTitle: "Пробният Premium период свърши",
     short: "Premium",
     reason: {
+      tips: "Изключването на съветите е част от Premium. Можете да ги включите обратно по всяко време.",
       funds: "Безплатният план включва {{funds}} съхранения. В Premium няма ограничение.",
       goals: "Безплатният план включва {{goals}} цел за спестяване. В Premium няма ограничение.",
       reminders: "Безплатният план включва по едно напомняне от вид (два лимита за категория). В Premium няма ограничение.",
@@ -251,6 +253,7 @@ const bg: Translations = {
     },
   },
   report: {
+    short: "Отчет",
     title: "Вашият месец в числа",
     empty: "Нищо не е записано за този месец.",
     net: "Нето",
@@ -271,6 +274,13 @@ const bg: Translations = {
     keep: "остават {{count}}",
     confirm: "Запази тези",
     keepAll: "Запази всичко с Premium",
+  },
+  funds: {
+    counter: "Безплатни: {{used}} от {{max}}",
+    add: "Ново съхранение",
+    unlockMore: "Отключи още съхранения",
+    withPremium: "с Premium",
+    left: "Остават в безплатния план: {{count}}",
   },
   settings: {
     deleteAccount: "Изтрий акаунта",

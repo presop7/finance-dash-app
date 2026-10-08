@@ -12,7 +12,6 @@ export function useOffersEngine(adding: boolean) {
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const status = useFinanceStore((s) => s.status);
   const plan = useFinanceStore((s) => s.plan);
-  const offersOn = useFinanceStore((s) => s.tips.offers);
 
   useEffect(() => {
     const evaluate = () => {
@@ -29,7 +28,7 @@ export function useOffersEngine(adding: boolean) {
         store.startTrialEndOffer();
         return;
       }
-      if (!offersOn || store.offer) return;
+      if (store.offer) return;
       const real = finance.transactions.filter((t) => !isDemoId(t.id));
       const dates = real.map((t) => new Date(t.date));
       const first = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
@@ -49,5 +48,5 @@ export function useOffersEngine(adding: boolean) {
     evaluate();
     const sub = AppState.addEventListener("change", (state) => state === "active" && evaluate());
     return () => sub.remove();
-  }, [premiumUses, status, plan, offersOn, adding]);
+  }, [premiumUses, status, plan, adding]);
 }

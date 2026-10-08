@@ -178,10 +178,12 @@ const ja: Locale = {
     failed: "接続を確認して、もう一度お試しください。",
   },
   premium: {
+    save: "{{amount}}お得（−{{pct}}%）",
     title: "Fi-Track Premium",
     trialEndedTitle: "Premiumのお試し期間が終了しました",
     short: "Premium",
     reason: {
+      tips: "ヒントをオフにするのはPremiumの機能です。オンにはいつでも戻せます。",
       funds: "無料プランの口座は{{funds}}件までです。Premiumは無制限です。",
       goals: "無料プランの貯金目標は{{goals}}件までです。Premiumは無制限です。",
       reminders: "無料プランのリマインダーは種類ごとに1件（カテゴリ上限は2件）です。Premiumは無制限です。",
@@ -252,6 +254,7 @@ const ja: Locale = {
     },
   },
   report: {
+    short: "レポート",
     title: "今月の数字",
     empty: "この月の記録はありません。",
     net: "差引",
@@ -272,6 +275,13 @@ const ja: Locale = {
     keep: "{{count}}件残す",
     confirm: "これを残す",
     keepAll: "Premiumですべて残す",
+  },
+  funds: {
+    counter: "無料：{{max}}件中{{used}}件",
+    add: "新しい口座",
+    unlockMore: "口座をさらに解除",
+    withPremium: "Premiumで",
+    left: "無料プランの残り：{{count}}",
   },
   settings: {
     deleteAccount: "アカウントを削除",

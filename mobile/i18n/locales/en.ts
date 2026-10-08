@@ -176,10 +176,12 @@ const en = {
     failed: "Check your connection and try again.",
   },
   premium: {
+    save: "Save {{amount}} (−{{pct}}%)",
     title: "Fi-Track Premium",
     trialEndedTitle: "Your Premium trial has ended",
     short: "Premium",
     reason: {
+      tips: "Turning tips off is part of Premium. You can turn them back on any time.",
       funds: "The free plan includes {{funds}} funds. Premium has no limit.",
       goals: "The free plan includes {{goals}} savings goal. Premium has no limit.",
       reminders: "The free plan includes one reminder of each kind (two category limits). Premium has no limit.",
@@ -250,6 +252,7 @@ const en = {
     },
   },
   report: {
+    short: "Report",
     title: "Your month in numbers",
     empty: "Nothing recorded this month.",
     net: "Net",
@@ -270,6 +273,13 @@ const en = {
     keep: "keep {{count}}",
     confirm: "Keep these",
     keepAll: "Keep everything with Premium",
+  },
+  funds: {
+    counter: "Free: {{used}} of {{max}}",
+    add: "New fund",
+    unlockMore: "Unlock more funds",
+    withPremium: "with Premium",
+    left: "Left on free plan: {{count}}",
   },
   settings: {
     deleteAccount: "Delete account",

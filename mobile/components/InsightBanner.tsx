@@ -33,19 +33,16 @@ export default function InsightBanner({
   const canCycle = insights.length > 1;
   const { t } = useTranslation();
   const { premium } = usePlan();
-  // Free plan, per app opening at random: one free insight, or the Premium
-  // message ("tap to see the free one"). Tapping the free insight again shows
-  // "get Premium for the rest" until the next opening.
-  const [teaser, setTeaser] = useState<"insight" | "promo" | "locked">(() =>
-    Math.random() < 0.5 ? "insight" : "promo",
-  );
+  // Free plan: one free insight and the Premium message take turns — each tap
+  // switches between them. Which one shows first is random per app opening.
+  const [teaser, setTeaser] = useState<"insight" | "promo">(() => (Math.random() < 0.5 ? "insight" : "promo"));
 
   if (!premium) {
-    const text = teaser === "insight" ? insights[0] : teaser === "promo" ? t("insights.promo") : t("insights.locked");
+    const text = teaser === "insight" ? insights[0] : t("insights.promo");
     return (
       <Pressable
         style={styles.banner}
-        onPress={() => setTeaser((m) => (m === "promo" ? "insight" : "locked"))}
+        onPress={() => setTeaser((m) => (m === "promo" ? "insight" : "promo"))}
       >
         <View style={styles.iconContainer}>
           <Ionicons name={teaser === "insight" ? "bulb-outline" : "lock-closed-outline"} size={16} color={Colors.primary} />

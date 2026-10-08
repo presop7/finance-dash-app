@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
@@ -14,6 +14,8 @@ import { sortByOrder } from "../utils/reorder";
 import { reservedByFund } from "../utils/goals";
 import { isDemoId } from "../utils/demoTransactions";
 import { ReorderItem, useReorder } from "./Reorderable";
+import { FREE } from "../constants/plan";
+import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 import { useTranslation } from "react-i18next";
 import { FONT } from "../constants/typography";
@@ -22,6 +24,8 @@ type FundsCardProps = {
   transactions: Transaction[];
   fundCategories: FundCategory[];
   onNavigateToAnalytics?: (filter: AnalyticsInitialFilter) => void;
+  // Opens the "new fund" form.
+  onAddFund: () => void;
 };
 
 const CARD_WIDTH = 148;
@@ -31,6 +35,7 @@ export default function FundsCard({
   transactions,
   fundCategories,
   onNavigateToAnalytics,
+  onAddFund,
 }: FundsCardProps) {
   const Colors = useThemeColors();
   const { t } = useTranslation();
@@ -79,7 +84,12 @@ export default function FundsCard({
   });
   const byId = new Map(funds.map((f) => [f.fund.id, f]));
 
-  if (funds.length === 0) return null;
+  // The add card: free users see how many more they can create; at the
+  // free limit it leads to Premium instead.
+  const { premium } = usePlan();
+  const own = fundCategories.filter((f) => !f.locked).length;
+  const left = Math.max(0, FREE.funds - own);
+  const atLimit = !premium && left === 0;
 
   return (
     <View style={styles.wrapper}>
@@ -149,6 +159,17 @@ export default function FundsCard({
               </ReorderItem>
             );
           })}
+        <TouchableOpacity
+          style={[styles.card, styles.addCard]}
+          activeOpacity={0.7}
+          onPress={() => (atLimit ? usePremiumStore.getState().showPremium("funds") : onAddFund())}
+        >
+          <Ionicons name={atLimit ? "lock-closed-outline" : "add-circle-outline"} size={26} color={Colors.primary} />
+          <Text style={styles.addText}>{atLimit ? t("funds.unlockMore") : t("funds.add")}</Text>
+          {!premium && (
+            <Text style={styles.addHint}>{atLimit ? t("funds.withPremium") : t("funds.left", { count: left })}</Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -157,6 +178,15 @@ export default function FundsCard({
 function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
   wrapper: {},
+  addCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderStyle: "dashed",
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  addText: { fontSize: FONT.body, fontWeight: "600", color: Colors.primary, textAlign: "center" },
+  addHint: { fontSize: FONT.label, color: Colors.textMuted, textAlign: "center" },
   scrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 4,

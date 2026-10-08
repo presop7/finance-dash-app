@@ -130,6 +130,15 @@ export default function PremiumModal() {
                           ? t("premium.firstMonth")
                           : t("premium.cancelAnytime")}
                     </Text>
+                    {p === "yearly" && (
+                      // Against paying monthly for a year at the list price.
+                      <Text style={styles.planSave}>
+                        {t("premium.save", {
+                          amount: euro(PRICES.monthly * 12 - price),
+                          pct: Math.round((1 - price / (PRICES.monthly * 12)) * 100),
+                        })}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -189,6 +198,7 @@ function createStyles(Colors: ColorsType) {
     planPrice: { fontSize: FONT.heading, fontWeight: "700", color: Colors.textPrimary },
     planWas: { fontSize: FONT.small, color: Colors.textMuted, textDecorationLine: "line-through" },
     planNote: { fontSize: FONT.label, color: Colors.textMuted },
+    planSave: { fontSize: FONT.label, fontWeight: "700", color: Colors.income },
     buy: { padding: 15, borderRadius: 14, alignItems: "center", backgroundColor: Colors.primary },
     buyText: { fontSize: FONT.body, fontWeight: "700", color: "#fff" },
     fine: { fontSize: FONT.label, color: Colors.textMuted, textAlign: "center", marginBottom: 8 },

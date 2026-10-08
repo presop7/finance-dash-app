@@ -29,10 +29,12 @@ export type PremiumReason =
   | "insights"
   | "report"
   | "offer"
+  | "tips"
   | "trialEnded";
 
 type PremiumStore = OfferState & {
   modal: PremiumReason | null; // the Premium screen, when open
+  openings: number; // counts openings (the screen is re-created each time)
   offer: OfferKind | null; // the offer tip showing now
   reportOpen: boolean; // the monthly report screen
   trialEndSeen: boolean;
@@ -54,13 +56,14 @@ export const usePremiumStore = create<PremiumStore>()(
     (set, get) => ({
       ...EMPTY_OFFERS,
       modal: null,
+      openings: 0,
       offer: null,
       reportOpen: false,
       trialEndSeen: false,
       trialEndOfferUntil: null,
       reportTipMonth: null,
       setReportTipMonth: (month) => set({ reportTipMonth: month }),
-      showPremium: (reason = "general") => set({ modal: reason }),
+      showPremium: (reason = "general") => set({ modal: reason, openings: get().openings + 1 }),
       hidePremium: () => set({ modal: null }),
       setReportOpen: (open) => set({ reportOpen: open }),
       recordUseDay: (now) => {
@@ -75,13 +78,18 @@ export const usePremiumStore = create<PremiumStore>()(
       applyOffer: (kind, patch) => set({ ...patch, offer: kind }),
       clearOffer: () => set({ offer: null }),
       startTrialEndOffer: () =>
-        set({ trialEndSeen: true, trialEndOfferUntil: Date.now() + TRIAL_END_OFFER_MS, modal: "trialEnded" }),
+        set({
+          trialEndSeen: true,
+          trialEndOfferUntil: Date.now() + TRIAL_END_OFFER_MS,
+          modal: "trialEnded",
+          openings: get().openings + 1,
+        }),
     }),
     {
       name: "fi-track-offers",
       storage: createJSONStorage(() => AsyncStorage),
       // Only the offers' memory; open screens and the current tip don't persist.
-      partialize: ({ modal: _m, offer: _o, reportOpen: _r, ...rest }) =>
+      partialize: ({ modal: _m, offer: _o, reportOpen: _r, openings: _n, ...rest }) =>
         Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== "function")) as Partial<PremiumStore>,
     },
   ),

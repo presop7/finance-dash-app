@@ -185,10 +185,12 @@ const ro: Locale = {
     failed: "Verifică conexiunea și încearcă din nou.",
   },
   premium: {
+    save: "Economisești {{amount}} (−{{pct}}%)",
     title: "Fi-Track Premium",
     trialEndedTitle: "Perioada ta de probă Premium s-a încheiat",
     short: "Premium",
     reason: {
+      tips: "Oprirea sfaturilor face parte din Premium. Le poți reporni oricând.",
       funds: "Planul gratuit include {{funds}} conturi. Premium nu are limită.",
       goals: "Planul gratuit include {{goals}} obiectiv de economisire. Premium nu are limită.",
       reminders: "Planul gratuit include câte un memento din fiecare tip (două limite de categorie). Premium nu are limită.",
@@ -259,6 +261,7 @@ const ro: Locale = {
     },
   },
   report: {
+    short: "Raport",
     title: "Luna ta în cifre",
     empty: "Nimic înregistrat luna aceasta.",
     net: "Net",
@@ -279,6 +282,13 @@ const ro: Locale = {
     keep: "păstrezi {{count}}",
     confirm: "Păstrează acestea",
     keepAll: "Păstrează tot cu Premium",
+  },
+  funds: {
+    counter: "Gratuit: {{used}} din {{max}}",
+    add: "Cont nou",
+    unlockMore: "Deblochează mai multe conturi",
+    withPremium: "cu Premium",
+    left: "Rămase în planul gratuit: {{count}}",
   },
   settings: {
     deleteAccount: "Șterge contul",

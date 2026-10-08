@@ -35,6 +35,7 @@ import PremiumModal from "./screens/modals/PremiumModal";
 import MonthlyReportModal from "./screens/modals/MonthlyReportModal";
 import KeepWithinLimitsModal from "./screens/modals/KeepWithinLimitsModal";
 import { useOffersEngine } from "./hooks/useOffersEngine";
+import { usePremiumStore } from "./store/usePremiumStore";
 
 // Components
 import FABButton from "./components/FABButton";
@@ -559,12 +560,15 @@ function AppContent() {
   );
   const handleOpenCategories = useCallback((type: CategoryTabType) => setCategoriesModal(type), []);
   const handleOpenImport = useCallback(() => setShowImportCsv(true), []);
+  // Straight into the "new fund" form (the Dashboard's add card).
+  const handleAddFund = useCallback(() => handleHoldEditCategory("fund", "new"), [handleHoldEditCategory]);
 
   useAlertsMonitor();
   useDailyReminderSync();
   useTutorialAutoStart();
   // Offers and the trial-end screen; never while the new-transaction form is open.
   useOffersEngine(showTransaction);
+  const premiumOpenings = usePremiumStore((s) => s.openings);
 
   // The "nothing added in a while" tip's button opens the new-transaction form.
   useEffect(() => {
@@ -605,6 +609,7 @@ function AppContent() {
               onTransactionPress={setSelectedTransaction}
               onEditTransaction={handleEditTransaction}
               onNavigateToAnalytics={navigateToAnalytics}
+              onAddFund={handleAddFund}
             />
           )}
         </Tab.Screen>
@@ -689,7 +694,9 @@ function AppContent() {
         }
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
-      <PremiumModal />
+      {/* Re-created on every opening, so it lands above whatever sheet or
+          dialog is already open (a web modal stacks by when it was created). */}
+      <PremiumModal key={premiumOpenings} />
       <MonthlyReportModal />
       <KeepWithinLimitsModal />
       <NamePromptModal />

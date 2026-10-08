@@ -8,6 +8,8 @@ import InsightBanner from "../components/InsightBanner";
 import TopExpensesCard from "../components/TopExpensesCard";
 import FundsCard from "../components/FundsCard";
 import GoalsCard from "../components/GoalsCard";
+import { FREE } from "../constants/plan";
+import { usePlan } from "../store/usePremiumStore";
 import DashboardCardList, {
   DashboardCardDef,
 } from "../components/DashboardCardList";
@@ -29,12 +31,14 @@ type DashboardScreenProps = {
   // detail modal's own Edit button triggers.
   onEditTransaction?: (transaction: Transaction) => void;
   onNavigateToAnalytics: (filter: AnalyticsInitialFilter) => void;
+  onAddFund: () => void;
 };
 
 function DashboardScreen({
   onTransactionPress,
   onEditTransaction,
   onNavigateToAnalytics,
+  onAddFund,
 }: DashboardScreenProps) {
   const {
     transactions,
@@ -60,6 +64,7 @@ function DashboardScreen({
   // Finger scrolling is off during the tour (it positions the page itself):
   // scrolling inside a lit spot would slide the spot out from under it.
   const tourActive = useTutorialStore((s) => s.active);
+  const { premium } = usePlan();
   const displayName = displayNameOverride || firstNameFromUser(session?.user) || "there";
   const greeting = getGreeting();
 
@@ -91,11 +96,16 @@ function DashboardScreen({
     {
       id: "funds",
       title: t("dashboard.yourFunds"),
+      // Free plan: how many of the free funds are used.
+      subtitle: premium
+        ? undefined
+        : t("funds.counter", { used: Math.min(fundCategories.filter((f) => !f.locked).length, FREE.funds), max: FREE.funds }),
       content: (
         <FundsCard
           transactions={transactions}
           fundCategories={fundCategories}
           onNavigateToAnalytics={onNavigateToAnalytics}
+          onAddFund={onAddFund}
         />
       ),
     },

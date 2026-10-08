@@ -178,10 +178,12 @@ const zh: Locale = {
     failed: "请检查网络后重试。",
   },
   premium: {
+    save: "省 {{amount}}（−{{pct}}%）",
     title: "Fi-Track Premium",
     trialEndedTitle: "你的 Premium 试用已结束",
     short: "Premium",
     reason: {
+      tips: "关闭提示属于 Premium 功能。随时可以重新开启。",
       funds: "免费版包含 {{funds}} 个账户。Premium 不限数量。",
       goals: "免费版包含 {{goals}} 个储蓄目标。Premium 不限数量。",
       reminders: "免费版每种提醒各 1 个（分类上限 2 个）。Premium 不限数量。",
@@ -252,6 +254,7 @@ const zh: Locale = {
     },
   },
   report: {
+    short: "报告",
     title: "你的月度数字",
     empty: "本月没有记录。",
     net: "净额",
@@ -272,6 +275,13 @@ const zh: Locale = {
     keep: "保留 {{count}} 个",
     confirm: "保留这些",
     keepAll: "用 Premium 全部保留",
+  },
+  funds: {
+    counter: "免费：{{used}} / {{max}}",
+    add: "新账户",
+    unlockMore: "解锁更多账户",
+    withPremium: "开通 Premium",
+    left: "免费版剩余：{{count}}",
   },
   settings: {
     deleteAccount: "删除账户",

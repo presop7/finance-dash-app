@@ -125,8 +125,8 @@ export default function CategoriesModal({
     const match = initialEditId ? list.find((i) => i.id === initialEditId) : undefined;
 
     // "Unassigned" can't be edited: holding it in the transaction form
-    // just opens the list.
-    setEditTarget(match && !match.locked ? match : null);
+    // just opens the list. "new" opens straight into creating one.
+    setEditTarget(initialEditId === "new" ? "new" : match && !match.locked ? match : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialType, initialEditId]);
 

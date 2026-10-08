@@ -60,7 +60,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
       : [
           enabled.notifications ? notifications.tip : null,
           premium.timer,
-          enabled.offers ? premium.offer : null,
+          premium.offer, // offers stop with Premium, not with a switch
           premium.report,
           ...(enabled.alerts ? alerts : []),
           enabled.reminder ? reminder : null,

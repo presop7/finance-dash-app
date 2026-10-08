@@ -6,6 +6,7 @@ import { useFinanceStore, TipId } from "../../store/useFinanceStore";
 import { useTranslation } from "react-i18next";
 import { FONT } from "../../constants/typography";
 import FieldIcon from "../../components/FieldIcon";
+import { requirePremium } from "../../store/usePremiumStore";
 
 // Settings → Floating tips: which of the tips that pop up over the app (see
 // FloatingTips) may show on this device.
@@ -14,7 +15,6 @@ const TIPS: { id: TipId; icon: "download-outline" | "notifications-outline" | "w
   { id: "notifications", icon: "notifications-outline" },
   { id: "alerts", icon: "warning-outline" },
   { id: "reminder", icon: "time-outline" },
-  { id: "offers", icon: "pricetag-outline" },
 ];
 
 export default function TipsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -40,7 +40,10 @@ export default function TipsModal({ visible, onClose }: { visible: boolean; onCl
               </View>
               <Switch
                 value={tips[id]}
-                onValueChange={(on) => setTipEnabled(id, on)}
+                // Turning a tip off is a Premium feature; turning it back on is free.
+                onValueChange={(on) => {
+                  if (on || requirePremium("tips")) setTipEnabled(id, on);
+                }}
                 trackColor={{ false: Colors.border, true: Colors.primary }}
               />
             </View>

@@ -177,10 +177,12 @@ const it: Locale = {
     failed: "Controlla la connessione e riprova.",
   },
   premium: {
+    save: "Risparmi {{amount}} (−{{pct}}%)",
     title: "Fi-Track Premium",
     trialEndedTitle: "La tua prova Premium è finita",
     short: "Premium",
     reason: {
+      tips: "Disattivare i suggerimenti fa parte di Premium. Puoi riattivarli quando vuoi.",
       funds: "Il piano gratuito include {{funds}} conti. Premium non ha limiti.",
       goals: "Il piano gratuito include {{goals}} obiettivo di risparmio. Premium non ha limiti.",
       reminders: "Il piano gratuito include un promemoria per tipo (due limiti di categoria). Premium non ha limiti.",
@@ -251,6 +253,7 @@ const it: Locale = {
     },
   },
   report: {
+    short: "Report",
     title: "Il tuo mese in numeri",
     empty: "Niente registrato questo mese.",
     net: "Netto",
@@ -271,6 +274,13 @@ const it: Locale = {
     keep: "tieni {{count}}",
     confirm: "Tieni questi",
     keepAll: "Tieni tutto con Premium",
+  },
+  funds: {
+    counter: "Gratis: {{used}} di {{max}}",
+    add: "Nuovo conto",
+    unlockMore: "Sblocca altri conti",
+    withPremium: "con Premium",
+    left: "Rimasti nel piano gratuito: {{count}}",
   },
   settings: {
     deleteAccount: "Elimina account",
