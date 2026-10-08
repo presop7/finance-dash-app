@@ -325,9 +325,14 @@ function RootNavigator() {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.errorText}>{syncError ?? t("app.loadFailed")}</Text>
+        {/* || not ??: a failed request can come back with an empty message. */}
+        <Text style={styles.errorText}>{syncError || t("app.loadFailed")}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => hydrate()}>
           <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
+        </TouchableOpacity>
+        {/* Never a dead end: whatever failed, you can still sign out. */}
+        <TouchableOpacity onPress={() => useAuthStore.getState().signOut()} hitSlop={8}>
+          <Text style={styles.errorText}>{t("settings.signOut")}</Text>
         </TouchableOpacity>
       </View>
     );

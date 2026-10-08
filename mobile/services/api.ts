@@ -50,7 +50,11 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     const detail = body?.detail;
-    const message = typeof detail === "string" ? detail : (detail?.message ?? response.statusText);
+    // statusText is empty over HTTP/2, so the status code is the last resort.
+    const message =
+      (typeof detail === "string" ? detail : detail?.message) ||
+      response.statusText ||
+      `Request failed (${response.status})`;
     throw new ApiError(response.status, message, body);
   }
 
