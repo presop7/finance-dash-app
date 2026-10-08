@@ -161,8 +161,9 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
     // Nothing is lost by signing out — the queue is kept in this account's own
     // cache slot — but it can't drain until they're back online and signed in,
     // so it's worth saying so rather than letting it silently sit there.
-    if (pendingOps.length > 0) {
-      const n = pendingOps.length;
+    const unsent = pendingOps.length + useFinanceStore.getState().entityOps.length;
+    if (unsent > 0) {
+      const n = unsent;
       const proceed = await confirmAsyncWithLabel(
         t("settings.unsyncedTitle"),
         t("settings.unsyncedSignOut", { count: n }),
@@ -224,7 +225,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       // Sends anything queued and reloads, then checks it all went through.
       await store.hydrate();
       const after = useFinanceStore.getState();
-      if (after.pendingOps.length > 0 || after.syncError || after.settings.currency !== from) {
+      if (after.pendingOps.length + after.entityOps.length > 0 || after.syncError || after.settings.currency !== from) {
         await alertAsync(t("settings.currencyNotYetTitle"), t("settings.currencyUnsynced"));
         return;
       }

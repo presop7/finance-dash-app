@@ -559,6 +559,8 @@ const bg: Translations = {
     show: "Покажи ми",
   },
   installTip: {
+    firefoxTitle: "Инсталирайте Fi-Track като приложение:",
+    firefox: "Firefox не може да инсталира уеб приложения. Отворете страницата в Chrome или Edge, за да имате Fi-Track в собствен прозорец, с известия.",
     chromeTitle: "Инсталирайте от Chrome:",
     chrome: "на Android Chrome инсталира Fi-Track като истинско приложение — собствена иконка, цял екран и известия с неговото име.",
     openInChrome: "Отвори в Chrome",

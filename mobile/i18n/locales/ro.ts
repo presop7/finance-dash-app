@@ -574,6 +574,8 @@ const ro: Locale = {
     show: "Arată-mi",
   },
   installTip: {
+    firefoxTitle: "Instalează Fi-Track ca aplicație:",
+    firefox: "Firefox nu poate instala aplicații web. Deschide pagina în Chrome sau Edge ca să ai Fi-Track în propria fereastră, cu notificări.",
     chromeTitle: "Instalează din Chrome:",
     chrome: "pe Android, Chrome instalează Fi-Track ca aplicație adevărată — pictogramă proprie, ecran complet și notificări sub numele ei.",
     openInChrome: "Deschide în Chrome",

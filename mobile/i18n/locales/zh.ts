@@ -560,6 +560,8 @@ const zh: Locale = {
     show: "带我去",
   },
   installTip: {
+    firefoxTitle: "将 Fi-Track 安装为应用：",
+    firefox: "Firefox 无法安装网页应用。在 Chrome 或 Edge 中打开此页面，即可在独立窗口中使用 Fi-Track 并接收通知。",
     chromeTitle: "从 Chrome 安装：",
     chrome: "在 Android 上，Chrome 会将 Fi-Track 安装为真正的应用——独立图标、全屏显示，通知显示其名称。",
     openInChrome: "在 Chrome 中打开",

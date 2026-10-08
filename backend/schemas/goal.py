@@ -6,6 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class GoalCreate(BaseModel):
+    # Optional id chosen by the app, so it can use the new item at once and
+    # sync it later; sending the same create again returns the existing one.
+    id: uuid.UUID | None = None
     name: str = Field(min_length=1)
     target: Decimal = Field(gt=0)
     icon: str | None = None
@@ -20,6 +23,9 @@ class GoalUpdate(BaseModel):
 
 
 class GoalAllocationCreate(BaseModel):
+    # Optional id chosen by the app, so it can use the new item at once and
+    # sync it later; sending the same create again returns the existing one.
+    id: uuid.UUID | None = None
     fund_category_id: uuid.UUID
     # Positive sets money aside, negative releases it.
     amount: Decimal

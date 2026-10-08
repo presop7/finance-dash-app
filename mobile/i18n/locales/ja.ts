@@ -560,6 +560,8 @@ const ja: Locale = {
     show: "表示する",
   },
   installTip: {
+    firefoxTitle: "Fi-Trackをアプリとしてインストール：",
+    firefox: "Firefoxはウェブアプリをインストールできません。ChromeまたはEdgeでこのページを開くと、Fi-Trackを専用ウィンドウと通知付きで使えます。",
     chromeTitle: "Chromeからインストール：",
     chrome: "AndroidではChromeがFi-Trackを本物のアプリとしてインストールします。専用アイコン、全画面表示、アプリ名での通知に対応。",
     openInChrome: "Chromeで開く",

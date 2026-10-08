@@ -560,6 +560,8 @@ const ko: Locale = {
     show: "보여 주기",
   },
   installTip: {
+    firefoxTitle: "Fi-Track을 앱으로 설치하세요:",
+    firefox: "Firefox는 웹 앱을 설치할 수 없습니다. Chrome이나 Edge에서 이 페이지를 열면 Fi-Track을 별도 창과 알림으로 사용할 수 있습니다.",
     chromeTitle: "Chrome에서 설치하세요:",
     chrome: "Android에서는 Chrome이 Fi-Track을 실제 앱으로 설치합니다 — 전용 아이콘, 전체 화면, 앱 이름으로 오는 알림.",
     openInChrome: "Chrome에서 열기",

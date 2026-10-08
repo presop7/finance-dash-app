@@ -560,6 +560,8 @@ const pt: Locale = {
     show: "Mostrar",
   },
   installTip: {
+    firefoxTitle: "Instale o Fi-Track como app:",
+    firefox: "O Firefox não instala apps da web. Abra esta página no Chrome ou Edge para ter o Fi-Track em uma janela própria, com notificações.",
     chromeTitle: "Instale pelo Chrome:",
     chrome: "no Android, o Chrome instala o Fi-Track como um app de verdade — ícone próprio, tela cheia e notificações com o nome dele.",
     openInChrome: "Abrir no Chrome",

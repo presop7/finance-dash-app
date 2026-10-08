@@ -269,3 +269,23 @@ test("a device field (language) always comes from the shared device slot, never 
   await useFinanceStore.persist.rehydrate();
   expect(store().language).toBe("bg");
 });
+
+test("goals and categories change on screen at once, offline too; deleting an unsent one leaves nothing to send", async () => {
+  useFinanceStore.setState({ isConnected: false, goals: [], entityOps: [], expenseCategories: [] });
+  const goalId = await store().addGoal({ name: "Phone", target: 1000, icon: "flag-outline" });
+  await store().addGoalAllocation(goalId, "fund-1", 200);
+  await store().updateGoal(goalId, { name: "New phone", target: 900, icon: "flag-outline" });
+  expect(store().goals).toMatchObject([{ id: goalId, name: "New phone", target: 900, allocations: [{ amount: 200 }] }]);
+  // One create (the edit folded into it) and the set-aside.
+  expect(store().entityOps.map((o) => `${o.entity}:${o.action}`)).toEqual(["goal:create", "allocation:create"]);
+  expect(store().entityOps[0].body).toMatchObject({ name: "New phone", target: 900 });
+
+  await store().deleteGoal(goalId);
+  expect(store().goals).toEqual([]);
+  expect(store().entityOps).toEqual([]); // never sent, so nothing to send
+
+  const catId = await store().addExpenseCategory({ label: "Pets", icon: "paw-outline" });
+  expect(store().expenseCategories.map((c) => c.id)).toEqual([catId]);
+  expect(store().entityOps).toMatchObject([{ entity: "category", action: "create", id: catId }]);
+  useFinanceStore.setState({ isConnected: true, entityOps: [] });
+});

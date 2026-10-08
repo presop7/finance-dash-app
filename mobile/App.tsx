@@ -358,8 +358,12 @@ function SyncIndicator() {
   const status = useFinanceStore((s) => s.status);
   const syncError = useFinanceStore((s) => s.syncError);
   const isConnected = useFinanceStore((s) => s.isConnected);
-  const pendingCount = useFinanceStore((s) => s.pendingOps.length);
-  const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
+  // Transactions plus category/fund/goal changes still to send.
+  const pendingCount = useFinanceStore((s) => s.pendingOps.length + s.entityOps.length);
+  const failedCount = useFinanceStore(
+    (s) =>
+      s.pendingOps.filter((o) => o.status === "failed").length + s.entityOps.filter((o) => o.status === "failed").length,
+  );
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const { t } = useTranslation();
