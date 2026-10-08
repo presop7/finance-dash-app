@@ -224,6 +224,7 @@ const bg: Translations = {
     chartsLocked: "Графиките са част от Premium",
   },
   offers: {
+    for15: "Цената важи 15 минути.",
     timerTitle: "Офертата ви тече",
     timerText: "Остават около {{minutes}} мин на специалната цена.",
     see: "Виж",
@@ -687,7 +688,7 @@ const bg: Translations = {
     trackerSaveFailedTitle: "Тракерът не беше запазен",
     trackerSaveFailed: "Създаването на категорията му изисква интернет връзка. Проверете я и опитайте отново.",
     trackersLabel: "Тракери",
-    trackersEmpty: "Все още няма тракери: добавете за заем, дадени назаем пари или цел за спестяване",
+    trackersEmpty: "Все още няма тракери: добавете за заем или дадени назаем пари",
     trackerNamePlaceholder: {
       loanTracker: "напр. Заем за кола",
       lendTracker: "напр. Дадени на Иван",

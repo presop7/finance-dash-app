@@ -224,6 +224,7 @@ const de: Locale = {
     chartsLocked: "Diagramme gehören zu Premium",
   },
   offers: {
+    for15: "Der Preis gilt 15 Minuten.",
     timerTitle: "Dein Angebot läuft",
     timerText: "Noch etwa {{minutes}} Min. zum Sonderpreis.",
     see: "Ansehen",
@@ -687,7 +688,7 @@ const de: Locale = {
     trackerSaveFailedTitle: "Tracker nicht gespeichert",
     trackerSaveFailed: "Zum Anlegen seiner Kategorie ist eine Internetverbindung nötig. Prüfe sie und versuche es erneut.",
     trackersLabel: "Tracker",
-    trackersEmpty: "Noch keine Tracker: lege einen für einen Kredit, verliehenes Geld oder ein Sparziel an",
+    trackersEmpty: "Noch keine Tracker: lege einen für einen Kredit oder verliehenes Geld an",
     trackerNamePlaceholder: {
       loanTracker: "z. B. Autokredit",
       lendTracker: "z. B. An Lukas verliehen",

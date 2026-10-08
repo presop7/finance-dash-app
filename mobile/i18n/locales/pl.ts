@@ -240,6 +240,7 @@ const pl: Locale = {
     chartsLocked: "Wykresy są częścią Premium",
   },
   offers: {
+    for15: "Cena obowiązuje przez 15 minut.",
     timerTitle: "Twoja oferta trwa",
     timerText: "Zostało około {{minutes}} min w specjalnej cenie.",
     see: "Zobacz",
@@ -723,7 +724,7 @@ const pl: Locale = {
     trackerSaveFailedTitle: "Nie udało się zapisać trackera",
     trackerSaveFailed: "Utworzenie jego kategorii wymaga połączenia z internetem. Sprawdź je i spróbuj ponownie.",
     trackersLabel: "Trackery",
-    trackersEmpty: "Brak trackerów: dodaj tracker pożyczki, pożyczonych pieniędzy lub celu oszczędnościowego",
+    trackersEmpty: "Brak trackerów: dodaj tracker pożyczki lub pożyczonych pieniędzy",
     trackerNamePlaceholder: {
       loanTracker: "np. Kredyt na auto",
       lendTracker: "np. Pożyczone Piotrowi",

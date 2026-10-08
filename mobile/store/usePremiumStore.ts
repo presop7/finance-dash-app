@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFinanceStore, Plan } from "./useFinanceStore";
 import { EMPTY_OFFERS, OfferKind, OfferState, dayKey } from "../utils/offers";
-import { TRIAL_END_OFFER_MS } from "../constants/plan";
+import { OFFER_MS, TRIAL_END_OFFER_MS } from "../constants/plan";
 
 // What a plan means right now: Premium while the trial or a paid period runs.
 export function planStatus(plan: Plan, now = Date.now()) {
@@ -42,6 +42,9 @@ type PremiumStore = OfferState & {
   reportOpen: boolean; // the monthly report screen
   trialEndSeen: boolean;
   trialEndOfferUntil: number | null; // ms; the 1-hour window after the trial
+  // The current milestone/trial offer and when its price ends (15 minutes):
+  // kept when its tip or the Premium screen is closed, until it runs out.
+  activeOffer: { kind: OfferKind; until: number } | null;
   reportTipMonth: string | null; // the month whose report tip was seen
   setReportTipMonth: (month: string) => void;
   showPremium: (reason?: PremiumReason, offer?: OfferKind | null) => void;
@@ -65,6 +68,7 @@ export const usePremiumStore = create<PremiumStore>()(
       reportOpen: false,
       trialEndSeen: false,
       trialEndOfferUntil: null,
+      activeOffer: null,
       reportTipMonth: null,
       setReportTipMonth: (month) => set({ reportTipMonth: month }),
       showPremium: (reason = "general", offer = null) =>
@@ -80,7 +84,7 @@ export const usePremiumStore = create<PremiumStore>()(
       recordPremiumUse: () => {
         if (planStatus(useFinanceStore.getState().plan).inTrial) set({ premiumUses: get().premiumUses + 1 });
       },
-      applyOffer: (kind, patch) => set({ ...patch, offer: kind }),
+      applyOffer: (kind, patch) => set({ ...patch, offer: kind, activeOffer: { kind, until: Date.now() + OFFER_MS } }),
       clearOffer: () => set({ offer: null }),
       startTrialEndOffer: () =>
         set({

@@ -225,6 +225,7 @@ const zh: Locale = {
     chartsLocked: "图表属于 Premium",
   },
   offers: {
+    for15: "此价格保留 15 分钟。",
     timerTitle: "你的优惠正在进行",
     timerText: "特价还剩约 {{minutes}} 分钟。",
     see: "查看",
@@ -688,7 +689,7 @@ const zh: Locale = {
     trackerSaveFailedTitle: "无法保存追踪",
     trackerSaveFailed: "创建其分类需要网络连接。请检查后重试。",
     trackersLabel: "追踪",
-    trackersEmpty: "还没有追踪：可为贷款、借出的钱或储蓄目标添加",
+    trackersEmpty: "还没有追踪：可为贷款或借出的钱添加",
     trackerNamePlaceholder: {
       loanTracker: "例如：车贷",
       lendTracker: "例如：借给小王",

@@ -224,6 +224,7 @@ const it: Locale = {
     chartsLocked: "I grafici fanno parte di Premium",
   },
   offers: {
+    for15: "Il prezzo vale per 15 minuti.",
     timerTitle: "La tua offerta è attiva",
     timerText: "Restano circa {{minutes}} min al prezzo speciale.",
     see: "Vedi",
@@ -687,7 +688,7 @@ const it: Locale = {
     trackerSaveFailedTitle: "Impossibile salvare il tracker",
     trackerSaveFailed: "Per creare la sua categoria serve una connessione a internet. Controllala e riprova.",
     trackersLabel: "Tracker",
-    trackersEmpty: "Nessun tracker: aggiungine uno per un prestito, soldi prestati o un obiettivo di risparmio",
+    trackersEmpty: "Nessun tracker: aggiungine uno per un prestito o soldi prestati",
     trackerNamePlaceholder: {
       loanTracker: "es. Prestito auto",
       lendTracker: "es. Prestati a Marco",

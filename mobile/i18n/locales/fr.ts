@@ -224,6 +224,7 @@ const fr: Locale = {
     chartsLocked: "Les graphiques font partie de Premium",
   },
   offers: {
+    for15: "Le prix tient 15 minutes.",
     timerTitle: "Votre offre est en cours",
     timerText: "Encore environ {{minutes}} min au prix spécial.",
     see: "Voir",
@@ -687,7 +688,7 @@ const fr: Locale = {
     trackerSaveFailedTitle: "Impossible d'enregistrer le suivi",
     trackerSaveFailed: "Créer sa catégorie nécessite une connexion internet. Vérifiez-la et réessayez.",
     trackersLabel: "Suivis",
-    trackersEmpty: "Aucun suivi pour l'instant : ajoutez-en un pour un prêt, de l'argent prêté ou un objectif d'épargne",
+    trackersEmpty: "Aucun suivi pour l'instant : ajoutez-en un pour un prêt ou de l'argent prêté",
     trackerNamePlaceholder: {
       loanTracker: "ex. Prêt auto",
       lendTracker: "ex. Prêté à Lucas",

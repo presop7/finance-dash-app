@@ -225,6 +225,7 @@ const ja: Locale = {
     chartsLocked: "グラフはPremiumの機能です",
   },
   offers: {
+    for15: "この価格は15分間有効です。",
     timerTitle: "オファー実施中",
     timerText: "特別価格の残り時間は約{{minutes}}分です。",
     see: "見る",
@@ -688,7 +689,7 @@ const ja: Locale = {
     trackerSaveFailedTitle: "トラッカーを保存できませんでした",
     trackerSaveFailed: "カテゴリの作成にはインターネット接続が必要です。接続を確認して、もう一度お試しください。",
     trackersLabel: "トラッカー",
-    trackersEmpty: "トラッカーはまだありません：ローン、貸したお金、貯金目標に追加できます",
+    trackersEmpty: "トラッカーはまだありません：ローンや貸したお金に追加できます",
     trackerNamePlaceholder: {
       loanTracker: "例：自動車ローン",
       lendTracker: "例：田中さんに貸した",

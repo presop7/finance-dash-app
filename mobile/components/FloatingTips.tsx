@@ -205,7 +205,8 @@ function usePremiumTips(): { timer: Tip | null; offer: Tip | null; report: Tip |
   const { t } = useTranslation();
   const signedIn = useAuthStore((s) => s.session !== null);
   const offer = usePremiumStore((s) => s.offer);
-  const offerUntil = usePremiumStore((s) => s.trialEndOfferUntil);
+  const trialEndUntil = usePremiumStore((s) => s.trialEndOfferUntil);
+  const activeOffer = usePremiumStore((s) => s.activeOffer);
   const reportTipMonth = usePremiumStore((s) => s.reportTipMonth);
   const transactions = useFinanceStore((s) => s.transactions);
   const { paid } = usePlan();
@@ -213,6 +214,14 @@ function usePremiumTips(): { timer: Tip | null; offer: Tip | null; report: Tip |
   const premium = usePremiumStore.getState();
 
   const now = Date.now();
+  // Whichever offer window runs: the trial-end hour, or a 15-minute offer
+  // whose own tip was already closed.
+  const offerUntil =
+    trialEndUntil !== null && trialEndUntil > now
+      ? trialEndUntil
+      : activeOffer && activeOffer.until > now && !offer
+        ? activeOffer.until
+        : null;
   const timer: Tip | null =
     !paid && offerUntil !== null && offerUntil > now
       ? {
@@ -230,7 +239,7 @@ function usePremiumTips(): { timer: Tip | null; offer: Tip | null; report: Tip |
         id: `offer-${offer}`,
         icon: "diamond-outline",
         title: t(`offers.${offer}.title`),
-        text: t(`offers.${offer}.text`),
+        text: t(`offers.${offer}.text`) + " " + t("offers.for15"),
         action: t("offers.see"),
         onAction: () => premium.showPremium("offer", offer),
         onDismiss: () => premium.clearOffer(),

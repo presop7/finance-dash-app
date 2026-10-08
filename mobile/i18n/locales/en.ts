@@ -223,6 +223,7 @@ const en = {
     chartsLocked: "Charts are part of Premium",
   },
   offers: {
+    for15: "The price holds for 15 minutes.",
     timerTitle: "Your offer is running",
     timerText: "About {{minutes}} min left at the special price.",
     see: "See",
@@ -686,7 +687,7 @@ const en = {
     trackerSaveFailedTitle: "Couldn't save the tracker",
     trackerSaveFailed: "Creating its category needs an internet connection. Check it and try again.",
     trackersLabel: "Trackers",
-    trackersEmpty: "No trackers yet: add one for a loan, money you lent, or a savings goal",
+    trackersEmpty: "No trackers yet: add one for a loan or money you lent",
     trackerNamePlaceholder: {
       loanTracker: "e.g. Car loan",
       lendTracker: "e.g. Lent to Alex",

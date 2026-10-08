@@ -232,6 +232,7 @@ const ro: Locale = {
     chartsLocked: "Graficele fac parte din Premium",
   },
   offers: {
+    for15: "Prețul e valabil 15 minute.",
     timerTitle: "Oferta ta e activă",
     timerText: "Mai sunt circa {{minutes}} min la prețul special.",
     see: "Vezi",
@@ -705,7 +706,7 @@ const ro: Locale = {
     trackerSaveFailedTitle: "Urmăritorul nu a putut fi salvat",
     trackerSaveFailed: "Crearea categoriei lui necesită conexiune la internet. Verific-o și încearcă din nou.",
     trackersLabel: "Urmăritoare",
-    trackersEmpty: "Niciun urmăritor încă: adaugă unul pentru un împrumut, bani împrumutați sau un obiectiv de economisire",
+    trackersEmpty: "Niciun urmăritor încă: adaugă unul pentru un împrumut sau bani împrumutați",
     trackerNamePlaceholder: {
       loanTracker: "ex. Credit auto",
       lendTracker: "ex. Împrumutat lui Andrei",

@@ -31,8 +31,9 @@ export default function PremiumModal() {
   const insets = useSafeAreaInsets();
   const reason = usePremiumStore((s) => s.modal);
   const hide = usePremiumStore((s) => s.hidePremium);
-  const offerUntil = usePremiumStore((s) => s.trialEndOfferUntil);
-  const offerKind = usePremiumStore((s) => s.modalOffer);
+  const trialEndUntil = usePremiumStore((s) => s.trialEndOfferUntil);
+  const activeOffer = usePremiumStore((s) => s.activeOffer);
+  const openedFor = usePremiumStore((s) => s.modalOffer);
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const plan = usePlan();
   const trialEndsAt = useFinanceStore((s) => s.plan.trialEndsAt);
@@ -41,14 +42,19 @@ export default function PremiumModal() {
 
   // The trial-end offer's countdown, ticking while the screen is open.
   const [now, setNow] = useState(Date.now());
-  const timerRunning = offerUntil !== null && offerUntil > now;
+  // The running offer window: the trial-end hour first, else a 15-minute one.
+  const trialEndRunning = trialEndUntil !== null && trialEndUntil > now;
+  const offerRunning = activeOffer !== null && activeOffer.until > now;
+  const offerUntil = trialEndRunning ? trialEndUntil : offerRunning ? activeOffer.until : null;
+  const timerRunning = offerUntil !== null;
+  const offerKind = offerRunning ? activeOffer.kind : openedFor;
   useEffect(() => {
-    if (!reason || !offerUntil) return;
+    if (!reason || (!trialEndUntil && !activeOffer)) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [reason, offerUntil]);
+  }, [reason, trialEndUntil, activeOffer]);
 
-  const prices = timerRunning
+  const prices = trialEndRunning
     ? { monthly: OFFER_PRICES.trialEnd.monthly, yearly: OFFER_PRICES.trialEnd.yearly }
     : offerKind === "trialUse" || offerKind === "trialEnding"
       ? { monthly: PRICES.monthly, yearly: OFFER_PRICES.trial.yearly }

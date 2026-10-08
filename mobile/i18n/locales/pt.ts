@@ -225,6 +225,7 @@ const pt: Locale = {
     chartsLocked: "Os gráficos fazem parte do Premium",
   },
   offers: {
+    for15: "O preço vale por 15 minutos.",
     timerTitle: "Sua oferta está ativa",
     timerText: "Faltam cerca de {{minutes}} min no preço especial.",
     see: "Ver",
@@ -688,7 +689,7 @@ const pt: Locale = {
     trackerSaveFailedTitle: "Não foi possível salvar o acompanhamento",
     trackerSaveFailed: "Criar a categoria dele precisa de conexão com a internet. Verifique e tente novamente.",
     trackersLabel: "Acompanhamentos",
-    trackersEmpty: "Nenhum acompanhamento ainda: adicione um para um empréstimo, dinheiro emprestado ou uma meta de economia",
+    trackersEmpty: "Nenhum acompanhamento ainda: adicione um para um empréstimo ou dinheiro emprestado",
     trackerNamePlaceholder: {
       loanTracker: "ex.: Financiamento do carro",
       lendTracker: "ex.: Emprestado ao João",

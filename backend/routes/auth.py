@@ -125,6 +125,16 @@ def delete_account(
     _delete_sign_in(auth_id)
 
 
+def _admin_headers(key: str) -> dict:
+    # Either kind of Supabase admin key works: the legacy service_role key (a
+    # JWT, also sent as the bearer token) or a new secret key (sb_secret_...,
+    # which goes in the apikey header only — it isn't a JWT).
+    headers = {"apikey": key, "User-Agent": "finance-dash-api/1.0"}
+    if key.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
+
+
 def _delete_sign_in(auth_provider_id: str) -> None:
     """Removes the Supabase Auth user (email, Google link). The data is
     already gone; if this fails, signing in again just starts a new, empty
@@ -133,7 +143,7 @@ def _delete_sign_in(auth_provider_id: str) -> None:
     request = urllib.request.Request(
         f"{settings.SUPABASE_URL}/auth/v1/admin/users/{auth_provider_id}",
         method="DELETE",
-        headers={"apikey": key, "Authorization": f"Bearer {key}", "User-Agent": "finance-dash-api/1.0"},
+        headers=_admin_headers(key),
     )
     try:
         with urllib.request.urlopen(request, timeout=20):

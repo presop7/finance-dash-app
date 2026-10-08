@@ -225,6 +225,7 @@ const ko: Locale = {
     chartsLocked: "차트는 Premium 기능입니다",
   },
   offers: {
+    for15: "이 가격은 15분 동안 유지됩니다.",
     timerTitle: "오퍼 진행 중",
     timerText: "특별 가격이 약 {{minutes}}분 남았습니다.",
     see: "보기",
@@ -688,7 +689,7 @@ const ko: Locale = {
     trackerSaveFailedTitle: "트래커를 저장하지 못했습니다",
     trackerSaveFailed: "카테고리를 만들려면 인터넷 연결이 필요합니다. 연결을 확인하고 다시 시도하세요.",
     trackersLabel: "트래커",
-    trackersEmpty: "아직 트래커가 없습니다: 대출, 빌려준 돈, 저축 목표용으로 추가하세요",
+    trackersEmpty: "아직 트래커가 없습니다: 대출이나 빌려준 돈에 추가하세요",
     trackerNamePlaceholder: {
       loanTracker: "예: 자동차 대출",
       lendTracker: "예: 민준에게 빌려줌",

@@ -233,13 +233,13 @@ export default function AlertsScreen() {
           )}
         </View>
 
-        {/* Loans, lends and savings goals: progress toward an amount. */}
+        {/* Loans and lends: progress toward an amount. */}
         <View style={styles.sectionGap} />
         {sectionHeader(t("reminders.trackersLabel"), trackers.length, showTrackers, () => setShowTrackers((v) => !v))}
         <View style={styles.list}>
           {!showTrackers ? null : trackers.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="flag-outline" size={36} color={Colors.textMuted} />
+              <Ionicons name="card-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.trackersEmpty")}</Text>
             </View>
           ) : (
