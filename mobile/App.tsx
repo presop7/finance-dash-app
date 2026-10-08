@@ -106,6 +106,15 @@ const Tab = createBottomTabNavigator<TabParamList>();
 // (stable forever) instead of a closure over the render-prop's `navigation`,
 // which would be a fresh function every render and force the memo'd
 // DashboardScreen to re-render each time.
+// The dev link (Play test version) is named "Fi-Track Dev" — browser tab,
+// installed-app name and iPhone home-screen title — so it can't be mixed up
+// with the live app. index.html and manifest.json are shared, so it's set here.
+if (Platform.OS === "web" && DEV_GATE) {
+  document.title = "Fi-Track Dev";
+  document.querySelector('link[rel="manifest"]')?.setAttribute("href", "/manifest-dev.json");
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", "Fi-Track Dev");
+}
+
 const navigationRef = createNavigationContainerRef<TabParamList>();
 function navigateToAnalytics(filter: AnalyticsInitialFilter) {
   if (navigationRef.isReady()) navigationRef.navigate("Analytics", { filter });
