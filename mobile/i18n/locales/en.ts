@@ -644,6 +644,7 @@ const en = {
     dailyBody: "Don't forget to add today's transactions.",
   },
   goals: {
+    unlockMore: "Unlock more goals",
     lockedExtra: "This goal is read-only on the free plan (1 goal included).",
     title: "Goals",
     new: "New goal",

@@ -645,6 +645,7 @@ const de: Locale = {
     dailyBody: "Vergiss nicht, die heutigen Buchungen einzutragen.",
   },
   goals: {
+    unlockMore: "Mehr Ziele freischalten",
     lockedExtra: "Dieses Ziel ist im kostenlosen Plan nur lesbar (1 Ziel enthalten).",
     title: "Ziele",
     new: "Neues Ziel",

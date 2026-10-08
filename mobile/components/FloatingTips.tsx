@@ -60,7 +60,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
       : [
           enabled.notifications ? notifications.tip : null,
           premium.timer,
-          premium.offer, // offers stop with Premium, not with a switch
+          enabled.offers ? premium.offer : null,
           premium.report,
           ...(enabled.alerts ? alerts : []),
           enabled.reminder ? reminder : null,
@@ -232,7 +232,7 @@ function usePremiumTips(): { timer: Tip | null; offer: Tip | null; report: Tip |
         title: t(`offers.${offer}.title`),
         text: t(`offers.${offer}.text`),
         action: t("offers.see"),
-        onAction: () => premium.showPremium("offer"),
+        onAction: () => premium.showPremium("offer", offer),
         onDismiss: () => premium.clearOffer(),
       }
     : null;

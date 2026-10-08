@@ -65,6 +65,7 @@ function DashboardScreen({
   // scrolling inside a lit spot would slide the spot out from under it.
   const tourActive = useTutorialStore((s) => s.active);
   const { premium } = usePlan();
+  const goals = useFinanceStore((s) => s.goals);
   const displayName = displayNameOverride || firstNameFromUser(session?.user) || "there";
   const greeting = getGreeting();
 
@@ -112,6 +113,7 @@ function DashboardScreen({
     {
       id: "goals",
       title: t("goals.title"),
+      subtitle: premium ? undefined : t("funds.counter", { used: Math.min(goals.length, FREE.goals), max: FREE.goals }),
       content: <GoalsCard />,
     },
     {

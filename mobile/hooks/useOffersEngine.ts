@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { AppState } from "react-native";
 import { useFinanceStore } from "../store/useFinanceStore";
 import { planStatus, usePremiumStore } from "../store/usePremiumStore";
-import { loggingStreak, nextOffer } from "../utils/offers";
+import { AFTER_ADD_MS, loggingStreak, nextOffer } from "../utils/offers";
 import { isDemoId } from "../utils/demoTransactions";
 
 // Decides, on each app open (and as Premium features are used), whether to
@@ -12,6 +12,11 @@ export function useOffersEngine(adding: boolean) {
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const status = useFinanceStore((s) => s.status);
   const plan = useFinanceStore((s) => s.plan);
+  const offersOn = useFinanceStore((s) => s.tips.offers);
+  // A milestone counts the moment it's reached: re-checked as transactions
+  // change, and once more right after the 10-second pause that follows adding.
+  const transactionCount = useFinanceStore((s) => s.transactions.length);
+  const lastAddedAt = useFinanceStore((s) => s.lastAddedAt);
 
   useEffect(() => {
     const evaluate = () => {
@@ -28,7 +33,7 @@ export function useOffersEngine(adding: boolean) {
         store.startTrialEndOffer();
         return;
       }
-      if (store.offer) return;
+      if (store.offer || !offersOn) return;
       const real = finance.transactions.filter((t) => !isDemoId(t.id));
       const dates = real.map((t) => new Date(t.date));
       const first = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
@@ -47,6 +52,11 @@ export function useOffersEngine(adding: boolean) {
     };
     evaluate();
     const sub = AppState.addEventListener("change", (state) => state === "active" && evaluate());
-    return () => sub.remove();
-  }, [premiumUses, status, plan, adding]);
+    const wait = lastAddedAt === null ? -1 : lastAddedAt + AFTER_ADD_MS - Date.now();
+    const timer = wait > 0 ? setTimeout(evaluate, wait + 100) : undefined;
+    return () => {
+      sub.remove();
+      clearTimeout(timer);
+    };
+  }, [premiumUses, status, plan, adding, offersOn, transactionCount, lastAddedAt]);
 }

@@ -11,7 +11,7 @@ import { goalSaved, goalSpent } from "../utils/goals";
 import { isDemoId } from "../utils/demoTransactions";
 import GoalModal from "../screens/modals/GoalModal";
 import { FREE } from "../constants/plan";
-import { requirePremium } from "../store/usePremiumStore";
+import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 import { useTranslation } from "react-i18next";
 
 const CARD_WIDTH = 148;
@@ -28,6 +28,8 @@ export default function GoalsCard() {
   const currency = useFinanceStore((s) => s.settings.currency);
   const [open, setOpen] = useState<{ goal: Goal | null } | null>(null);
   const real = transactions.filter((tx) => !isDemoId(tx.id));
+  const { premium } = usePlan();
+  const atLimit = !premium && goals.length >= FREE.goals;
 
   return (
     <View>
@@ -60,13 +62,22 @@ export default function GoalsCard() {
             </TouchableOpacity>
           );
         })}
-        <TouchableOpacity style={[styles.card, styles.addCard]} activeOpacity={0.7} onPress={() => {
-            if (goals.length >= FREE.goals && !requirePremium("goals")) return;
-            setOpen({ goal: null });
-          }}>
-          <Ionicons name="add-circle-outline" size={26} color={Colors.primary} />
-          <Text style={styles.addText}>{t("goals.new")}</Text>
-          {goals.length === 0 && <Text style={styles.addHint}>{t("goals.emptyHint")}</Text>}
+        <TouchableOpacity
+          style={[styles.card, styles.addCard]}
+          activeOpacity={0.7}
+          onPress={() => (atLimit ? usePremiumStore.getState().showPremium("goals") : setOpen({ goal: null }))}
+        >
+          <Ionicons name={atLimit ? "lock-closed-outline" : "add-circle-outline"} size={26} color={Colors.primary} />
+          <Text style={styles.addText}>{atLimit ? t("goals.unlockMore") : t("goals.new")}</Text>
+          <Text style={styles.addHint}>
+            {atLimit
+              ? t("funds.withPremium")
+              : !premium
+                ? t("funds.left", { count: FREE.goals - goals.length })
+                : goals.length === 0
+                  ? t("goals.emptyHint")
+                  : ""}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
       <GoalModal visible={open !== null} goal={open?.goal ?? null} onClose={() => setOpen(null)} />
@@ -107,7 +118,7 @@ function createStyles(Colors: ColorsType) {
       borderStyle: "dashed",
       backgroundColor: Colors.surfaceSecondary,
     },
-    addText: { fontSize: FONT.body, fontWeight: "600", color: Colors.primary },
+    addText: { fontSize: FONT.body, fontWeight: "600", color: Colors.primary, textAlign: "center" },
     addHint: { fontSize: FONT.label, color: Colors.textMuted, textAlign: "center" },
   });
 }

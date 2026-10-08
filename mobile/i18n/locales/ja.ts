@@ -646,6 +646,7 @@ const ja: Locale = {
     dailyBody: "今日の取引の追加を忘れずに。",
   },
   goals: {
+    unlockMore: "目標をさらに解除",
     lockedExtra: "無料プランではこの目標は閲覧のみです（目標は1件まで）。",
     title: "目標",
     new: "新しい目標",

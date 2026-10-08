@@ -646,6 +646,7 @@ const ko: Locale = {
     dailyBody: "오늘의 거래를 잊지 말고 추가하세요.",
   },
   goals: {
+    unlockMore: "목표 더 열기",
     lockedExtra: "무료 플랜에서 이 목표는 보기 전용입니다(목표 1개 포함).",
     title: "목표",
     new: "새 목표",

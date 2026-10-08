@@ -663,6 +663,7 @@ const ro: Locale = {
     dailyBody: "Nu uita să adaugi tranzacțiile de azi.",
   },
   goals: {
+    unlockMore: "Deblochează mai multe obiective",
     lockedExtra: "Acest obiectiv e doar pentru vizualizare în planul gratuit (1 obiectiv inclus).",
     title: "Obiective",
     new: "Obiectiv nou",

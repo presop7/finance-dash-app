@@ -717,7 +717,10 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="bulb-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.tips")}</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.rowTitle}>{t("settings.tips")}</Text>
+                {!plan.premium && <Ionicons name="diamond-outline" size={13} color={Colors.primary} />}
+              </View>
               <Text style={styles.rowSubtitle}>{t("settings.tipsHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
@@ -752,7 +755,10 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
               <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.rowTitle}>{t("settings.importCsv")}</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.rowTitle}>{t("settings.importCsv")}</Text>
+                {!plan.premium && <Ionicons name="diamond-outline" size={13} color={Colors.primary} />}
+              </View>
               <Text style={styles.rowSubtitle}>{t("settings.importCsvHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
@@ -975,6 +981,8 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary + "15",
   },
   rowInfo: { flex: 1 },
+  // A title with the Premium mark (a diamond) after it, on Premium features.
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   premiumRow: { marginBottom: 20 },
   // Flashed by "Show me" from a floating tip; invisible otherwise.
   highlightFrame: { borderWidth: 2, borderRadius: 14, borderColor: "transparent" },

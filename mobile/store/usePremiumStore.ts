@@ -35,13 +35,16 @@ export type PremiumReason =
 type PremiumStore = OfferState & {
   modal: PremiumReason | null; // the Premium screen, when open
   openings: number; // counts openings (the screen is re-created each time)
+  // The offer the Premium screen was opened for: its prices hold even after
+  // the offer tip that opened it is closed (closing it clears `offer`).
+  modalOffer: OfferKind | null;
   offer: OfferKind | null; // the offer tip showing now
   reportOpen: boolean; // the monthly report screen
   trialEndSeen: boolean;
   trialEndOfferUntil: number | null; // ms; the 1-hour window after the trial
   reportTipMonth: string | null; // the month whose report tip was seen
   setReportTipMonth: (month: string) => void;
-  showPremium: (reason?: PremiumReason) => void;
+  showPremium: (reason?: PremiumReason, offer?: OfferKind | null) => void;
   hidePremium: () => void;
   setReportOpen: (open: boolean) => void;
   recordUseDay: (now: Date) => void;
@@ -57,14 +60,16 @@ export const usePremiumStore = create<PremiumStore>()(
       ...EMPTY_OFFERS,
       modal: null,
       openings: 0,
+      modalOffer: null,
       offer: null,
       reportOpen: false,
       trialEndSeen: false,
       trialEndOfferUntil: null,
       reportTipMonth: null,
       setReportTipMonth: (month) => set({ reportTipMonth: month }),
-      showPremium: (reason = "general") => set({ modal: reason, openings: get().openings + 1 }),
-      hidePremium: () => set({ modal: null }),
+      showPremium: (reason = "general", offer = null) =>
+        set({ modal: reason, modalOffer: offer ?? get().offer, openings: get().openings + 1 }),
+      hidePremium: () => set({ modal: null, modalOffer: null }),
       setReportOpen: (open) => set({ reportOpen: open }),
       recordUseDay: (now) => {
         const today = dayKey(now);
@@ -89,7 +94,7 @@ export const usePremiumStore = create<PremiumStore>()(
       name: "fi-track-offers",
       storage: createJSONStorage(() => AsyncStorage),
       // Only the offers' memory; open screens and the current tip don't persist.
-      partialize: ({ modal: _m, offer: _o, reportOpen: _r, openings: _n, ...rest }) =>
+      partialize: ({ modal: _m, offer: _o, reportOpen: _r, openings: _n, modalOffer: _f, ...rest }) =>
         Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== "function")) as Partial<PremiumStore>,
     },
   ),

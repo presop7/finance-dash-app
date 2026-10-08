@@ -681,6 +681,7 @@ const pl: Locale = {
     dailyBody: "Nie zapomnij dodać dzisiejszych transakcji.",
   },
   goals: {
+    unlockMore: "Odblokuj więcej celów",
     lockedExtra: "Ten cel jest tylko do odczytu w planie darmowym (1 cel w cenie).",
     title: "Cele",
     new: "Nowy cel",

@@ -645,6 +645,7 @@ const it: Locale = {
     dailyBody: "Non dimenticare di aggiungere i movimenti di oggi.",
   },
   goals: {
+    unlockMore: "Sblocca altri obiettivi",
     lockedExtra: "Questo obiettivo è di sola lettura nel piano gratuito (1 obiettivo incluso).",
     title: "Obiettivi",
     new: "Nuovo obiettivo",

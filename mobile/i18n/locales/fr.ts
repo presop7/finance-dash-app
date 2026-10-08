@@ -645,6 +645,7 @@ const fr: Locale = {
     dailyBody: "N'oubliez pas d'ajouter les opérations d'aujourd'hui.",
   },
   goals: {
+    unlockMore: "Débloquer plus d'objectifs",
     lockedExtra: "Cet objectif est en lecture seule avec le forfait gratuit (1 objectif inclus).",
     title: "Objectifs",
     new: "Nouvel objectif",

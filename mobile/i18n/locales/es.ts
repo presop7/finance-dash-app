@@ -645,6 +645,7 @@ const es: Locale = {
     dailyBody: "No olvides añadir los movimientos de hoy.",
   },
   goals: {
+    unlockMore: "Desbloquear más metas",
     lockedExtra: "Esta meta es solo para ver en el plan gratuito (1 meta incluida).",
     title: "Metas",
     new: "Nueva meta",

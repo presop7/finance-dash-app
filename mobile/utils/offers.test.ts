@@ -21,7 +21,8 @@ test("never for paying users, while adding, right after adding, or twice a day",
   expect(nextOffer(EMPTY_OFFERS, due)?.kind).toBe("transactions");
   expect(nextOffer(EMPTY_OFFERS, { ...due, paid: true })).toBeNull();
   expect(nextOffer(EMPTY_OFFERS, { ...due, adding: true })).toBeNull();
-  expect(nextOffer(EMPTY_OFFERS, { ...due, lastAddedAt: now.getTime() - 60_000 })).toBeNull();
+  expect(nextOffer(EMPTY_OFFERS, { ...due, lastAddedAt: now.getTime() - 5_000 })).toBeNull();
+  expect(nextOffer(EMPTY_OFFERS, { ...due, lastAddedAt: now.getTime() - 11_000 })?.kind).toBe("transactions");
   expect(nextOffer({ ...EMPTY_OFFERS, lastOfferDay: "2026-10-20" }, due)).toBeNull();
 });
 

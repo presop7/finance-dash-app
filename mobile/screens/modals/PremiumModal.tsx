@@ -32,7 +32,7 @@ export default function PremiumModal() {
   const reason = usePremiumStore((s) => s.modal);
   const hide = usePremiumStore((s) => s.hidePremium);
   const offerUntil = usePremiumStore((s) => s.trialEndOfferUntil);
-  const offerKind = usePremiumStore((s) => s.offer);
+  const offerKind = usePremiumStore((s) => s.modalOffer);
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const plan = usePlan();
   const trialEndsAt = useFinanceStore((s) => s.plan.trialEndsAt);
@@ -188,12 +188,14 @@ function createStyles(Colors: ColorsType) {
       flex: 1,
       padding: 12,
       borderRadius: 14,
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: Colors.border,
       backgroundColor: Colors.surfaceSecondary,
       gap: 2,
     },
-    planActive: { borderColor: Colors.primary, borderWidth: 2, backgroundColor: Colors.primary + "12" },
+    // Same border width as unselected (only the color changes), so picking a
+    // plan doesn't nudge the text.
+    planActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + "12" },
     planName: { fontSize: FONT.small, fontWeight: "600", color: Colors.textSecondary },
     planPrice: { fontSize: FONT.heading, fontWeight: "700", color: Colors.textPrimary },
     planWas: { fontSize: FONT.small, color: Colors.textMuted, textDecorationLine: "line-through" },

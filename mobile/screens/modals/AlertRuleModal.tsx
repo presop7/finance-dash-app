@@ -282,13 +282,13 @@ export default function AlertRuleModal({
               ].map((group, gi) =>
                 group.length === 0 ? null : (
                   <View key={gi}>
-                    {gi === 1 && (
-                      <View style={styles.groupDivider}>
-                        <View style={styles.groupLine} />
-                        <Text style={styles.groupLabel}>{t("reminders.trackersLabel")}</Text>
-                        <View style={styles.groupLine} />
-                      </View>
-                    )}
+                    <View style={[styles.groupDivider, gi === 0 && styles.groupDividerFirst]}>
+                      <View style={styles.groupLine} />
+                      <Text style={styles.groupLabel}>
+                        {gi === 0 ? t("reminders.listLabel") : t("reminders.trackersLabel")}
+                      </Text>
+                      <View style={styles.groupLine} />
+                    </View>
                     <View style={styles.typeGrid}>
                       {group.map((ruleType) => (
                         <TouchableOpacity
@@ -568,6 +568,7 @@ function createStyles(Colors: ColorsType) {
   },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   groupDivider: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, marginBottom: 10 },
+  groupDividerFirst: { marginTop: 4 },
   groupLine: { flex: 1, height: 0.5, backgroundColor: Colors.border },
   groupLabel: {
     fontSize: FONT.label,

@@ -1,7 +1,7 @@
 // Which Premium offer (if any) to show now. Pure: the offers store keeps the
 // state, this decides. Rules:
 //   - At most one offer a calendar day, from every trigger together.
-//   - Never while adding a transaction or in the 2 minutes after one.
+//   - Never while adding a transaction or in the 10 seconds after one.
 //   - Nothing for paying users.
 //   - During the trial: after every 2nd use of a Premium feature, and a
 //     heads-up the day before it ends.
@@ -54,7 +54,7 @@ export const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 const DAY = 24 * 60 * 60 * 1000;
-const AFTER_ADD_MS = 2 * 60 * 1000;
+export const AFTER_ADD_MS = 10 * 1000;
 
 export function nextOffer(
   s: OfferState,

@@ -646,6 +646,7 @@ const zh: Locale = {
     dailyBody: "别忘了添加今天的交易。",
   },
   goals: {
+    unlockMore: "解锁更多目标",
     lockedExtra: "在免费版中此目标为只读（包含 1 个目标）。",
     title: "目标",
     new: "新目标",
