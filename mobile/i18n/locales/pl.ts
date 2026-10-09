@@ -197,6 +197,7 @@ const pl: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Twój okres próbny Premium się skończył",
     trialStartedTitle: "Twój okres próbny Premium się zaczął",
+    explore: "Zaczynamy",
     short: "Premium",
     reason: {
       tips: "Wyłączanie wskazówek to funkcja Premium. Chcesz spokojniejszą aplikację? Przejdź na Premium. Włączyć je możesz w każdej chwili.",

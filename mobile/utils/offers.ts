@@ -4,8 +4,8 @@
 //   - Never while adding a transaction or in the 10 seconds after one.
 //   - Nothing for paying users.
 //   - During the trial: after every 2nd use of a Premium feature, and a
-//     heads-up the day before it ends.
-//   - Free users: milestones — logging streaks (7, then 30 days), every 15
+//     heads-up the day before it ends — then the milestones too.
+//   - Free users and the trial: milestones — logging streaks (7, then 30 days), every 15
 //     transactions, every 7 days of use, each month since the first one.
 //     When several are due the same day, the most valuable goes first; the
 //     others wait for another day.
@@ -76,10 +76,10 @@ export function nextOffer(
     if (s.premiumUses >= 2 && s.premiumUses % 2 === 0 && s.premiumUses !== s.premiumUsesOffered) {
       return offer("trialUse", { premiumUsesOffered: s.premiumUses });
     }
-    return null;
   }
 
-  // Free user: milestones, most valuable first.
+  // Milestones (free users and the trial), most valuable first. Each is the
+  // highest one passed: 40 transactions since the last offer count as 30.
   if (c.streak >= 30 && s.streakMilestone < 30) return offer("streak", { streakMilestone: 30 });
   if (c.streak >= 7 && s.streakMilestone < 7) return offer("streak", { streakMilestone: 7 });
   const tx = Math.floor(c.transactionCount / TX_STEP) * TX_STEP;

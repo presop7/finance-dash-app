@@ -291,6 +291,9 @@ type FinanceStore = {
   // (e.g. newly created) go after, in their normal order.
   fundCardOrder: string[];
   setFundCardOrder: (order: string[]) => void;
+  // Goal ids in the user's chosen Goals-card order; same rules.
+  goalOrder: string[];
+  setGoalOrder: (order: string[]) => void;
   // Expense + income category ids in the user's chosen order (one list:
   // the ids never clash); same rules as fundCardOrder.
   categoryOrder: string[];
@@ -865,6 +868,7 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
       fundCardOrder: [],
+      goalOrder: [],
       categoryOrder: [],
       themePreference: "system",
       notificationsEnabled: true,
@@ -1385,6 +1389,7 @@ export const useFinanceStore = create<FinanceStore>()(
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
       setFundCardOrder: (order) => set({ fundCardOrder: order }),
+      setGoalOrder: (order) => set({ goalOrder: order }),
       setCategoryOrder: (order) => set((state) => ({ categoryOrder: mergeOrder(state.categoryOrder, order) })),
 
       addDemoTransactions: (demo) =>
@@ -1421,6 +1426,7 @@ export const useFinanceStore = create<FinanceStore>()(
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,
+        goalOrder: state.goalOrder,
         lastAddedAt: state.lastAddedAt,
         categoryOrder: state.categoryOrder,
         alertRules: state.alertRules,

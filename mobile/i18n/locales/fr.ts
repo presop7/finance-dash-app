@@ -181,6 +181,7 @@ const fr: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Votre essai Premium est terminé",
     trialStartedTitle: "Votre essai Premium a commencé",
+    explore: "Commencer",
     short: "Premium",
     reason: {
       tips: "Désactiver les astuces est une fonction Premium. Envie d'une app plus calme ? Passez à Premium. Vous pouvez les réactiver à tout moment.",

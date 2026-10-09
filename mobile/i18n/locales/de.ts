@@ -181,6 +181,7 @@ const de: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Deine Premium-Testphase ist vorbei",
     trialStartedTitle: "Deine Premium-Testphase hat begonnen",
+    explore: "Los geht's",
     short: "Premium",
     reason: {
       tips: "Tipps auszuschalten ist eine Premium-Funktion. Lieber eine ruhigere App? Hol dir Premium. Einschalten geht jederzeit.",

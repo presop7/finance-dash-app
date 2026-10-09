@@ -79,6 +79,10 @@ type TutorialState = {
   // tour is out of the way (see CurrencyPromptModal).
   askCurrency: boolean;
   setAskCurrency: (ask: boolean) => void;
+  // App.tsx decided whether this account gets the first tour (so things
+  // meant for after it, like the trial notice, know when to come).
+  checked: boolean;
+  setChecked: () => void;
 };
 
 export const useTutorialStore = create<TutorialState>((set, get) => ({
@@ -87,6 +91,8 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   replay: false,
   askCurrency: false,
   setAskCurrency: (ask) => set({ askCurrency: ask }),
+  checked: false,
+  setChecked: () => set({ checked: true }),
 
   start: (replay = false) => {
     const finance = useFinanceStore.getState();

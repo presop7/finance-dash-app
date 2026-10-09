@@ -181,6 +181,7 @@ const it: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "La tua prova Premium è finita",
     trialStartedTitle: "La tua prova Premium è iniziata",
+    explore: "Inizia a esplorare",
     short: "Premium",
     reason: {
       tips: "Disattivare i suggerimenti è una funzione Premium. Vuoi un'app più tranquilla? Passa a Premium. Puoi riattivarli quando vuoi.",

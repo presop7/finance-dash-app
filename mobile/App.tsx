@@ -744,7 +744,10 @@ function useTutorialAutoStart() {
     checkedFor.current = user.id;
     const isNew =
       !user.user_metadata?.tutorial_done && useFinanceStore.getState().transactions.length === 0;
-    if (!isNew) return;
+    if (!isNew) {
+      useTutorialStore.getState().setChecked();
+      return;
+    }
     // Their currency: from where the phone is, if we can tell; otherwise
     // they're asked right after the tour.
     const currency = detectCurrency();
@@ -754,6 +757,7 @@ function useTutorialAutoStart() {
       finance.updateSettings({ currency }).catch(() => {});
     }
     startTutorial();
+    useTutorialStore.getState().setChecked();
   }, [user, status]);
 }
 

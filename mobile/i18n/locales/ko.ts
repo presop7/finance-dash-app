@@ -182,6 +182,7 @@ const ko: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Premium 체험이 끝났습니다",
     trialStartedTitle: "Premium 체험이 시작되었습니다",
+    explore: "둘러보기 시작",
     short: "Premium",
     reason: {
       tips: "팁 끄기는 Premium 기능입니다. 더 조용한 앱을 원하세요? Premium으로 업그레이드하세요. 다시 켜는 것은 언제든 가능합니다.",

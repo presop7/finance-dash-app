@@ -32,6 +32,7 @@ import type { DeleteConflictDetail } from "../../services/financeApi";
 import { ReorderItem, useReorder } from "../../components/Reorderable";
 import { sortByOrder } from "../../utils/reorder";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import FlashBorder from "../../components/FlashBorder";
 import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
@@ -316,7 +317,6 @@ export default function CategoriesModal({
     else setCategoryOrder(order);
     gridScrollRef.current?.scrollTo({ y: 0, animated: true });
     setJustAdded(id);
-    setTimeout(() => setJustAdded((cur) => (cur === id ? null : cur)), 2500);
   };
 
   const handleFormSave = async (fields: {
@@ -600,12 +600,13 @@ export default function CategoriesModal({
                     key={item.id}
                     id={item.id}
                     reorder={reorder}
-                    style={[styles.categoryChip, justAdded === item.id && styles.categoryChipNew]}
+                    style={styles.categoryChip}
                     fillColor={Colors.primary + "22"}
                     onPress={onPick ? () => onPick(item.id) : undefined}
                     onHold={() => enterSelectMode(item.id)}
                   >
                     {iconAndLabel}
+                    {justAdded === item.id && <FlashBorder radius={20} onDone={() => setJustAdded(null)} />}
                     {!item.locked && (
                     <Pressable
                       style={styles.editIconBtn}
@@ -810,7 +811,6 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
-  categoryChipNew: { borderColor: Colors.primary, borderWidth: 2 },
   categoryChipSelected: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primary + "10",

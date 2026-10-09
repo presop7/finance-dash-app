@@ -139,6 +139,12 @@ export default function PremiumModal() {
               ))}
             </View>
 
+            {reason === "trialStarted" ? (
+              <TouchableOpacity style={styles.buy} onPress={hide}>
+                <Text style={styles.buyText}>{t("premium.explore")}</Text>
+              </TouchableOpacity>
+            ) : (
+            <>
             <View style={styles.plans}>
               {(["yearly", "monthly"] as const).map((p) => {
                 const price = prices[p];
@@ -175,6 +181,8 @@ export default function PremiumModal() {
               </TouchableOpacity>
             )}
             <Text style={styles.fine}>{t("premium.fine")}</Text>
+            </>
+            )}
           </ScrollView>
         </View>
       </View>

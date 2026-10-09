@@ -181,6 +181,7 @@ const bg: Translations = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Пробният Premium период свърши",
     trialStartedTitle: "Пробният ви Premium период започна",
+    explore: "Да започваме",
     short: "Premium",
     reason: {
       tips: "Изключването на съветите е функция на Premium. Искате по-тихо приложение? Минете на Premium. Можете да включите съветите обратно по всяко време.",

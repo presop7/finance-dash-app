@@ -189,6 +189,7 @@ const ro: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Perioada ta de probă Premium s-a încheiat",
     trialStartedTitle: "Perioada ta de probă Premium a început",
+    explore: "Începe explorarea",
     short: "Premium",
     reason: {
       tips: "Oprirea sfaturilor este o funcție Premium. Vrei o aplicație mai liniștită? Treci la Premium. Le poți reporni oricând.",

@@ -10,7 +10,8 @@ from config import settings
 from database import get_db
 from default_categories import add_default_categories
 from models.fund_category import FundCategory
-from models.user import User
+from models.user import TrialClaim, User
+from trial import email_hash
 
 JWKS_URL = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 
@@ -67,14 +68,20 @@ def _resolve_user(credentials: HTTPAuthorizationCredentials, db: Session) -> Use
             or metadata.get("name")
             or (email.split("@")[0] if email else "User")
         )
+        # Reverse trial: a new account starts on Premium — once per email.
+        claim = email_hash(email) if email else None
+        had_trial = (
+            settings.TRIAL_ONCE_PER_EMAIL and claim is not None and db.get(TrialClaim, claim) is not None
+        )
         user = User(
             auth_provider_id=auth_provider_id,
             email=email,
             display_name=display_name,
-            # Reverse trial: every new account starts on Premium.
-            trial_ends_at=datetime.now(timezone.utc) + timedelta(days=settings.TRIAL_DAYS),
+            trial_ends_at=None if had_trial else datetime.now(timezone.utc) + timedelta(days=settings.TRIAL_DAYS),
         )
         db.add(user)
+        if claim and not had_trial and db.get(TrialClaim, claim) is None:
+            db.add(TrialClaim(email_hash=claim))
         try:
             db.flush()
 

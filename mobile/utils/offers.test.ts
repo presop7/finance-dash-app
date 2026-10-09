@@ -34,6 +34,8 @@ test("trial: every 2nd Premium use, and the day before it ends", () => {
   expect(nextOffer({ ...EMPTY_OFFERS, premiumUses: 2, premiumUsesOffered: 2 }, trial)).toBeNull();
   const ending = nextOffer(EMPTY_OFFERS, { ...trial, trialEndsAt: now.getTime() + 3600_000 });
   expect(ending?.kind).toBe("trialEnding");
+  // Milestones come in the trial too, and a missed one catches up.
+  expect(nextOffer(EMPTY_OFFERS, { ...trial, transactionCount: 40 })).toMatchObject({ kind: "transactions", patch: { txMilestone: 30 } });
 });
 
 test("free milestones: streak first, then transactions, days of use, months", () => {

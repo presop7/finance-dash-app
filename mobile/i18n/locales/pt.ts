@@ -182,6 +182,7 @@ const pt: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Seu teste do Premium terminou",
     trialStartedTitle: "Seu teste do Premium começou",
+    explore: "Começar a explorar",
     short: "Premium",
     reason: {
       tips: "Desativar as dicas é um recurso Premium. Quer um app mais tranquilo? Assine o Premium. Você pode reativá-las quando quiser.",

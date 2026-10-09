@@ -180,6 +180,7 @@ const en = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Your Premium trial has ended",
     trialStartedTitle: "Your Premium trial has started",
+    explore: "Start exploring",
     short: "Premium",
     reason: {
       tips: "Turning tips off is a Premium feature. Want a quieter app? Go Premium. You can turn tips back on any time.",

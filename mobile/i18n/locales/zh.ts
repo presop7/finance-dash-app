@@ -182,6 +182,7 @@ const zh: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "你的 Premium 试用已结束",
     trialStartedTitle: "你的 Premium 试用已开始",
+    explore: "开始探索",
     short: "Premium",
     reason: {
       tips: "关闭提示是 Premium 功能。想要更安静的应用？升级 Premium。随时可以重新开启。",

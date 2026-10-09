@@ -4,6 +4,7 @@ import { useFinanceStore } from "../store/useFinanceStore";
 import { planStatus, usePremiumStore } from "../store/usePremiumStore";
 import { AFTER_ADD_MS, loggingStreak, nextOffer } from "../utils/offers";
 import { isDemoId } from "../utils/demoTransactions";
+import { useTutorialStore } from "../store/useTutorialStore";
 
 // Decides, on each app open (and as Premium features are used), whether to
 // show the trial-end screen or an offer tip — see utils/offers for the rules.
@@ -11,6 +12,7 @@ import { isDemoId } from "../utils/demoTransactions";
 export function useOffersEngine(adding: boolean) {
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const serverLoaded = usePremiumStore((s) => s.serverLoaded);
+  const tourBusy = useTutorialStore((s) => !s.checked || s.active || s.askCurrency);
   const status = useFinanceStore((s) => s.status);
   const plan = useFinanceStore((s) => s.plan);
   const offersOn = useFinanceStore((s) => s.tips.offers);
@@ -36,7 +38,9 @@ export function useOffersEngine(adding: boolean) {
       }
       // Once, when the trial is running: it started, and until when (only
       // after the account's memory is in, so other devices don't repeat it).
-      if (s.inTrial && store.serverLoaded && !store.trialWelcomeSeen) {
+      // Not over the first tour or the currency question: after them.
+      const tour = useTutorialStore.getState();
+      if (s.inTrial && store.serverLoaded && !store.trialWelcomeSeen && tour.checked && !tour.active && !tour.askCurrency) {
         usePremiumStore.setState({ trialWelcomeSeen: true });
         store.showPremium("trialStarted");
         return;
@@ -66,5 +70,5 @@ export function useOffersEngine(adding: boolean) {
       sub.remove();
       clearTimeout(timer);
     };
-  }, [premiumUses, serverLoaded, status, plan, adding, offersOn, transactionCount, lastAddedAt]);
+  }, [premiumUses, serverLoaded, tourBusy, status, plan, adding, offersOn, transactionCount, lastAddedAt]);
 }

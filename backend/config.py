@@ -34,6 +34,9 @@ class Settings(BaseSettings):
 
     # Days of Premium every new account starts with (reverse trial, no card).
     TRIAL_DAYS: int = 10
+    # One trial per email (also after deleting the account). false: every
+    # new account gets one again — handy only for testing.
+    TRIAL_ONCE_PER_EMAIL: bool = True
     # The Play test version's backend sets this: only users with dev_access
     # (ticked in Supabase) get past their profile; others can ask for access.
     DEV_ONLY: bool = False

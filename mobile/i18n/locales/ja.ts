@@ -182,6 +182,7 @@ const ja: Locale = {
     title: "Fi-Track Premium",
     trialEndedTitle: "Premiumのお試し期間が終了しました",
     trialStartedTitle: "Premiumのお試し期間が始まりました",
+    explore: "さっそく使ってみる",
     short: "Premium",
     reason: {
       tips: "ヒントをオフにするのはPremiumの機能です。もっと静かなアプリにしたいなら、Premiumへ。オンにはいつでも戻せます。",
