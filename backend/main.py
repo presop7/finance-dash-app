@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from routes.auth import router as auth_router
 from routes.goals import router as goals_router
+from routes.billing import router as billing_router
 from routes.categories import router as categories_router
 from routes.feedback import router as feedback_router
 from routes.fund_categories import router as fund_categories_router
@@ -30,6 +31,7 @@ app.include_router(transactions_router)
 app.include_router(feedback_router)
 app.include_router(push_router)
 app.include_router(goals_router)
+app.include_router(billing_router)
 
 
 @app.get("/health")

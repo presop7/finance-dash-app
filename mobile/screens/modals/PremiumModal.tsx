@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Pressable, Linking, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Modal from "../../components/AppModal";
@@ -13,6 +13,9 @@ import { useFinanceStore } from "../../store/useFinanceStore";
 import { usePlan, usePremiumStore } from "../../store/usePremiumStore";
 import { isTracker } from "../../utils/alertEvaluation";
 import { alertAsync } from "../../utils/confirm";
+import { OfferPrice, StorePlans, withAmount } from "../../constants/billing";
+import { PLAY_STORE_URL } from "../../constants/appLinks";
+import * as billing from "../../services/billing";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 
@@ -38,6 +41,7 @@ export default function PremiumModal() {
   const premiumUses = usePremiumStore((s) => s.premiumUses);
   const plan = usePlan();
   const trialEndsAt = useFinanceStore((s) => s.plan.trialEndsAt);
+  const source = useFinanceStore((s) => s.plan.source);
   const { goals, fundCategories, alertRules } = useFinanceStore();
   const [plan_, setPlan] = useState<"yearly" | "monthly">("yearly");
 
@@ -63,6 +67,27 @@ export default function PremiumModal() {
         ? { monthly: PRICES.monthly, yearly: OFFER_PRICES.milestone.yearly }
         : PRICES;
 
+  // The store's (or Paddle's) own prices for this user, with the running
+  // offer when the store has it set up; the list above until they arrive.
+  const offerPrice: OfferPrice | null = trialEndRunning
+    ? "trialEnd"
+    : offerKind === "trialUse" || offerKind === "trialEnding"
+      ? "trial"
+      : offerKind
+        ? "milestone"
+        : null;
+  const [storePlans, setStorePlans] = useState<StorePlans | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!reason || plan.paid) return;
+    let live = true;
+    void billing.loadPlans(offerPrice).then((plans) => live && setStorePlans(plans));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reason, offerPrice]);
+
   const left = Math.max(0, (offerUntil ?? 0) - now);
   const countdown = `${Math.floor(left / 60000)}:${String(Math.floor((left % 60000) / 1000)).padStart(2, "0")}`;
   const trialDaysLeft = trialEndsAt ? Math.max(1, Math.ceil((trialEndsAt - now) / 86400000)) : 0;
@@ -73,7 +98,46 @@ export default function PremiumModal() {
   const reminders = alertRules.filter((r) => !isTracker(r));
   const extraReminders = reminders.length - new Set(reminders.map((r) => r.type)).size;
 
-  const buy = () => alertAsync(t("premium.comingTitle"), t("premium.coming"));
+  const STORE_NAME = (source: string) => t(`billing.store.${source}`);
+  const buy = async () => {
+    const chosen = storePlans?.[plan_];
+    if (!chosen) {
+      // Web without Paddle set up: Premium is bought in the Android app.
+      if (Platform.OS === "web" && PLAY_STORE_URL) return void Linking.openURL(PLAY_STORE_URL);
+      return alertAsync(t("premium.comingTitle"), t("premium.coming"));
+    }
+    setBusy(true);
+    try {
+      const result = await billing.buy(chosen);
+      if (result === "premium") {
+        hide();
+        await alertAsync(t("premium.thanksTitle"), t("premium.thanks"));
+      } else if (result === "pending") {
+        await alertAsync(t("premium.pendingTitle"), t("premium.pending"));
+      }
+    } catch {
+      await alertAsync(t("premium.buyFailedTitle"), t("premium.buyFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  // Paid: change plan / payment method / cancel — where it was bought.
+  const manage = () =>
+    source && source !== billing.billingStore
+      ? alertAsync(t("premium.manage"), t("premium.managedIn", { store: STORE_NAME(source) }))
+      : billing.manage().catch(() => alertAsync(t("premium.manage"), t("common.somethingWrong")));
+  const restore = async () => {
+    setBusy(true);
+    try {
+      const count = await billing.restore();
+      if (count > 0) hide();
+      await alertAsync(t("premium.restore"), count > 0 ? t("premium.restored") : t("premium.nothingToRestore"));
+    } catch {
+      await alertAsync(t("premium.restore"), t("common.somethingWrong"));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Modal visible={reason !== null} animationType="slide" transparent onRequestClose={hide}>
@@ -147,26 +211,30 @@ export default function PremiumModal() {
             <>
             <View style={styles.plans}>
               {(["yearly", "monthly"] as const).map((p) => {
-                const price = prices[p];
-                const list = PRICES[p];
+                const store = storePlans?.[p];
+                // Amounts and how to show one: the store's, else our list.
+                const price = store ? store.amount : prices[p];
+                const list = store ? store.listAmount : PRICES[p];
+                const monthlyList = storePlans ? storePlans.monthly.listAmount : PRICES.monthly;
+                const show = (n: number) => (store ? withAmount(store.price, n) : euro(n));
                 return (
                   <TouchableOpacity key={p} style={[styles.plan, plan_ === p && styles.planActive]} onPress={() => setPlan(p)}>
                     <Text style={styles.planName}>{t(`premium.plan.${p}`)}</Text>
-                    <Text style={styles.planPrice}>{euro(price)}</Text>
-                    {price < list && <Text style={styles.planWas}>{euro(list)}</Text>}
+                    <Text style={styles.planPrice}>{store ? store.price : euro(price)}</Text>
+                    {price < list && <Text style={styles.planWas}>{store?.listPrice ?? euro(list)}</Text>}
                     <Text style={styles.planNote}>
                       {p === "yearly"
-                        ? t("premium.perMonth", { price: euro(price / 12) })
+                        ? t("premium.perMonth", { price: show(price / 12) })
                         : price < list
                           ? t("premium.firstMonth")
                           : t("premium.cancelAnytime")}
                     </Text>
-                    {p === "yearly" && (
+                    {p === "yearly" && monthlyList * 12 > price && (
                       // Against paying monthly for a year at the list price.
                       <Text style={styles.planSave}>
                         {t("premium.save", {
-                          amount: euro(PRICES.monthly * 12 - price),
-                          pct: Math.round((1 - price / (PRICES.monthly * 12)) * 100),
+                          amount: show(monthlyList * 12 - price),
+                          pct: Math.round((1 - price / (monthlyList * 12)) * 100),
                         })}
                       </Text>
                     )}
@@ -175,12 +243,27 @@ export default function PremiumModal() {
               })}
             </View>
 
-            {!plan.paid && (
-              <TouchableOpacity style={styles.buy} onPress={buy}>
-                <Text style={styles.buyText}>{t("premium.continue")}</Text>
+            {plan.paid ? (
+              <TouchableOpacity style={styles.buy} onPress={manage}>
+                <Text style={styles.buyText}>{t("premium.manage")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.buy, busy && styles.buyBusy]} onPress={buy} disabled={busy}>
+                <Text style={styles.buyText}>{busy ? t("premium.processing") : t("premium.continue")}</Text>
               </TouchableOpacity>
             )}
-            <Text style={styles.fine}>{t("premium.fine")}</Text>
+            {billing.canRestore && !plan.paid && (
+              <TouchableOpacity onPress={restore} disabled={busy}>
+                <Text style={styles.restore}>{t("premium.restore")}</Text>
+              </TouchableOpacity>
+            )}
+            <Text style={styles.fine}>
+              {billing.billingStore === "apple"
+                ? t("premium.fineApple")
+                : billing.billingStore === "paddle"
+                  ? t("premium.finePaddle")
+                  : t("premium.fine")}
+            </Text>
             </>
             )}
           </ScrollView>
@@ -246,6 +329,8 @@ function createStyles(Colors: ColorsType) {
     planSave: { fontSize: FONT.label, fontWeight: "700", color: Colors.income },
     buy: { padding: 15, borderRadius: 14, alignItems: "center", backgroundColor: Colors.primary },
     buyText: { fontSize: FONT.body, fontWeight: "700", color: "#fff" },
+    buyBusy: { opacity: 0.6 },
+    restore: { fontSize: FONT.small, color: Colors.primary, fontWeight: "600", textAlign: "center" },
     fine: { fontSize: FONT.label, color: Colors.textMuted, textAlign: "center", marginBottom: 8 },
   });
 }

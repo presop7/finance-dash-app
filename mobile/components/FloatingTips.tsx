@@ -14,6 +14,7 @@ import { activeAlerts } from "../utils/alertEvaluation";
 import { isDemoId } from "../utils/demoTransactions";
 import { currentLocale } from "../i18n";
 import { usePlan, usePremiumStore } from "../store/usePremiumStore";
+import { billingStore, manage } from "../services/billing";
 
 export type Tip = {
   id: string;
@@ -51,8 +52,10 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
   const alerts = useAlertTips(notifications.delivered);
   const reminder = useReminderTip();
   const premium = usePremiumTips();
+  const billingIssue = useBillingIssueTip();
 
   const queue = [
+    billingIssue,
     enabled.install ? install : null,
     // The rest wait while the app tour is running.
     ...(touring
@@ -95,6 +98,22 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
       </View>
     </View>
   );
+}
+
+// The store (or Paddle) couldn't take a renewal payment: Premium is kept for
+// a grace period meanwhile. "Fix" opens where the payment method is changed.
+function useBillingIssueTip(): Tip | null {
+  const { t } = useTranslation();
+  const issue = useFinanceStore((s) => s.plan.billingIssue);
+  if (!issue) return null;
+  return {
+    id: "billing",
+    icon: "card-outline",
+    title: t("billing.issueTitle"),
+    text: t("billing.issueText", { store: t(`billing.store.${issue}`) }),
+    action: issue === billingStore ? t("billing.fix") : undefined,
+    onAction: () => void manage().catch(() => {}),
+  };
 }
 
 // Signed in, notifications possible here but not on: a nudge to turn them

@@ -50,6 +50,7 @@ import TransactionDetailModal from "./screens/modals/TransactionDetailModal";
 import ImportCsvModal from "./screens/modals/ImportCsvModal";
 import NamePromptModal from "./screens/modals/NamePromptModal";
 import TutorialOverlay from "./components/TutorialOverlay";
+import { startBilling } from "./services/billing";
 import {
   setTutorialNavigator,
   tutorialEmit,
@@ -291,6 +292,8 @@ function RootNavigator() {
         // fetching, so a launch that's already online still drains it — the
         // connectivity listener alone wouldn't, since no transition occurs.
         await hydrate();
+        // Store purchases: listen, and confirm any left unconfirmed.
+        startBilling();
       })();
     } else {
       reset();

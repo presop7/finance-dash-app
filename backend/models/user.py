@@ -37,6 +37,10 @@ class User(Base):
     # The app's Premium offers memory (milestones offered, running offers...),
     # so every device of the account sees the same offers.
     offer_state: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Paid plan (billing.py): where it comes from (google / apple / paddle),
+    # and the source whose payment is failing now, if any.
+    premium_source: Mapped[str | None] = mapped_column(String, nullable=True)
+    billing_issue: Mapped[str | None] = mapped_column(String, nullable=True)
 
     fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")

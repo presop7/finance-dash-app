@@ -39,6 +39,8 @@ module.exports = {
       "expo-status-bar",
       "expo-font",
       "expo-localization",
+      // Google Play Billing / StoreKit (services/billing.native.ts)
+      "expo-iap",
       [
         "expo-splash-screen",
         {

@@ -126,14 +126,28 @@ export type Plan = {
   premiumUntil: number | null; // ms
   devAccess: boolean;
   devAccessRequestedAt: number | null; // ms
+  accountId: string | null; // our user id (purchases are tied to it)
+  source: "google" | "apple" | "paddle" | null; // where the paid plan was bought
+  billingIssue: "google" | "apple" | "paddle" | null; // a renewal payment is failing there
 };
-const NO_PLAN: Plan = { trialEndsAt: null, premiumUntil: null, devAccess: false, devAccessRequestedAt: null };
+const NO_PLAN: Plan = {
+  trialEndsAt: null,
+  premiumUntil: null,
+  devAccess: false,
+  devAccessRequestedAt: null,
+  accountId: null,
+  source: null,
+  billingIssue: null,
+};
 const ms = (iso?: string | null) => (iso ? new Date(iso).getTime() : null);
 export const mapPlan = (u: ApiUser): Plan => ({
   trialEndsAt: ms(u.trial_ends_at),
   premiumUntil: ms(u.premium_until),
   devAccess: Boolean(u.dev_access),
   devAccessRequestedAt: ms(u.dev_access_requested_at),
+  accountId: u.id,
+  source: u.premium_source ?? null,
+  billingIssue: u.billing_issue ?? null,
 });
 // The Play test version (dev link): only accounts given access get in.
 export const DEV_GATE = process.env.EXPO_PUBLIC_DEV_GATE === "true";

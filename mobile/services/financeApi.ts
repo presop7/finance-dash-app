@@ -99,6 +99,8 @@ export type ApiUser = {
   dev_access?: boolean;
   dev_access_requested_at?: string | null;
   offer_state?: Record<string, unknown> | null;
+  premium_source?: "google" | "apple" | "paddle" | null;
+  billing_issue?: "google" | "apple" | "paddle" | null;
 };
 export type ApiTransactionChanges = { transactions: ApiTransaction[]; deleted_ids: string[]; server_time: string };
 export type ApiUserSettingsUpdate = Partial<
@@ -117,6 +119,12 @@ export const financeApi = {
   getMe: () => api.get<ApiUser>("/auth/me"),
   requestDevAccess: () => api.post<ApiUser>("/auth/me/request-dev-access", {}),
   deleteAccount: () => api.delete<void>("/auth/me"),
+  // Premium bought in the app: the server checks it with the store.
+  verifyGooglePurchase: (purchaseToken: string, productId: string) =>
+    api.post<ApiUser>("/billing/google/verify", { purchase_token: purchaseToken, product_id: productId }),
+  verifyApplePurchase: (signedTransaction: string) =>
+    api.post<ApiUser>("/billing/apple/verify", { signed_transaction: signedTransaction }),
+  paddlePortal: () => api.post<{ url: string }>("/billing/paddle/portal", {}),
   updateSettings: (body: ApiUserSettingsUpdate) => api.patch<ApiUser>("/auth/me", body),
   convertCurrency: (body: { from_currency: string; to_currency: string; rate: number }) =>
     api.post<ApiUser>("/auth/me/convert-currency", body),

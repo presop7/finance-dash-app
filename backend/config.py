@@ -37,6 +37,20 @@ class Settings(BaseSettings):
     # One trial per email (also after deleting the account). false: every
     # new account gets one again — handy only for testing.
     TRIAL_ONCE_PER_EMAIL: bool = True
+
+    # ---- Billing (billing.py). Empty = that payment way is off. ----
+    # Google Play: the app's package, and a service account (its JSON key, in
+    # one line) with access to the Play Console's financial data/orders.
+    GOOGLE_PLAY_PACKAGE: str = "com.presop7.fitrack"
+    GOOGLE_SERVICE_ACCOUNT_JSON: str = ""
+    # Secret in the Pub/Sub push URL: .../billing/google/rtdn?token=<this>
+    GOOGLE_RTDN_TOKEN: str = ""
+    # App Store: notifications URL .../billing/apple/notifications
+    APPLE_BUNDLE_ID: str = "com.presop7.fitrack"
+    # Paddle (web): webhook URL .../billing/paddle/webhook
+    PADDLE_WEBHOOK_SECRET: str = ""
+    PADDLE_API_KEY: str = ""
+    PADDLE_SANDBOX: bool = True
     # The Play test version's backend sets this: only users with dev_access
     # (ticked in Supabase) get past their profile; others can ask for access.
     DEV_ONLY: bool = False

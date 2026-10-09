@@ -38,7 +38,7 @@
     <ul>
       <li><strong>Account:</strong> your email address; with Google sign-in also your name. We never receive your Google password.</li>
       <li><strong>What you enter:</strong> transactions (title, amount, date, note), categories, funds, savings goals and the money set aside for them, reminders, trackers and app settings (currency, language, formats).</li>
-      <li><strong>Subscription:</strong> if you buy Premium, Google Play handles the payment. We receive only the subscription status (plan, start, renewal or end date, trial status). We never see your card details.</li>
+      <li><strong>Subscription:</strong> if you buy Premium, the payment is handled by Google Play (Android app), the App Store (iPhone app) or Paddle (web version; Paddle.com Market Ltd is the seller there and handles taxes and invoices). We receive only the subscription status (plan, start, renewal or end date, whether a payment failed) and a reference to the purchase. We never see your card details.</li>
       <li><strong>Notifications:</strong> if you turn them on, a technical address your device or browser gives us for delivering notifications, plus your reminder times and time zone.</li>
       <li><strong>Feedback you send:</strong> the text, any pictures you attach, and basic app and device information.</li>
       <li><strong>Technical logs:</strong> server logs (IP address, time, request), kept briefly for security and troubleshooting.</li>
@@ -59,6 +59,8 @@
       <li>Supabase (database and sign-in), <span class="todo">[Supabase region]</span></li>
       <li>Render (our server), <span class="todo">[Render region]</span></li>
       <li>Google (sign-in, Google Play billing, notification delivery)</li>
+      <li>Apple (App Store billing, iPhone app only)</li>
+      <li>Paddle (payments in the web version, as reseller)</li>
       <li><span class="todo">[subscription service, e.g. RevenueCat]</span> (subscription status)</li>
       <li><span class="todo">[Gmail / Resend]</span> (account emails)</li>
     </ul>
@@ -68,7 +70,7 @@
     <p>As long as your account exists. Server logs are kept up to 30 days.</p>
 
     <h2>Deleting your account</h2>
-    <p>In the app: <strong>Settings → Delete account</strong> removes your account and all your data at once. Without the app: see <a href="delete-account.html">how to delete your account</a>, or email <span class="todo">[contact email]</span>; we act within 30 days. A Premium subscription has to be cancelled separately in Google Play: deleting the account doesn't stop billing. A one-way fingerprint (SHA-256 hash) of your email address, which can't be turned back into the address, is also kept: it only records that this email already had the free Premium trial, so it isn't given again (legitimate interest: preventing misuse of the free trial).</p>
+    <p>In the app: <strong>Settings → Delete account</strong> removes your account and all your data at once. Without the app: see <a href="delete-account.html">how to delete your account</a>, or email <span class="todo">[contact email]</span>; we act within 30 days. A Premium subscription has to be cancelled separately where it was bought (Google Play, the App Store, or Paddle via the web version): deleting the account doesn't stop billing. A one-way fingerprint (SHA-256 hash) of your email address, which can't be turned back into the address, is also kept: it only records that this email already had the free Premium trial, so it isn't given again (legitimate interest: preventing misuse of the free trial).</p>
 
     <h2>Your rights</h2>
     <p>You can access, correct, delete or export your data, object to its processing, and withdraw consent, by contacting us. In the EU you may also complain to your data protection authority; in Bulgaria, the Commission for Personal Data Protection (<a href="https://www.cpdp.bg">cpdp.bg</a>).</p>

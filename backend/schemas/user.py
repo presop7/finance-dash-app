@@ -45,3 +45,5 @@ class UserOut(BaseModel):
     dev_access: bool = False
     dev_access_requested_at: datetime | None = None
     offer_state: dict | None = None
+    premium_source: str | None = None
+    billing_issue: str | None = None
