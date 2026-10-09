@@ -20,7 +20,7 @@ import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
 import i18n from "../i18n";
 import { defaultCategoryKey, defaultFundKey } from "../constants/defaultNames";
-import { mergeOrder } from "../utils/reorder";
+import { mergeOrder, sortByOrder } from "../utils/reorder";
 
 export type Transaction = {
   id: string;
@@ -294,6 +294,12 @@ type FinanceStore = {
   // Goal ids in the user's chosen Goals-card order; same rules.
   goalOrder: string[];
   setGoalOrder: (order: string[]) => void;
+  // The category/fund/goal/reminder just created: it goes first and its
+  // outline flashes wherever it shows (FlashBorder), then this clears.
+  justAddedId: string | null;
+  clearJustAdded: () => void;
+  // Reminders/trackers in the order given (hold and drag on their screen).
+  setAlertRuleOrder: (ids: string[]) => void;
   // Expense + income category ids in the user's chosen order (one list:
   // the ids never clash); same rules as fundCardOrder.
   categoryOrder: string[];
@@ -807,6 +813,7 @@ async function addCategory(set: FinanceSet, get: FinanceGet, type: CategoryType,
         id,
         body: { id, name: category.label, icon: category.icon, color: category.color ?? null, type },
       }),
+      justAddedId: id,
     }));
     void flushQueue(set, get);
     return id;
@@ -869,6 +876,9 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCollapsedCards: {},
       fundCardOrder: [],
       goalOrder: [],
+      justAddedId: null,
+      clearJustAdded: () => set({ justAddedId: null }),
+      setAlertRuleOrder: (ids) => set((state) => ({ alertRules: sortByOrder(state.alertRules, ids) })),
       categoryOrder: [],
       themePreference: "system",
       notificationsEnabled: true,
@@ -1175,6 +1185,8 @@ export const useFinanceStore = create<FinanceStore>()(
         const id = Crypto.randomUUID();
         set((state) => ({
           fundCategories: [...state.fundCategories, { id, ...fundCategory }],
+          fundCardOrder: [id, ...sortByOrder(state.fundCategories, state.fundCardOrder).map((f) => f.id)],
+          justAddedId: id,
           entityOps: enqueueEntity(state.entityOps, {
             entity: "fund",
             action: "create",
@@ -1267,6 +1279,8 @@ export const useFinanceStore = create<FinanceStore>()(
             ...state.goals,
             { id, name: fields.name, target: fields.target, icon: fields.icon, color: fields.color ?? null, allocations: [] },
           ],
+          goalOrder: [id, ...sortByOrder(state.goals, state.goalOrder).map((g) => g.id)],
+          justAddedId: id,
           entityOps: enqueueEntity(state.entityOps, {
             entity: "goal",
             action: "create",
@@ -1343,13 +1357,10 @@ export const useFinanceStore = create<FinanceStore>()(
         await get().hydrate();
       },
 
-      addAlertRule: (rule) =>
-        set((state) => ({
-          alertRules: [
-            ...state.alertRules,
-            { ...rule, id: Date.now().toString() },
-          ],
-        })),
+      addAlertRule: (rule) => {
+        const id = Date.now().toString();
+        set((state) => ({ alertRules: [{ ...rule, id }, ...state.alertRules], justAddedId: id }));
+      },
 
       updateAlertRule: (id, changes) =>
         set((state) => ({
@@ -1469,6 +1480,12 @@ export const useFinanceStore = create<FinanceStore>()(
               ? { ...op, status }
               : { ...op, status, payload: { ...op.payload, date: new Date(op.payload.date) } };
           }),
+          // Same for category/fund/goal changes: one the app closed on while
+          // sending would otherwise stay "syncing" — and block the
+          // transactions that use it — for good.
+          entityOps: (saved.entityOps ?? []).map((op) =>
+            op.status === "syncing" ? { ...op, status: "pending" as const } : op,
+          ),
         };
       },
       onRehydrateStorage: () => (state) => {

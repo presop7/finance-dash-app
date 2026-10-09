@@ -310,13 +310,13 @@ export default function CategoriesModal({
   // A new one goes first in the list (its saved order: the transaction
   // form's chips and, for funds, the Dashboard cards too), the grid scrolls
   // to the top, and it's outlined for a moment so it's easy to spot.
-  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
   const showNew = (id: string) => {
     const order = [id, ...items.map((i) => i.id)];
     if (activeType === "fund") setFundCardOrder(order);
     else setCategoryOrder(order);
     gridScrollRef.current?.scrollTo({ y: 0, animated: true });
-    setJustAdded(id);
   };
 
   const handleFormSave = async (fields: {
@@ -606,7 +606,7 @@ export default function CategoriesModal({
                     onHold={() => enterSelectMode(item.id)}
                   >
                     {iconAndLabel}
-                    {justAdded === item.id && <FlashBorder radius={20} onDone={() => setJustAdded(null)} />}
+                    {justAdded === item.id && <FlashBorder radius={20} onDone={clearJustAdded} />}
                     {!item.locked && (
                     <Pressable
                       style={styles.editIconBtn}

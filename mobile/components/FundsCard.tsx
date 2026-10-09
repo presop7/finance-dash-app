@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +14,7 @@ import { sortByOrder } from "../utils/reorder";
 import { reservedByFund } from "../utils/goals";
 import { isDemoId } from "../utils/demoTransactions";
 import { ReorderItem, useReorder } from "./Reorderable";
+import FlashBorder from "./FlashBorder";
 import { FREE } from "../constants/plan";
 import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
@@ -82,6 +83,13 @@ export default function FundsCard({
     ref: scrollRef,
     horizontal: true,
   });
+  // Just created (it's first): back to the start, where it flashes.
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
+  const isHere = justAdded !== null && reorder.order.includes(justAdded);
+  useEffect(() => {
+    if (isHere) scrollRef.current?.scrollTo({ x: 0, animated: true });
+  }, [isHere]);
   const byId = new Map(funds.map((f) => [f.fund.id, f]));
 
   // The add card: free users see how many more they can create; at the
@@ -115,6 +123,7 @@ export default function FundsCard({
                 fillColor={fund.color + "18"}
                 onHold={onNavigateToAnalytics && (() => onNavigateToAnalytics({ fundIds: [fund.id] }))}
               >
+                {justAdded === fund.id && <FlashBorder radius={16} onDone={clearJustAdded} />}
                 <View
                   style={[
                     styles.iconContainer,

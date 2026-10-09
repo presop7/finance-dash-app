@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ReorderItem, useReorder } from "../components/Reorderable";
+import FlashBorder from "../components/FlashBorder";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
@@ -27,6 +29,7 @@ import { FONT } from "../constants/typography";
 export default function AlertsScreen() {
   const {
     alertRules,
+    setAlertRuleOrder,
     transactions,
     expenseCategories,
     incomeCategories,
@@ -138,21 +141,38 @@ export default function AlertsScreen() {
     </TouchableOpacity>
   );
 
+  // Tap or hold-and-release: edit. Hold and move: reorder within its list
+  // (same gestures as the funds and goals). No auto-scroll while dragging —
+  // ponytail: these lists are short; give useReorder the screen's scroll
+  // view (and items directly in its content) if they grow long.
+  const openRule = (rule: AlertRule) => {
+    setEditingRule(rule);
+    setShowModal(true);
+  };
+  const noScroll = useRef(null);
+  const reorderWithin = (list: AlertRule[]) => (ids: string[]) =>
+    setAlertRuleOrder([...ids, ...alertRules.filter((r) => !list.includes(r)).map((r) => r.id)]);
+  const reminderOrder = useReorder(reminders.map((r) => r.id), reorderWithin(reminders), true, { ref: noScroll, horizontal: false });
+  const trackerOrder = useReorder(trackers.map((r) => r.id), reorderWithin(trackers), true, { ref: noScroll, horizontal: false });
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
+
   const renderRule = (rule: AlertRule) => {
     const tracker = isTracker(rule);
     const share = tracker ? Math.min(1, progressOf(rule) / rule.amount) : 0;
     // Amount reminders: where it stands now against its amount.
     const standing = tracker ? null : ruleProgress(rule, realTransactions);
     return (
-      <TouchableOpacity
+      <ReorderItem
         key={rule.id}
+        id={rule.id}
+        reorder={tracker ? trackerOrder : reminderOrder}
         style={styles.ruleRow}
-        activeOpacity={0.7}
-        onPress={() => {
-          setEditingRule(rule);
-          setShowModal(true);
-        }}
+        fillColor={Colors.primary + "14"}
+        onPress={() => openRule(rule)}
+        onHold={() => openRule(rule)}
       >
+        {justAdded === rule.id && <FlashBorder radius={8} onDone={clearJustAdded} />}
         <View style={styles.ruleIcon}>
           <Ionicons name={RULE_ICONS[rule.type]} size={18} color={Colors.primary} />
         </View>
@@ -202,7 +222,7 @@ export default function AlertsScreen() {
         <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(rule)} hitSlop={8}>
           <Ionicons name="trash-outline" size={16} color={Colors.expense} />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </ReorderItem>
     );
   };
 

@@ -24,4 +24,5 @@ export const OFFER_PRICES = {
 } as const;
 export const TRIAL_END_OFFER_MS = 60 * 60 * 1000;
 // Every other offer (milestones, trial offers) holds its price this long.
+// \/\/\/\/\/\/
 export const OFFER_MS = 15 * 60 * 1000;

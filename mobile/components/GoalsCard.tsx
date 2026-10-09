@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +16,7 @@ import { usePlan, usePremiumStore } from "../store/usePremiumStore";
 import { useTranslation } from "react-i18next";
 import { sortByOrder } from "../utils/reorder";
 import { ReorderItem, useReorder } from "./Reorderable";
+import FlashBorder from "./FlashBorder";
 
 const CARD_WIDTH = 148;
 
@@ -38,6 +39,13 @@ export default function GoalsCard() {
   const goalOrder = useFinanceStore((s) => s.goalOrder);
   const setGoalOrder = useFinanceStore((s) => s.setGoalOrder);
   const sorted = sortByOrder(goals, goalOrder);
+  // Just created (it's first): back to the start, where it flashes.
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
+  const isHere = justAdded !== null && goals.some((g) => g.id === justAdded);
+  useEffect(() => {
+    if (isHere) scrollRef.current?.scrollTo({ x: 0, animated: true });
+  }, [isHere]);
   const byId = new Map(sorted.map((g) => [g.id, g]));
   const scrollRef = useRef<ScrollView>(null);
   const reorder = useReorder(sorted.map((g) => g.id), setGoalOrder, true, { ref: scrollRef, horizontal: true });
@@ -67,6 +75,7 @@ export default function GoalsCard() {
               onPress={() => setOpen({ goal })}
               onHold={() => setOpen({ goal, edit: true })}
             >
+              {justAdded === goal.id && <FlashBorder radius={16} onDone={clearJustAdded} />}
               <View style={styles.iconBox}>
                 <Ionicons name={spent ? "checkmark" : "flag-outline"} size={20} color={done ? Colors.income : Colors.primary} />
               </View>

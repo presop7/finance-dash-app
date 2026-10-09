@@ -38,7 +38,7 @@ export default function KeepWithinLimitsModal() {
   const over = useMemo(() => overLimit(alertRules), [alertRules]);
   const visible = !premium && over.size > 0 && !trialEndOpen;
 
-  // Kept by default: the first ones of each type (the oldest).
+  // Kept by default: the first ones of each type, as ordered on the Reminders screen.
   const [keep, setKeep] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (!visible) return;

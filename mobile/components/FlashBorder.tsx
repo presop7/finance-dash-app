@@ -12,7 +12,12 @@ export default function FlashBorder({ radius, onDone }: { radius: number; onDone
       Animated.timing(opacity, { toValue: to, duration: 420, easing: Easing.inOut(Easing.sin), useNativeDriver: true });
     const run = Animated.sequence([pulse(1), pulse(0.25), pulse(1), pulse(0.25), pulse(1), pulse(0)]);
     run.start(({ finished }) => finished && onDone?.());
-    return () => run.stop();
+    // Closed before the end (e.g. the screen went away): done too, so it
+    // doesn't flash again next time.
+    return () => {
+      run.stop();
+      onDone?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
