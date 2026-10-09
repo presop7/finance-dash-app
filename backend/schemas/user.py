@@ -16,6 +16,7 @@ class UserSettingsUpdate(BaseModel):
     hide_balance: bool | None = None
     time_format: str | None = None
     date_format: str | None = None
+    offer_state: dict | None = None
 
 
 class CurrencyConversion(BaseModel):
@@ -43,3 +44,4 @@ class UserOut(BaseModel):
     premium_until: datetime | None = None
     dev_access: bool = False
     dev_access_requested_at: datetime | None = None
+    offer_state: dict | None = None

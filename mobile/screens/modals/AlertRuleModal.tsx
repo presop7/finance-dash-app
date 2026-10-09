@@ -19,14 +19,14 @@ import { FIELD_BOX, FIELD_INPUT } from "../../constants/styles";
 import { useThemeColors, useResolvedScheme, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { alertAsync, confirmAsync } from "../../utils/confirm";
-import { isTracker, TRACKER_TYPES } from "../../utils/alertEvaluation";
+import { freeLimit, isTracker, TRACKER_TYPES, usedOf } from "../../utils/alertEvaluation";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
 import { FREE } from "../../constants/plan";
-import { requirePremium } from "../../store/usePremiumStore";
+import { requirePremium, usePlan, usePremiumStore } from "../../store/usePremiumStore";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
@@ -98,6 +98,10 @@ export default function AlertRuleModal({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const tracker = (TRACKER_TYPES as readonly AlertRuleType[]).includes(type);
+  const { premium } = usePlan();
+  const alertRules = useFinanceStore((s) => s.alertRules);
+  const isTrackerType = (ruleType: AlertRuleType) => (TRACKER_TYPES as readonly AlertRuleType[]).includes(ruleType);
+  const atLimit = (ruleType: AlertRuleType) => !premium && usedOf(ruleType, alertRules) >= freeLimit(ruleType);
 
   useEffect(() => {
     if (!visible) return;
@@ -168,11 +172,7 @@ export default function AlertRuleModal({
 
   const handleSave = () => {
     // A new one beyond the free plan's limit for its type needs Premium.
-    if (!editingRule) {
-      const sameType = useFinanceStore.getState().alertRules.filter((r) => r.type === type).length;
-      const limit = type === "categoryAmount" ? FREE.categoryLimits : FREE.remindersPerType;
-      if (sameType >= limit && !requirePremium("reminders")) return;
-    }
+    if (!editingRule && atLimit(type) && !requirePremium(isTrackerType(type) ? "trackers" : "reminders")) return;
     if (tracker) {
       const numericAmount = parseFloat(amount);
       if (isNaN(numericAmount) || numericAmount <= 0 || !name.trim()) return;
@@ -290,22 +290,32 @@ export default function AlertRuleModal({
                       <View style={styles.groupLine} />
                     </View>
                     <View style={styles.typeGrid}>
-                      {group.map((ruleType) => (
-                        <TouchableOpacity
-                          key={ruleType}
-                          style={[styles.typeChip, type === ruleType && styles.typeChipActive]}
-                          onPress={() => setType(ruleType)}
-                        >
-                          <Ionicons
-                            name={RULE_ICONS[ruleType]}
-                            size={16}
-                            color={type === ruleType ? "#fff" : Colors.textMuted}
-                          />
-                          <Text style={[styles.typeChipText, type === ruleType && styles.typeChipTextActive]}>
-                            {t(`reminders.types.${ruleType}`)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                      {group.map((ruleType) => {
+                        // Free plan: "used/limit" after the name; at the
+                        // limit a lock, and tapping goes to Premium.
+                        const locked = !editingRule && atLimit(ruleType);
+                        return (
+                          <TouchableOpacity
+                            key={ruleType}
+                            style={[styles.typeChip, type === ruleType && styles.typeChipActive, locked && styles.typeChipLocked]}
+                            onPress={() =>
+                              locked
+                                ? usePremiumStore.getState().showPremium(isTrackerType(ruleType) ? "trackers" : "reminders")
+                                : setType(ruleType)
+                            }
+                          >
+                            <Ionicons
+                              name={locked ? "lock-closed-outline" : RULE_ICONS[ruleType]}
+                              size={16}
+                              color={type === ruleType ? "#fff" : locked ? Colors.primary : Colors.textMuted}
+                            />
+                            <Text style={[styles.typeChipText, type === ruleType && styles.typeChipTextActive]}>
+                              {t(`reminders.types.${ruleType}`)}
+                              {!premium && ` · ${usedOf(ruleType, alertRules)}/${freeLimit(ruleType)}`}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 ),
@@ -589,6 +599,7 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   typeChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  typeChipLocked: { borderColor: Colors.primary, borderStyle: "dashed" },
   categoryChipText: { fontSize: FONT.body }, // category names, +2 over the type chips
   typeChipText: { fontSize: FONT.small, color: Colors.textPrimary, fontWeight: "500" },
   typeChipTextActive: { color: "#fff" },

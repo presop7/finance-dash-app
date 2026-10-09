@@ -5,18 +5,22 @@ import Modal from "../../components/AppModal";
 import { ColorsType } from "../../constants/colors";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { FONT } from "../../constants/typography";
-import { FREE } from "../../constants/plan";
+import { freeLimit, isTracker, TRACKER_TYPES } from "../../utils/alertEvaluation";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore, AlertRule, AlertRuleType } from "../../store/useFinanceStore";
 import { usePlan, usePremiumStore } from "../../store/usePremiumStore";
 import { useTranslation } from "react-i18next";
 
-const limitFor = (type: AlertRuleType) => (type === "categoryAmount" ? FREE.categoryLimits : FREE.remindersPerType);
+const limitFor = (type: AlertRuleType) => freeLimit(type);
 
-// Reminders and trackers over the free plan's limits, per type.
+// Reminders and trackers over the free plan's limits: per type, with loans
+// and lends together under the first tracker type.
 export function overLimit(rules: AlertRule[]): Map<AlertRuleType, AlertRule[]> {
   const byType = new Map<AlertRuleType, AlertRule[]>();
-  for (const r of rules) byType.set(r.type, [...(byType.get(r.type) ?? []), r]);
+  for (const r of rules) {
+    const key = isTracker(r) ? TRACKER_TYPES[0] : r.type;
+    byType.set(key, [...(byType.get(key) ?? []), r]);
+  }
   return new Map([...byType].filter(([type, list]) => list.length > limitFor(type)));
 }
 
@@ -71,7 +75,8 @@ export default function KeepWithinLimitsModal() {
             {[...over].map(([type, list]) => (
               <View key={type} style={styles.group}>
                 <Text style={styles.groupLabel}>
-                  {t(`reminders.types.${type}`)} · {t("limits.keep", { count: limitFor(type) })}
+                  {type === TRACKER_TYPES[0] ? t("reminders.trackersLabel") : t(`reminders.types.${type}`)} ·{" "}
+                  {t("limits.keep", { count: limitFor(type) })}
                 </Text>
                 {list.map((r) => (
                   <TouchableOpacity key={r.id} style={styles.row} onPress={() => toggle(type, r.id)}>

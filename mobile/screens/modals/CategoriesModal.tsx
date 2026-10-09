@@ -306,6 +306,19 @@ export default function CategoriesModal({
     setEditTarget(item);
   };
 
+  // A new one goes first in the list (its saved order: the transaction
+  // form's chips and, for funds, the Dashboard cards too), the grid scrolls
+  // to the top, and it's outlined for a moment so it's easy to spot.
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const showNew = (id: string) => {
+    const order = [id, ...items.map((i) => i.id)];
+    if (activeType === "fund") setFundCardOrder(order);
+    else setCategoryOrder(order);
+    gridScrollRef.current?.scrollTo({ y: 0, animated: true });
+    setJustAdded(id);
+    setTimeout(() => setJustAdded((cur) => (cur === id ? null : cur)), 2500);
+  };
+
   const handleFormSave = async (fields: {
     name: string;
     icon: keyof typeof Ionicons.glyphMap;
@@ -313,20 +326,22 @@ export default function CategoriesModal({
   }) => {
     const editingId = editTarget && editTarget !== "new" ? editTarget.id : null;
     try {
+      let createdId: string | null = null;
       if (activeType === "expense") {
         const payload = { label: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateExpenseCategory(editingId, payload);
-        else await addExpenseCategory(payload);
+        else createdId = await addExpenseCategory(payload);
       } else if (activeType === "income") {
         const payload = { label: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateIncomeCategory(editingId, payload);
-        else await addIncomeCategory(payload);
+        else createdId = await addIncomeCategory(payload);
       } else {
         const payload = { name: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateFundCategory(editingId, payload);
-        else await addFundCategory(payload);
+        else createdId = await addFundCategory(payload);
       }
       setEditTarget(null);
+      if (createdId) showNew(createdId);
     } catch (err) {
       await alertAsync(
         t("categories.saveFailed"),
@@ -585,7 +600,7 @@ export default function CategoriesModal({
                     key={item.id}
                     id={item.id}
                     reorder={reorder}
-                    style={styles.categoryChip}
+                    style={[styles.categoryChip, justAdded === item.id && styles.categoryChipNew]}
                     fillColor={Colors.primary + "22"}
                     onPress={onPick ? () => onPick(item.id) : undefined}
                     onHold={() => enterSelectMode(item.id)}
@@ -795,6 +810,7 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
   },
+  categoryChipNew: { borderColor: Colors.primary, borderWidth: 2 },
   categoryChipSelected: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primary + "10",

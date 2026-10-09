@@ -38,7 +38,9 @@ export default function InsightBanner({
   const [teaser, setTeaser] = useState<"insight" | "promo">(() => (Math.random() < 0.5 ? "insight" : "promo"));
 
   if (!premium) {
-    const text = teaser === "insight" ? insights[0] : t("insights.promo");
+    // The free insight: a random one each time the app starts (the same
+    // random pick as Premium's starting insight), not always the first.
+    const text = teaser === "insight" ? message : t("insights.promo");
     return (
       <Pressable
         style={styles.banner}

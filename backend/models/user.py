@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -34,6 +34,9 @@ class User(Base):
     # The Play test version (dev link) only lets these in.
     dev_access: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     dev_access_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # The app's Premium offers memory (milestones offered, running offers...),
+    # so every device of the account sees the same offers.
+    offer_state: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")

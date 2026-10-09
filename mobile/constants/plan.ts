@@ -8,6 +8,7 @@ export const FREE = {
   // Reminders and trackers: per type; category limits get 2.
   remindersPerType: 1,
   categoryLimits: 2,
+  trackers: 2, // loans and lends together
 } as const;
 
 // Analytics date ranges free users get (everything else is Premium).

@@ -10,6 +10,7 @@ import { isDemoId } from "../utils/demoTransactions";
 // `adding`: the new-transaction form is open (never interrupt that).
 export function useOffersEngine(adding: boolean) {
   const premiumUses = usePremiumStore((s) => s.premiumUses);
+  const serverLoaded = usePremiumStore((s) => s.serverLoaded);
   const status = useFinanceStore((s) => s.status);
   const plan = useFinanceStore((s) => s.plan);
   const offersOn = useFinanceStore((s) => s.tips.offers);
@@ -31,6 +32,13 @@ export function useOffersEngine(adding: boolean) {
       // and the 1-hour offer.
       if (s.trialEnded && !store.trialEndSeen) {
         store.startTrialEndOffer();
+        return;
+      }
+      // Once, when the trial is running: it started, and until when (only
+      // after the account's memory is in, so other devices don't repeat it).
+      if (s.inTrial && store.serverLoaded && !store.trialWelcomeSeen) {
+        usePremiumStore.setState({ trialWelcomeSeen: true });
+        store.showPremium("trialStarted");
         return;
       }
       if (store.offer || !offersOn) return;
@@ -58,5 +66,5 @@ export function useOffersEngine(adding: boolean) {
       sub.remove();
       clearTimeout(timer);
     };
-  }, [premiumUses, status, plan, adding, offersOn, transactionCount, lastAddedAt]);
+  }, [premiumUses, serverLoaded, status, plan, adding, offersOn, transactionCount, lastAddedAt]);
 }

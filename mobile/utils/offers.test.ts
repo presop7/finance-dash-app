@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 // Offer rules. Run: npm test
-import { EMPTY_OFFERS, loggingStreak, monthsBetween, nextOffer, OfferContext } from "./offers";
+import { EMPTY_OFFERS, loggingStreak, mergeMemory, monthsBetween, nextOffer, OfferContext } from "./offers";
 
 const now = new Date(2026, 9, 20, 12, 0);
 const ctx = (over: Partial<OfferContext> = {}): OfferContext => ({
@@ -17,7 +17,7 @@ const ctx = (over: Partial<OfferContext> = {}): OfferContext => ({
 });
 
 test("never for paying users, while adding, right after adding, or twice a day", () => {
-  const due = ctx({ transactionCount: 20 });
+  const due = ctx({ transactionCount: 15 });
   expect(nextOffer(EMPTY_OFFERS, due)?.kind).toBe("transactions");
   expect(nextOffer(EMPTY_OFFERS, { ...due, paid: true })).toBeNull();
   expect(nextOffer(EMPTY_OFFERS, { ...due, adding: true })).toBeNull();
@@ -40,9 +40,9 @@ test("free milestones: streak first, then transactions, days of use, months", ()
   const all = ctx({ streak: 8, transactionCount: 45, firstTransactionDate: new Date(2026, 7, 1) });
   const state = { ...EMPTY_OFFERS, usageDays: Array.from({ length: 14 }, (_, i) => `d${i}`) };
   expect(nextOffer(state, all)).toMatchObject({ kind: "streak", patch: { streakMilestone: 7 } });
-  expect(nextOffer({ ...state, streakMilestone: 7 }, all)).toMatchObject({ kind: "transactions", patch: { txMilestone: 40 } });
-  expect(nextOffer({ ...state, streakMilestone: 7, txMilestone: 40 }, all)).toMatchObject({ kind: "usageDays", patch: { usageMilestone: 14 } });
-  expect(nextOffer({ ...state, streakMilestone: 7, txMilestone: 40, usageMilestone: 14 }, all)).toMatchObject({ kind: "monthly", patch: { monthMilestone: 2 } });
+  expect(nextOffer({ ...state, streakMilestone: 7 }, all)).toMatchObject({ kind: "transactions", patch: { txMilestone: 45 } });
+  expect(nextOffer({ ...state, streakMilestone: 7, txMilestone: 45 }, all)).toMatchObject({ kind: "usageDays", patch: { usageMilestone: 14 } });
+  expect(nextOffer({ ...state, streakMilestone: 7, txMilestone: 45, usageMilestone: 14 }, all)).toMatchObject({ kind: "monthly", patch: { monthMilestone: 2 } });
 });
 
 test("streaks and months", () => {
@@ -52,4 +52,19 @@ test("streaks and months", () => {
   expect(loggingStreak([d(17)], now)).toBe(0);
   expect(monthsBetween(new Date(2026, 8, 21), now)).toBe(0);
   expect(monthsBetween(new Date(2026, 8, 20), now)).toBe(1);
+});
+
+describe("mergeMemory", () => {
+  it("keeps the furthest of both devices", () => {
+    const here = { ...EMPTY_OFFERS, txMilestone: 30, lastOfferDay: "2026-10-01", usageDays: ["2026-10-01"], trialEndSeen: false, activeOffer: null as { kind: string; until: number } | null };
+    const server = { txMilestone: 15, streakMilestone: 7, lastOfferDay: "2026-10-05", usageDays: ["2026-09-30", "2026-10-01"], trialEndSeen: true, activeOffer: { kind: "streak", until: 5 }, junk: 1 };
+    const m = mergeMemory(here, server);
+    expect(m.txMilestone).toBe(30);
+    expect(m.streakMilestone).toBe(7);
+    expect(m.lastOfferDay).toBe("2026-10-05");
+    expect(m.usageDays).toEqual(["2026-09-30", "2026-10-01"]);
+    expect(m.trialEndSeen).toBe(true);
+    expect(m.activeOffer).toEqual({ kind: "streak", until: 5 });
+    expect("junk" in m).toBe(false);
+  });
 });

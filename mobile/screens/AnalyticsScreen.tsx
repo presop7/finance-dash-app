@@ -1214,7 +1214,15 @@ function AnalyticsScreen({
                         emptyLabel={chartEmptyLabel}
                       />
                     ) : (
-                      <PremiumLock reason="charts" text={t("premium.chartsLocked")} />
+                      <PremiumLock reason="charts" text={t("premium.chartsLocked")}>
+                        <CategoryPieChart
+                          slices={chartSlices}
+                          total={chartTotal}
+                          currencyCode={currencyCode}
+                          onHoldCategory={handleHoldWedgeCategory}
+                          emptyLabel={chartEmptyLabel}
+                        />
+                      </PremiumLock>
                     )}
                   </View>,
                   <View style={styles.summaryCard} key="bar">
@@ -1226,7 +1234,14 @@ function AnalyticsScreen({
                         emptyLabel={chartEmptyLabel}
                       />
                     ) : (
-                      <PremiumLock reason="charts" text={t("premium.chartsLocked")} />
+                      <PremiumLock reason="charts" text={t("premium.chartsLocked")}>
+                        <CategoryBarChart
+                          slices={chartSlices}
+                          currencyCode={currencyCode}
+                          onHoldCategory={handleHoldWedgeCategory}
+                          emptyLabel={chartEmptyLabel}
+                        />
+                      </PremiumLock>
                     )}
                   </View>,
                 ]}

@@ -6,7 +6,9 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, AlertRule } from "../store/useFinanceStore";
-import { isTracker, trackerProgress } from "../utils/alertEvaluation";
+import { isTracker, ruleProgress, trackerProgress } from "../utils/alertEvaluation";
+import { FREE } from "../constants/plan";
+import { usePlan } from "../store/usePremiumStore";
 import { isDemoId } from "../utils/demoTransactions";
 import { formatCurrency } from "../utils/currency";
 import { confirmAsync } from "../utils/confirm";
@@ -94,6 +96,7 @@ export default function AlertsScreen() {
   const realTransactions = transactions.filter((tx) => !isDemoId(tx.id));
   const progressOf = (rule: AlertRule) => trackerProgress(rule, realTransactions);
   const reminders = alertRules.filter((rule) => !isTracker(rule));
+  const { premium } = usePlan();
   const trackers = alertRules.filter(isTracker);
 
   const ruleTitle = (rule: AlertRule): string => {
@@ -126,7 +129,7 @@ export default function AlertsScreen() {
   // Both lists fold away from their heading (tap it); the count stays visible.
   const [showReminders, setShowReminders] = useState(true);
   const [showTrackers, setShowTrackers] = useState(true);
-  const sectionHeader = (label: string, count: number, open: boolean, toggle: () => void) => (
+  const sectionHeader = (label: string, count: number | string, open: boolean, toggle: () => void) => (
     <TouchableOpacity style={[styles.sectionHeader, GlobalStyles.screenPadding]} onPress={toggle} activeOpacity={0.6}>
       <Text style={styles.sectionLabel}>
         {label} · {count}
@@ -138,6 +141,8 @@ export default function AlertsScreen() {
   const renderRule = (rule: AlertRule) => {
     const tracker = isTracker(rule);
     const share = tracker ? Math.min(1, progressOf(rule) / rule.amount) : 0;
+    // Amount reminders: where it stands now against its amount.
+    const standing = tracker ? null : ruleProgress(rule, realTransactions);
     return (
       <TouchableOpacity
         key={rule.id}
@@ -163,6 +168,27 @@ export default function AlertsScreen() {
                 ]}
               />
             </View>
+          ) : standing ? (
+            <>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.max(0, Math.min(1, standing.value / standing.limit)) * 100}%`,
+                      backgroundColor: standing.bad ? Colors.expense : standing.reached ? Colors.income : Colors.primary,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.ruleHint, standing.reached && { color: standing.bad ? Colors.expense : Colors.income, fontStyle: "normal", fontWeight: "600" }]}>
+                {t("reminders.standing", {
+                  value: formatCurrency(standing.value, settings.currency),
+                  limit: formatCurrency(standing.limit, settings.currency),
+                })}
+                {standing.reached ? ` · ${t("reminders.reachedNow")}` : ""}
+              </Text>
+            </>
           ) : (
             <Text style={styles.ruleHint}>{t("reminders.tapToEdit")}</Text>
           )}
@@ -235,7 +261,13 @@ export default function AlertsScreen() {
 
         {/* Loans and lends: progress toward an amount. */}
         <View style={styles.sectionGap} />
-        {sectionHeader(t("reminders.trackersLabel"), trackers.length, showTrackers, () => setShowTrackers((v) => !v))}
+        {sectionHeader(
+          t("reminders.trackersLabel"),
+          // Free plan: out of the 2 trackers it allows.
+          premium ? trackers.length : `${trackers.length}/${FREE.trackers}`,
+          showTrackers,
+          () => setShowTrackers((v) => !v),
+        )}
         <View style={styles.list}>
           {!showTrackers ? null : trackers.length === 0 ? (
             <View style={styles.emptyContainer}>

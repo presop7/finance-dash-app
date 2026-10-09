@@ -14,6 +14,7 @@ import { usePlan, usePremiumStore } from "../../store/usePremiumStore";
 import { isTracker } from "../../utils/alertEvaluation";
 import { alertAsync } from "../../utils/confirm";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const FEATURES = ["funds", "goals", "reminders", "charts", "insights", "report", "csv"] as const;
 
@@ -83,12 +84,30 @@ export default function PremiumModal() {
             <View style={styles.badge}>
               <Ionicons name="diamond-outline" size={18} color="#fff" />
             </View>
-            <Text style={styles.title}>{reason === "trialEnded" ? t("premium.trialEndedTitle") : t("premium.title")}</Text>
+            <Text style={styles.title}>{reason === "trialEnded"
+                ? t("premium.trialEndedTitle")
+                : reason === "trialStarted"
+                  ? t("premium.trialStartedTitle")
+                  : t("premium.title")}</Text>
             <ModalCloseButton onPress={hide} />
           </View>
           <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
             {reason && reason !== "general" && reason !== "trialEnded" && (
-              <Text style={styles.reason}>{t(`premium.reason.${reason}`, { funds: FREE.funds, goals: FREE.goals })}</Text>
+              <View style={styles.reasonBox}>
+                <Ionicons
+                  name={reason === "trialStarted" ? "gift-outline" : reason === "offer" ? "pricetag-outline" : "lock-open-outline"}
+                  size={20}
+                  color={Colors.primary}
+                />
+                <Text style={styles.reason}>
+                  {t(`premium.reason.${reason}`, {
+                    funds: FREE.funds,
+                    goals: FREE.goals,
+                    trackers: FREE.trackers,
+                    date: trialEndsAt ? new Date(trialEndsAt).toLocaleDateString(i18n.language) : "",
+                  })}
+                </Text>
+              </View>
             )}
             {plan.inTrial && <Text style={styles.trial}>{t("premium.trialLeft", { count: trialDaysLeft })}</Text>}
             {plan.paid && <Text style={styles.trial}>{t("premium.active")}</Text>}
@@ -180,7 +199,17 @@ function createStyles(Colors: ColorsType) {
     badge: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
     title: { flex: 1, fontSize: FONT.title, fontWeight: "700", color: Colors.textPrimary },
     body: { paddingHorizontal: 16, gap: 12 },
-    reason: { fontSize: FONT.body, color: Colors.textPrimary },
+    reasonBox: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: Colors.primary + "55",
+      backgroundColor: Colors.primary + "12",
+    },
+    reason: { flex: 1, fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
     trial: { fontSize: FONT.small, fontWeight: "600", color: Colors.income },
     summary: { gap: 4, padding: 12, borderRadius: 12, backgroundColor: Colors.surfaceSecondary },
     summaryText: { fontSize: FONT.small, color: Colors.textSecondary },

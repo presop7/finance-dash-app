@@ -5,7 +5,7 @@
 //   - Nothing for paying users.
 //   - During the trial: after every 2nd use of a Premium feature, and a
 //     heads-up the day before it ends.
-//   - Free users: milestones — logging streaks (7, then 30 days), every 20
+//   - Free users: milestones — logging streaks (7, then 30 days), every 15
 //     transactions, every 7 days of use, each month since the first one.
 //     When several are due the same day, the most valuable goes first; the
 //     others wait for another day.
@@ -54,6 +54,8 @@ export const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 const DAY = 24 * 60 * 60 * 1000;
+// A transactions milestone every this many transactions (15, 30, 45...).
+export const TX_STEP = 15;
 export const AFTER_ADD_MS = 10 * 1000;
 
 export function nextOffer(
@@ -80,8 +82,8 @@ export function nextOffer(
   // Free user: milestones, most valuable first.
   if (c.streak >= 30 && s.streakMilestone < 30) return offer("streak", { streakMilestone: 30 });
   if (c.streak >= 7 && s.streakMilestone < 7) return offer("streak", { streakMilestone: 7 });
-  const tx = Math.floor(c.transactionCount / 20) * 20;
-  if (tx >= 20 && tx > s.txMilestone) return offer("transactions", { txMilestone: tx });
+  const tx = Math.floor(c.transactionCount / TX_STEP) * TX_STEP;
+  if (tx >= TX_STEP && tx > s.txMilestone) return offer("transactions", { txMilestone: tx });
   const days = Math.floor(s.usageDays.length / 7) * 7;
   if (days >= 7 && days > s.usageMilestone) return offer("usageDays", { usageMilestone: days });
   if (c.firstTransactionDate) {
@@ -110,4 +112,25 @@ export function loggingStreak(dates: Date[], now: Date): number {
     cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
+}
+
+// Two copies of the offers memory (this device's and the account's on the
+// server) made one, so nothing offered on one device comes again on another:
+// counters and milestones take the higher, flags stay set once set, dates the
+// later, days of use together, a running offer the one that ends later.
+// Only `base`'s keys are kept.
+export function mergeMemory<T extends Record<string, unknown>>(base: T, other: Record<string, unknown>): T {
+  const out: Record<string, unknown> = { ...base };
+  for (const [k, v] of Object.entries(other)) {
+    if (!(k in base) || v === null || v === undefined) continue;
+    const mine = out[k];
+    if (mine === null || mine === undefined) out[k] = v;
+    else if (Array.isArray(mine) && Array.isArray(v)) out[k] = [...new Set([...mine, ...v])].sort().slice(-400);
+    else if (typeof mine === "number" && typeof v === "number") out[k] = Math.max(mine, v);
+    else if (typeof mine === "boolean") out[k] = mine || v === true;
+    else if (typeof mine === "string" && typeof v === "string") out[k] = v > mine ? v : mine;
+    else if (typeof mine === "object" && typeof v === "object" && "until" in v && "until" in mine)
+      out[k] = (v as { until: number }).until > (mine as { until: number }).until ? v : mine;
+  }
+  return out as T;
 }

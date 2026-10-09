@@ -1,6 +1,7 @@
 import { AlertRule, Transaction } from "../store/useFinanceStore";
 import { Category } from "../constants/categories";
 import i18n from "../i18n";
+import { FREE } from "../constants/plan";
 
 export type TriggeredAlert = {
   rule: AlertRule;
@@ -171,4 +172,53 @@ export function activeAlerts(
     const c = checkRule(rule, transactions, expenseCategories, incomeCategories, now);
     return c?.active ? [{ id: rule.id, title: c.title, body: c.body }] : [];
   });
+}
+
+
+// Free plan: trackers (loans + lends) share one limit; category limits get 2;
+// every other reminder type 1.
+export function freeLimit(type: AlertRule["type"]): number {
+  if ((TRACKER_TYPES as readonly string[]).includes(type)) return FREE.trackers;
+  return type === "categoryAmount" ? FREE.categoryLimits : FREE.remindersPerType;
+}
+export function usedOf(type: AlertRule["type"], rules: AlertRule[]): number {
+  const tracker = (TRACKER_TYPES as readonly string[]).includes(type);
+  return rules.filter((r) => (tracker ? isTracker(r) : r.type === type)).length;
+}
+
+// Where an amount reminder stands now, for its progress bar: the value it
+// watches (balance, this month's spending/income, a category's month) against
+// its amount. `bad`: past the limit in the direction it warns about.
+export function ruleProgress(
+  rule: AlertRule,
+  transactions: Transaction[],
+  now: Date = new Date(),
+): { value: number; limit: number; reached: boolean; bad: boolean } | null {
+  const balance = () => transactions.reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
+  switch (rule.type) {
+    case "lowBalance": {
+      const value = balance();
+      return { value, limit: rule.amount, reached: value < rule.amount, bad: value < rule.amount };
+    }
+    case "balanceAbove": {
+      const value = balance();
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: false };
+    }
+    case "monthlyExpenseOver": {
+      const value = sumInMonth(transactions, now, "expense");
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: value > rule.amount };
+    }
+    case "monthlyIncomeOver": {
+      const value = sumInMonth(transactions, now, "income");
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: false };
+    }
+    case "categoryAmount": {
+      if (!rule.categoryId || !rule.categoryType) return null;
+      const value = sumInMonth(transactions, now, rule.categoryType, rule.categoryId);
+      const reached = value > rule.amount;
+      return { value, limit: rule.amount, reached, bad: reached && rule.categoryType === "expense" };
+    }
+    default:
+      return null;
+  }
 }

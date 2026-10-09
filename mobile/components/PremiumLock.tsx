@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
@@ -7,13 +8,14 @@ import { PremiumReason, usePremiumStore } from "../store/usePremiumStore";
 import { useTranslation } from "react-i18next";
 
 // Stands in for a Premium-only part of a screen (a chart, a report section):
-// what it is, and a button to the Premium screen.
-export default function PremiumLock({ reason, text }: { reason: PremiumReason; text: string }) {
+// what it is, and a button to the Premium screen. With `children` (e.g. the
+// real chart), they show blurred and untouchable behind it, as a hint.
+export default function PremiumLock({ reason, text, children }: { reason: PremiumReason; text: string; children?: ReactNode }) {
   const Colors = useThemeColors();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
-  return (
-    <View style={styles.box}>
+  const lock = (
+    <View style={[styles.box, children ? styles.overlay : null]}>
       <Ionicons name="lock-closed-outline" size={22} color={Colors.primary} />
       <Text style={styles.text}>{text}</Text>
       <TouchableOpacity style={styles.button} onPress={() => usePremiumStore.getState().showPremium(reason)}>
@@ -22,11 +24,23 @@ export default function PremiumLock({ reason, text }: { reason: PremiumReason; t
       </TouchableOpacity>
     </View>
   );
+  if (!children) return lock;
+  return (
+    <View>
+      <View style={styles.preview} pointerEvents="none" aria-hidden>
+        {children}
+      </View>
+      {lock}
+    </View>
+  );
 }
 
 function createStyles(Colors: ColorsType) {
   return StyleSheet.create({
     box: { alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 28, paddingHorizontal: 16 },
+    overlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.surface + "66" },
+    // Blur: Android and web (the iPhone version is the web one); faded too.
+    preview: { filter: "blur(8px)", opacity: 0.55 },
     text: { fontSize: FONT.body, color: Colors.textSecondary, textAlign: "center" },
     button: {
       flexDirection: "row",

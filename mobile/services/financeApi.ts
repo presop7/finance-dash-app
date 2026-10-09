@@ -98,10 +98,11 @@ export type ApiUser = {
   premium_until?: string | null;
   dev_access?: boolean;
   dev_access_requested_at?: string | null;
+  offer_state?: Record<string, unknown> | null;
 };
 export type ApiTransactionChanges = { transactions: ApiTransaction[]; deleted_ids: string[]; server_time: string };
 export type ApiUserSettingsUpdate = Partial<
-  Pick<ApiUser, "currency" | "hide_balance" | "time_format" | "date_format">
+  Pick<ApiUser, "currency" | "hide_balance" | "time_format" | "date_format" | "offer_state">
 >;
 
 // A 409 delete-conflict body from the backend's delete-with-reassign flow.

@@ -260,6 +260,9 @@ type FinanceStore = {
   // added in a while" tip; the dates on the transactions themselves can be
   // back-dated.
   lastAddedAt: number | null;
+  // The account's offers memory as the server last sent it (the offers store
+  // merges it in, so every device sees the same offers). Not persisted.
+  serverOfferState: Record<string, unknown> | null;
   setTipEnabled: (id: TipId, on: boolean) => void;
   // App language code ("bg", "en", ...), or null to follow the phone's
   // own language. Device preference, like the theme.
@@ -867,6 +870,7 @@ export const useFinanceStore = create<FinanceStore>()(
       notificationsEnabled: true,
       tips: { install: true, notifications: true, alerts: true, reminder: true, offers: true },
       lastAddedAt: null,
+      serverOfferState: null,
       language: null,
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
@@ -878,7 +882,9 @@ export const useFinanceStore = create<FinanceStore>()(
       hydrate: async (options) => {
         // With cached data already on screen this is a background refresh, not
         // a cold load — don't blank the UI out behind a spinner for it.
-        const hasCache = get().status === "loaded";
+        // "refreshing" counts too: a sync can still be hanging from before the
+        // connection dropped, and the next one mustn't blank the screen for it.
+        const hasCache = get().status === "loaded" || get().status === "refreshing";
         set({ status: hasCache ? "refreshing" : "loading", syncError: null });
 
         // If the account switches while this is awaiting, whatever comes back
@@ -964,6 +970,7 @@ export const useFinanceStore = create<FinanceStore>()(
             lastSyncedAt: Date.now(),
             ...(settingsStale ? {} : { settings: mapSettings(me) }),
             plan: mapPlan(me),
+            serverOfferState: me.offer_state ?? {},
             transactionsSyncedAt: changes.server_time,
             expenseCategories: keepQueued(
               apiCategories.filter((c) => c.type === "expense").map(mapCategory),

@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFinanceStore, Plan } from "./useFinanceStore";
-import { EMPTY_OFFERS, OfferKind, OfferState, dayKey } from "../utils/offers";
+import { EMPTY_OFFERS, OfferKind, OfferState, dayKey, mergeMemory } from "../utils/offers";
+import { financeApi } from "../services/financeApi";
 import { OFFER_MS, TRIAL_END_OFFER_MS } from "../constants/plan";
 
 // What a plan means right now: Premium while the trial or a paid period runs.
@@ -30,6 +31,8 @@ export type PremiumReason =
   | "report"
   | "offer"
   | "tips"
+  | "trackers"
+  | "trialStarted"
   | "trialEnded";
 
 type PremiumStore = OfferState & {
@@ -46,6 +49,8 @@ type PremiumStore = OfferState & {
   // kept when its tip or the Premium screen is closed, until it runs out.
   activeOffer: { kind: OfferKind; until: number } | null;
   reportTipMonth: string | null; // the month whose report tip was seen
+  trialWelcomeSeen: boolean; // the "your trial has started" screen came
+  serverLoaded: boolean; // the account's offers memory arrived (this run)
   setReportTipMonth: (month: string) => void;
   showPremium: (reason?: PremiumReason, offer?: OfferKind | null) => void;
   hidePremium: () => void;
@@ -70,6 +75,8 @@ export const usePremiumStore = create<PremiumStore>()(
       trialEndOfferUntil: null,
       activeOffer: null,
       reportTipMonth: null,
+      trialWelcomeSeen: false,
+      serverLoaded: false,
       setReportTipMonth: (month) => set({ reportTipMonth: month }),
       showPremium: (reason = "general", offer = null) =>
         set({ modal: reason, modalOffer: offer ?? get().offer, openings: get().openings + 1 }),
@@ -98,11 +105,45 @@ export const usePremiumStore = create<PremiumStore>()(
       name: "fi-track-offers",
       storage: createJSONStorage(() => AsyncStorage),
       // Only the offers' memory; open screens and the current tip don't persist.
-      partialize: ({ modal: _m, offer: _o, reportOpen: _r, openings: _n, modalOffer: _f, ...rest }) =>
+      partialize: ({ modal: _m, offer: _o, reportOpen: _r, openings: _n, modalOffer: _f, serverLoaded: _s, ...rest }) =>
         Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== "function")) as Partial<PremiumStore>,
     },
   ),
 );
+
+// The offers memory also lives on the account (users.offer_state), so a phone
+// and a computer — or a browser with cleared data — see the same offers:
+// merged in at every sync, sent back (2 s after changes) when it differs.
+const SYNCED = [
+  ...(Object.keys(EMPTY_OFFERS) as (keyof OfferState)[]),
+  "trialEndSeen",
+  "trialEndOfferUntil",
+  "activeOffer",
+  "reportTipMonth",
+  "trialWelcomeSeen",
+] as const;
+const memoryOf = (s: Record<string, unknown>) => Object.fromEntries(SYNCED.map((k) => [k, s[k] ?? null]));
+let lastSent = "";
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+useFinanceStore.subscribe((s, prev) => {
+  if (s.serverOfferState === prev.serverOfferState || !s.serverOfferState) return;
+  lastSent = JSON.stringify(memoryOf(mergeMemory(memoryOf({}), s.serverOfferState)));
+  const local = usePremiumStore.getState();
+  usePremiumStore.setState({ ...mergeMemory(memoryOf(local as unknown as Record<string, unknown>), s.serverOfferState), serverLoaded: true });
+});
+usePremiumStore.subscribe((s) => {
+  if (!s.serverLoaded) return; // never before the account's copy is in
+  const memory = memoryOf(s as unknown as Record<string, unknown>);
+  const json = JSON.stringify(memory);
+  if (json === lastSent) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    lastSent = json;
+    financeApi.updateSettings({ offer_state: memory }).catch(() => {
+      lastSent = ""; // offline: sent with the next change or sync
+    });
+  }, 2000);
+});
 
 // The current plan, live (re-renders when it changes).
 export function usePlan() {

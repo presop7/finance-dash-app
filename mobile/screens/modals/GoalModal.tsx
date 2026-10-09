@@ -44,10 +44,13 @@ export default function GoalModal({
   visible,
   goal,
   onClose,
+  startInEdit = false,
 }: {
   visible: boolean;
   goal: Goal | null; // null: create a new goal
   onClose: () => void;
+  // Open straight into editing (holding a goal card).
+  startInEdit?: boolean;
 }) {
   const Colors = useThemeColors();
   const { t } = useTranslation();
@@ -67,7 +70,7 @@ export default function GoalModal({
 
   useEffect(() => {
     if (!visible) return;
-    setView(goal ? "details" : "form");
+    setView(goal && !startInEdit ? "details" : "form");
     setName(goal?.name ?? "");
     setTarget(goal ? String(goal.target) : "");
     setAmount("");

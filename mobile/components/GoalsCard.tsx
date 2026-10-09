@@ -26,7 +26,7 @@ export default function GoalsCard() {
   const goals = useFinanceStore((s) => s.goals);
   const transactions = useFinanceStore((s) => s.transactions);
   const currency = useFinanceStore((s) => s.settings.currency);
-  const [open, setOpen] = useState<{ goal: Goal | null } | null>(null);
+  const [open, setOpen] = useState<{ goal: Goal | null; edit?: boolean } | null>(null);
   const real = transactions.filter((tx) => !isDemoId(tx.id));
   const { premium } = usePlan();
   const atLimit = !premium && goals.length >= FREE.goals;
@@ -45,6 +45,9 @@ export default function GoalsCard() {
               style={[styles.card, GlobalStyles.shadow, spent && styles.cardUsed]}
               activeOpacity={0.7}
               onPress={() => setOpen({ goal })}
+              // Hold: straight to editing it.
+              onLongPress={() => setOpen({ goal, edit: true })}
+              delayLongPress={300}
             >
               <View style={styles.iconBox}>
                 <Ionicons name={spent ? "checkmark" : "flag-outline"} size={20} color={done ? Colors.income : Colors.primary} />
@@ -80,7 +83,12 @@ export default function GoalsCard() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-      <GoalModal visible={open !== null} goal={open?.goal ?? null} onClose={() => setOpen(null)} />
+      <GoalModal
+        visible={open !== null}
+        goal={open?.goal ?? null}
+        startInEdit={open?.edit ?? false}
+        onClose={() => setOpen(null)}
+      />
     </View>
   );
 }
