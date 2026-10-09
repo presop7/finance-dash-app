@@ -38,6 +38,9 @@ class User(Base):
     # so every device of the account sees the same offers.
     offer_state: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+    fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
+    categories: Mapped[list["Category"]] = relationship(back_populates="user")
+
 
 class TrialClaim(Base):
     # Emails (hashed, see trial.py) that already got the Premium trial; kept
@@ -46,6 +49,3 @@ class TrialClaim(Base):
 
     email_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    fund_categories: Mapped[list["FundCategory"]] = relationship(back_populates="user")
-    categories: Mapped[list["Category"]] = relationship(back_populates="user")
