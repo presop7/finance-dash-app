@@ -289,6 +289,24 @@ const ro: Locale = {
       text: "Sărbătorește aniversarea cu Premium la preț redus.",
     },
   },
+  whatsNew: {
+    title: "Noutăți în Fi-Track {{version}}",
+    new: "Nou",
+    fixes: "Remedieri și îmbunătățiri",
+    gotIt: "Am înțeles",
+    feedback: "Ai găsit o problemă? Spune-ne în Setări → Trimite feedback.",
+    items: {
+      search: { title: "Caută tranzacții", text: "Atinge lupa de lângă „Toate tranzacțiile” în Analize. Orice cuvinte, în orice ordine." },
+      report: { title: "Raport lunar", text: "Analize → Raport. În fiecare lună primești și un memento când raportul lunii trecute este gata." },
+      reorder: { title: "Reordonează obiective, mementouri și urmăritoare", text: "Ține apăsat și trage. Ține apăsat un obiectiv și eliberează ca să-l editezi." },
+      progress: { title: "Progresul mementourilor", text: "Fiecare limită arată cât ai ajuns și când a fost atinsă." },
+      newFirst: { title: "Elementele noi primele", text: "O categorie, un cont, un obiectiv sau un memento nou apare sus, evidențiat o clipă." },
+      instant: { title: "Modificări instantanee", text: "Categoriile, conturile, obiectivele și sumele puse deoparte se salvează imediat, chiar offline, și se sincronizează în fundal." },
+      sync: { title: "Sincronizare mai rapidă", text: "Se descarcă doar ce s-a schimbat. Trage în jos ca să reîncarci tot." },
+      online: { title: "Din nou online fără ecran de încărcare", text: "Aplicația rămâne utilizabilă cât timp se sincronizează." },
+      reminders: { title: "Ecran de mementouri mai ordonat", text: "Listele se pot restrânge, iar editorul separă mementourile de urmăritoare." },
+    },
+  },
   report: {
     short: "Raport",
     title: "Luna ta în cifre",
@@ -417,6 +435,8 @@ const ro: Locale = {
     replayTour: "Reia ghidul",
     replayTourHint: "Un tur rapid prin toată aplicația",
     version: "Versiune",
+    whatsNew: "Noutăți",
+    whatsNewHint: "Noutățile și remedierile acestei versiuni",
   },
   currencies: {
     EUR: "Euro",

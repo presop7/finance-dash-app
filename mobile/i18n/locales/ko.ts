@@ -282,6 +282,24 @@ const ko: Locale = {
       text: "기념일을 할인된 Premium으로 축하하세요.",
     },
   },
+  whatsNew: {
+    title: "Fi-Track {{version}}의 새로운 기능",
+    new: "새로운 기능",
+    fixes: "수정 및 개선",
+    gotIt: "확인",
+    feedback: "문제를 발견하셨나요? 설정 → 피드백 보내기에서 알려 주세요.",
+    items: {
+      search: { title: "거래 검색", text: "분석에서 '모든 거래' 옆의 돋보기를 누르세요. 아무 단어나 순서와 상관없이 입력하면 됩니다." },
+      report: { title: "월간 보고서", text: "분석 → 보고서. 매달 지난달 보고서가 준비되면 알려 드립니다." },
+      reorder: { title: "목표, 알림, 트래커 순서 바꾸기", text: "길게 눌러 끌어 옮기세요. 목표를 길게 눌렀다 놓으면 편집할 수 있습니다." },
+      progress: { title: "알림 진행 상황", text: "각 한도가 얼마나 찼는지, 언제 도달했는지 보여 줍니다." },
+      newFirst: { title: "새 항목은 맨 위에", text: "새 카테고리, 계좌, 목표, 알림은 맨 위에 나타나고 잠시 강조됩니다." },
+      instant: { title: "즉시 반영", text: "카테고리, 계좌, 목표, 따로 모은 돈이 오프라인에서도 바로 저장되고 백그라운드에서 동기화됩니다." },
+      sync: { title: "더 빠른 동기화", text: "바뀐 내용만 내려받습니다. 아래로 당기면 전체를 다시 불러옵니다." },
+      online: { title: "다시 온라인이 돼도 로딩 화면 없음", text: "동기화하는 동안에도 앱을 계속 쓸 수 있습니다." },
+      reminders: { title: "더 깔끔해진 알림 화면", text: "목록을 접을 수 있고, 편집기에서 알림과 트래커가 나뉩니다." },
+    },
+  },
   report: {
     short: "보고서",
     title: "이번 달 숫자",
@@ -406,6 +424,8 @@ const ko: Locale = {
     replayTour: "둘러보기 다시 보기",
     replayTourHint: "앱 전체를 빠르게 둘러봐요",
     version: "버전",
+    whatsNew: "새로운 기능",
+    whatsNewHint: "이번 업데이트의 새 기능과 수정 사항",
   },
   currencies: {
     EUR: "유로",

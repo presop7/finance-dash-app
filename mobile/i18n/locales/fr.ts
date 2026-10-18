@@ -281,6 +281,24 @@ const fr: Locale = {
       text: "Fêtez l'anniversaire avec Premium à prix réduit.",
     },
   },
+  whatsNew: {
+    title: "Nouveautés de Fi-Track {{version}}",
+    new: "Nouveau",
+    fixes: "Corrections et améliorations",
+    gotIt: "Compris",
+    feedback: "Un problème ? Dites-le-nous dans Réglages → Envoyer un avis.",
+    items: {
+      search: { title: "Rechercher des transactions", text: "Touchez la loupe à côté de « Toutes les transactions » dans Analyses. N'importe quels mots, dans n'importe quel ordre." },
+      report: { title: "Rapport mensuel", text: "Analyses → Rapport. Chaque mois, un rappel vous prévient quand le rapport du mois dernier est prêt." },
+      reorder: { title: "Réorganiser objectifs, rappels et suivis", text: "Maintenez puis faites glisser. Maintenez un objectif et relâchez pour le modifier." },
+      progress: { title: "Progression des rappels", text: "Chaque limite montre où vous en êtes et quand elle est atteinte." },
+      newFirst: { title: "Les nouveautés en premier", text: "Une nouvelle catégorie, un compte, un objectif ou un rappel apparaît en haut, mis en évidence un instant." },
+      instant: { title: "Changements instantanés", text: "Catégories, comptes, objectifs et mises de côté sont enregistrés aussitôt, même hors ligne, et synchronisés en arrière-plan." },
+      sync: { title: "Synchronisation plus rapide", text: "Seuls les changements sont téléchargés. Tirez vers le bas pour tout recharger." },
+      online: { title: "De retour en ligne sans écran de chargement", text: "L'app reste utilisable pendant la synchronisation." },
+      reminders: { title: "Écran des rappels plus clair", text: "Les listes se replient et l'éditeur sépare rappels et suivis." },
+    },
+  },
   report: {
     short: "Rapport",
     title: "Votre mois en chiffres",
@@ -405,6 +423,8 @@ const fr: Locale = {
     replayTour: "Refaire la visite",
     replayTourHint: "Un tour rapide de toute l'app",
     version: "Version",
+    whatsNew: "Nouveautés",
+    whatsNewHint: "Les nouveautés et corrections de cette version",
   },
   currencies: {
     EUR: "Euro",

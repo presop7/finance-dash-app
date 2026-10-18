@@ -282,6 +282,24 @@ const zh: Locale = {
       text: "以优惠价开通 Premium 庆祝周年。",
     },
   },
+  whatsNew: {
+    title: "Fi-Track {{version}} 新功能",
+    new: "新功能",
+    fixes: "修复与改进",
+    gotIt: "知道了",
+    feedback: "发现问题？请在 设置 → 发送反馈 中告诉我们。",
+    items: {
+      search: { title: "搜索交易", text: "在分析中点击“所有交易”旁的放大镜。输入任意词语，顺序不限。" },
+      report: { title: "月度报告", text: "分析 → 报告。每月上月报告准备好时也会提醒你。" },
+      reorder: { title: "调整目标、提醒和追踪的顺序", text: "长按并拖动。长按目标后松开即可编辑。" },
+      progress: { title: "提醒进度", text: "每个限额都会显示当前进度以及何时达到。" },
+      newFirst: { title: "新项目排在最前", text: "新的分类、账户、目标或提醒会出现在最上方，并短暂高亮。" },
+      instant: { title: "即时生效", text: "分类、账户、目标和预留金额会立即保存，离线也一样，并在后台同步。" },
+      sync: { title: "更快的同步", text: "只下载有变化的内容。下拉可重新加载全部。" },
+      online: { title: "重新联网不再出现加载画面", text: "同步时应用仍可正常使用。" },
+      reminders: { title: "更整洁的提醒页面", text: "列表可以折叠，编辑器中提醒和追踪分开显示。" },
+    },
+  },
   report: {
     short: "报告",
     title: "你的月度数字",
@@ -406,6 +424,8 @@ const zh: Locale = {
     replayTour: "重看导览",
     replayTourHint: "快速浏览整个应用",
     version: "版本",
+    whatsNew: "新功能",
+    whatsNewHint: "本次更新的新功能和修复",
   },
   currencies: {
     EUR: "欧元",

@@ -281,6 +281,24 @@ const it: Locale = {
       text: "Festeggia l'anniversario con Premium a un prezzo più basso.",
     },
   },
+  whatsNew: {
+    title: "Novità di Fi-Track {{version}}",
+    new: "Novità",
+    fixes: "Correzioni e miglioramenti",
+    gotIt: "Ho capito",
+    feedback: "Qualcosa non va? Diccelo in Impostazioni → Invia feedback.",
+    items: {
+      search: { title: "Cerca transazioni", text: "Tocca la lente accanto a «Tutte le transazioni» in Analisi. Qualsiasi parola, in qualsiasi ordine." },
+      report: { title: "Report mensile", text: "Analisi → Report. Ogni mese ricevi anche un promemoria quando il report del mese scorso è pronto." },
+      reorder: { title: "Riordina obiettivi, promemoria e tracker", text: "Tieni premuto e trascina. Tieni premuto un obiettivo e rilascia per modificarlo." },
+      progress: { title: "Avanzamento dei promemoria", text: "Ogni limite mostra a che punto sei e quando viene raggiunto." },
+      newFirst: { title: "Le novità per prime", text: "Una nuova categoria, conto, obiettivo o promemoria compare in cima, evidenziato per un momento." },
+      instant: { title: "Modifiche immediate", text: "Categorie, conti, obiettivi e accantonamenti si salvano subito, anche offline, e si sincronizzano in background." },
+      sync: { title: "Sincronizzazione più veloce", text: "Si scarica solo ciò che è cambiato. Trascina in basso per ricaricare tutto." },
+      online: { title: "Di nuovo online senza schermata di caricamento", text: "L'app resta utilizzabile durante la sincronizzazione." },
+      reminders: { title: "Schermata promemoria più ordinata", text: "Gli elenchi si comprimono e l'editor separa promemoria e tracker." },
+    },
+  },
   report: {
     short: "Report",
     title: "Il tuo mese in numeri",
@@ -405,6 +423,8 @@ const it: Locale = {
     replayTour: "Ripeti la guida",
     replayTourHint: "Un giro veloce di tutta l'app",
     version: "Versione",
+    whatsNew: "Novità",
+    whatsNewHint: "Novità e correzioni di questo aggiornamento",
   },
   currencies: {
     EUR: "Euro",

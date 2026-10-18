@@ -33,6 +33,7 @@ import AddTransactionModal from "./screens/modals/AddTransactionModal";
 import DevAccessScreen from "./screens/DevAccessScreen";
 import PremiumModal from "./screens/modals/PremiumModal";
 import MonthlyReportModal from "./screens/modals/MonthlyReportModal";
+import WhatsNewModal from "./screens/modals/WhatsNewModal";
 import KeepWithinLimitsModal from "./screens/modals/KeepWithinLimitsModal";
 import { useOffersEngine } from "./hooks/useOffersEngine";
 import { usePremiumStore } from "./store/usePremiumStore";
@@ -576,6 +577,8 @@ function AppContent() {
   // Offers and the trial-end screen; never while the new-transaction form is open.
   useOffersEngine(showTransaction);
   const premiumOpenings = usePremiumStore((s) => s.openings);
+  // What's new waits while the Premium screen (e.g. the trial notice) is up.
+  const premiumOpen = usePremiumStore((s) => s.modal !== null);
 
   // The "nothing added in a while" tip's button opens the new-transaction form.
   useEffect(() => {
@@ -705,6 +708,7 @@ function AppContent() {
           dialog is already open (a web modal stacks by when it was created). */}
       <PremiumModal key={premiumOpenings} />
       <MonthlyReportModal />
+      <WhatsNewModal blocked={premiumOpen} />
       <KeepWithinLimitsModal />
       <NamePromptModal />
       <CurrencyPromptModal />

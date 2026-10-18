@@ -28,6 +28,7 @@ import ChangePasswordModal from "./modals/ChangePasswordModal";
 import TipsModal from "./modals/TipsModal";
 import { requirePremium, usePlan, usePremiumStore } from "../store/usePremiumStore";
 import { useHighlightStore } from "../store/useHighlightStore";
+import { useWhatsNewStore } from "../store/useWhatsNewStore";
 import {
   ensureNotificationPermission,
   hasNotificationPermission,
@@ -918,6 +919,19 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             <View style={styles.rowInfo}>
               <Text style={styles.rowTitle}>{t("settings.replayTour")}</Text>
               <Text style={styles.rowSubtitle}>{t("settings.replayTourHint")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={() => useWhatsNewStore.getState().setOpen(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="gift-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{t("settings.whatsNew")}</Text>
+              <Text style={styles.rowSubtitle}>{t("settings.whatsNewHint")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
