@@ -7,6 +7,7 @@ import {
   Text,
   StyleSheet,
   StyleProp,
+  TextInput,
   TextStyle,
   TouchableOpacity,
   ViewStyle,
@@ -14,6 +15,8 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
+  FadeInDown,
+  FadeOutUp,
   SharedValue,
   useSharedValue,
   useAnimatedReaction,
@@ -30,7 +33,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import { isTouchWeb, useWebTouchDragSelect } from "../hooks/useWebTouchDragSelect";
 import { useTutorialStore, useTutorialTarget } from "../store/useTutorialStore";
-import { GlobalStyles } from "../constants/styles";
+import { FIELD_INPUT, GlobalStyles } from "../constants/styles";
 import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, Transaction } from "../store/useFinanceStore";
 import CollapsibleCard from "../components/CollapsibleCard";
@@ -70,6 +73,7 @@ import {
 import { getCurrency } from "../constants/currencies";
 import { confirmAsyncWithLabel, alertAsync, showDialog } from "../utils/confirm";
 import { useReportStore } from "../store/useReportStore";
+import { matchesWords, searchWords } from "../utils/search";
 import { useTranslation } from "react-i18next";
 import { FONT } from "../constants/typography";
 
@@ -595,11 +599,29 @@ function AnalyticsScreen({
     () => applyFilters(transactions, filters, mainType),
     [transactions, filters, mainType],
   );
+  const detailsById = useCategoryDetailsMap();
+  // The list's search (the magnifier by "All transactions"): every word
+  // typed, in any order, in the title, note or category. Only the list and
+  // its count follow it; the summary and charts stay on the filters.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const shown = useMemo(() => {
+    const words = searchWords(deferredQuery);
+    if (words.length === 0) return filtered;
+    return filtered.filter((tx) =>
+      matchesWords(words, tx.title, tx.note, detailsById.get(`${tx.type}:${tx.category}`)?.label),
+    );
+  }, [filtered, deferredQuery, detailsById]);
+  const closeSearch = () => {
+    setQuery("");
+    setSearchOpen(false);
+  };
   // What the FlatList actually gets — see showAll above. `filtered` (the full
   // set) still drives the summary, counts and each row's first/last styling.
   const listData = useMemo(
-    () => (showAll ? filtered : filtered.slice(0, FIRST_SLICE_ROWS)),
-    [showAll, filtered],
+    () => (showAll ? shown : shown.slice(0, FIRST_SLICE_ROWS)),
+    [showAll, shown],
   );
   listIdsRef.current = useMemo(() => listData.map((t) => t.id), [listData]);
   listIndexRef.current = useMemo(
@@ -724,7 +746,7 @@ function AnalyticsScreen({
   // expense and income each have their own category list, so a combined
   // picker wouldn't clearly apply to a mixed selection.
   const handleBulkEdit = () => {
-    const selectedTransactions = filtered.filter((t) => selectedIds.has(t.id));
+    const selectedTransactions = shown.filter((t) => selectedIds.has(t.id));
     const selectedTypes = new Set(selectedTransactions.map((t) => t.type));
     const sharedType = selectedTypes.size === 1 ? [...selectedTypes][0] : null;
 
@@ -763,7 +785,6 @@ function AnalyticsScreen({
 
   const maxBar = Math.max(summary.income, summary.expense, 1);
   const activeFilterCount = countActiveFilters(filters);
-  const detailsById = useCategoryDetailsMap();
   // Same `filtered` set the list and the totals bars already use, so the
   // pie/bar pages can never disagree with what's actually on screen.
   const { slices: categorySlices } = useCategoryBreakdown(filtered, detailsById);
@@ -1064,7 +1085,7 @@ function AnalyticsScreen({
         keyExtractor={(t) => t.id}
         renderItem={({ item, index }) => {
           const isFirst = index === 0;
-          const isLast = index === filtered.length - 1;
+          const isLast = index === shown.length - 1;
           const rowStyle = isFirst ? rowStyles.first : isLast ? rowStyles.last : rowStyles.middle;
           // Select mode swaps to a plain, swipe-less row entirely (same
           // component-swap CategoriesModal's own chips use between normal
@@ -1220,9 +1241,44 @@ function AnalyticsScreen({
             </CollapsibleCard>
             </View>
 
-            <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>
-              {t("analytics.allTransactions", { count: filtered.length })}
-            </Text>
+            <View style={[styles.listHeaderRow, GlobalStyles.screenPadding]}>
+              <Text style={[styles.sectionLabel, styles.listHeaderLabel]}>
+                {t("analytics.allTransactions", { count: shown.length })}
+              </Text>
+              <TouchableOpacity
+                style={[styles.searchBtn, searchOpen && styles.searchBtnActive]}
+                onPress={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+                hitSlop={8}
+                accessibilityLabel={t("analytics.search")}
+              >
+                <Ionicons name="search-outline" size={16} color={searchOpen ? Colors.primary : Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {searchOpen && (
+              <Animated.View
+                entering={FadeInDown.duration(200)}
+                exiting={FadeOutUp.duration(150)}
+                style={styles.searchBar}
+              >
+                <Ionicons name="search-outline" size={16} color={Colors.textMuted} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t("analytics.searchPlaceholder")}
+                  placeholderTextColor={Colors.textMuted}
+                  autoFocus
+                  autoCorrect={false}
+                  returnKeyType="search"
+                />
+                <TouchableOpacity onPress={closeSearch} hitSlop={10} accessibilityLabel={t("analytics.searchClose")}>
+                  <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+            {searchOpen && deferredQuery.trim() !== "" && shown.length === 0 && (
+              <Text style={[styles.searchEmpty, GlobalStyles.screenPadding]}>{t("analytics.searchEmpty")}</Text>
+            )}
           </>
         }
         ListFooterComponent={<View style={styles.bottomPadding} />}
@@ -1478,6 +1534,24 @@ function createStyles(Colors: ColorsType) {
   },
   netLabel: { fontSize: FONT.body, fontWeight: "600", color: Colors.textPrimary },
   netAmount: { fontSize: FONT.field, fontWeight: "700", color: Colors.income },
+  listHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, marginBottom: 8 },
+  listHeaderLabel: { marginTop: 0, marginBottom: 0 },
+  searchBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  searchBtnActive: { backgroundColor: Colors.primary + "18" },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
+  searchEmpty: { fontSize: FONT.small, color: Colors.textMuted, marginBottom: 8 },
   sectionLabel: {
     fontSize: FONT.label,
     fontWeight: "500",
