@@ -144,7 +144,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
     setDeletingAccount(true);
     try {
       await financeApi.deleteAccount();
-      useFinanceStore.setState({ pendingOps: [] }); // nothing left to send them to
+      useFinanceStore.setState({ pendingOps: [], entityOps: [] }); // nothing left to send them to
       await signOut();
       await alertAsync(t("settings.deleteAccount"), t("settings.deleteAccountDone"));
     } catch (err) {
