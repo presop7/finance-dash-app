@@ -1,7 +1,7 @@
 // Translations — initialised before anything renders.
 import "./i18n";
-import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from "react-native";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Easing, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, StyleProp, TextStyle, useWindowDimensions } from "react-native";
+import { ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -433,6 +433,18 @@ function CustomTabBar({
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
 
+  // Labels stay on one line: a long one (Bulgarian "Напомняния", German
+  // "Einstellungen") gets a smaller font sized to its share of the bar —
+  // 4 equal shares beside the 80 px + button, 2 px padding each side.
+  // Width estimate per character, in font sizes: generous on purpose (phone
+  // browsers may enlarge text); Chinese/Japanese/Korean ones are full width.
+  const { width } = useWindowDimensions();
+  const itemWidth = (Math.min(width, CONTENT_MAX_WIDTH) - 80) / 4 - 4;
+  const labelSize = (label: string) => {
+    const ems = [...label].reduce((sum, ch) => sum + (/[⺀-鿿가-힯＀-￯]/.test(ch) ? 1.05 : 0.7), 0);
+    return Math.max(8, Math.min(FONT.label, Math.floor((itemWidth / ems) * 2) / 2));
+  };
+
   const renderItem = (index: number) => {
     const route = state.routes[index];
     const item = NAV_ITEMS.find((i) => i.name === route.name);
@@ -464,9 +476,11 @@ function CustomTabBar({
           size={22}
           color={isFocused ? Colors.primary : Colors.textMuted}
         />
-        <Text style={[styles.navLabel, isFocused && styles.navLabelActive]} numberOfLines={2}>
-          {t(item.label)}
-        </Text>
+        <NavLabel
+          text={t(item.label)}
+          size={labelSize(t(item.label))}
+          style={[styles.navLabel, isFocused && styles.navLabelActive]}
+        />
       </TouchableOpacity>
     );
   };
@@ -487,6 +501,26 @@ function CustomTabBar({
         <View style={styles.navSide}>{[2, 3].map(renderItem)}</View>
       </View>
     </View>
+  );
+}
+
+// A tab's label on one line. Starts at the estimated size; on the web, if the
+// browser still draws it wider than its share (e.g. phone text-size settings),
+// it steps down half a pixel at a time until it fits. Phone apps shrink it
+// themselves (adjustsFontSizeToFit).
+function NavLabel({ text, size, style }: { text: string; size: number; style: StyleProp<TextStyle> }) {
+  const ref = useRef<Text>(null);
+  const [fit, setFit] = useState(size);
+  useEffect(() => setFit(size), [size, text]);
+  useLayoutEffect(() => {
+    if (Platform.OS !== "web") return;
+    const el = ref.current as unknown as HTMLElement | null;
+    if (el && el.scrollWidth > el.clientWidth + 0.5 && fit > 7) setFit((f) => f - 0.5);
+  }, [fit]);
+  return (
+    <Text ref={ref} style={[style, { fontSize: fit }]} numberOfLines={1} adjustsFontSizeToFit>
+      {text}
+    </Text>
   );
 }
 
@@ -820,7 +854,7 @@ function createStyles(Colors: ColorsType) {
     },
     // Equal shares of each side, so a long label (Bulgarian "Напомняния",
     // German "Einstellungen") can't squeeze its neighbour or run off screen
-    // — it wraps onto a second line inside its own share instead.
+    // — its font shrinks to fit its own share instead (see labelSize).
     navItem: {
       flex: 1,
       alignItems: "center",
@@ -830,6 +864,7 @@ function createStyles(Colors: ColorsType) {
     navLabel: {
       fontSize: FONT.label,
       textAlign: "center",
+      maxWidth: "100%", // its tab's share: measured against it (NavLabel)
       color: Colors.textMuted,
     },
     navLabelActive: {
