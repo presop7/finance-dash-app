@@ -20,7 +20,7 @@ import { ApiError } from "../services/api";
 import { isDemoId } from "../utils/demoTransactions";
 import i18n from "../i18n";
 import { defaultCategoryKey, defaultFundKey } from "../constants/defaultNames";
-import { mergeOrder } from "../utils/reorder";
+import { mergeOrder, sortByOrder } from "../utils/reorder";
 
 export type Transaction = {
   id: string;
@@ -121,6 +121,10 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
 ];
 
 // "refreshing" = showing cached data while a background hydrate is in flight.
+// Asked again a bit earlier than the last sync's server time: a change still
+// being saved during that sync is then picked up next time (repeats are fine).
+const SYNC_OVERLAP_MS = 2 * 60_000;
+
 export type TipId = "install" | "notifications" | "alerts" | "reminder";
 
 export type SyncStatus = "idle" | "loading" | "loaded" | "refreshing" | "error";
@@ -136,6 +140,21 @@ export type OpStatus = "pending" | "syncing" | "failed";
 // Ops are collapsed to their net effect at enqueue time (see queueWrite helpers
 // below), so there is at most one op per transaction and replay never has to
 // reason about ordering between conflicting ops.
+// Changes to categories, funds, goals and money set aside: applied on screen
+// at once and sent in the background like transactions (see runEntityOp).
+// New items get their id here, on the device; the server accepts it, so
+// nothing has to be renamed once it syncs, and a repeated send is harmless.
+export type EntityKind = "category" | "fund" | "goal" | "allocation";
+export type EntityOp = {
+  opId: string;
+  entity: EntityKind;
+  action: "create" | "update" | "delete";
+  id: string;
+  goalId?: string; // allocations: which goal
+  body?: Record<string, unknown>;
+  status: OpStatus;
+};
+
 export type PendingOp =
   // clientGeneratedId doubles as the local placeholder row id until it syncs
   | { kind: "create"; clientGeneratedId: string; payload: TransactionFields; status: OpStatus }
@@ -160,7 +179,12 @@ type FinanceStore = {
   // local change) can tell it's stale and skip overwriting settings.
   settingsVersion: number;
 
-  hydrate: () => Promise<void>;
+  // full: re-download every transaction (pull-to-refresh) instead of only
+  // what changed since the last sync.
+  hydrate: (options?: { full?: boolean }) => Promise<void>;
+  entityOps: EntityOp[];
+  // Server time of the last transaction sync; the next one asks for changes since.
+  transactionsSyncedAt: string | null;
   reset: () => void;
 
   updateSettings: (changes: Partial<Settings>) => Promise<void>;
@@ -246,6 +270,15 @@ type FinanceStore = {
   // (e.g. newly created) go after, in their normal order.
   fundCardOrder: string[];
   setFundCardOrder: (order: string[]) => void;
+  // Goal ids in the user's chosen Goals-card order; same rules.
+  goalOrder: string[];
+  setGoalOrder: (order: string[]) => void;
+  // The category/fund/goal/reminder just created: it goes first and its
+  // outline flashes wherever it shows (FlashBorder), then this clears.
+  justAddedId: string | null;
+  clearJustAdded: () => void;
+  // Reminders/trackers in the order given (hold and drag on their screen).
+  setAlertRuleOrder: (ids: string[]) => void;
   // Expense + income category ids in the user's chosen order (one list:
   // the ids never clash); same rules as fundCardOrder.
   categoryOrder: string[];
@@ -614,6 +647,83 @@ async function runPendingOp(op: PendingOp, set: FinanceSet, get: FinanceGet): Pr
   }
 }
 
+// Sends one queued category/fund/goal change. Done ops leave the queue; a 404
+// on update/delete means it's already gone (fine).
+async function runEntityOp(op: EntityOp, set: FinanceSet, get: FinanceGet): Promise<void> {
+  const userId = activeUserId();
+  const mark = (status: OpStatus) =>
+    set((state) => ({ entityOps: state.entityOps.map((o) => (o.opId === op.opId ? { ...o, status } : o)) }));
+  const drop = () => set((state) => ({ entityOps: state.entityOps.filter((o) => o.opId !== op.opId) }));
+  mark("syncing");
+  const body = op.body ?? {};
+  try {
+    if (op.entity === "category") {
+      if (op.action === "create") await financeApi.createCategory(body as never);
+      else if (op.action === "update") await financeApi.updateCategory(op.id, body as never);
+      else await financeApi.deleteCategory(op.id, true);
+    } else if (op.entity === "fund") {
+      if (op.action === "create") await financeApi.createFundCategory(body as never);
+      else if (op.action === "update") await financeApi.updateFundCategory(op.id, body as never);
+      else await financeApi.deleteFundCategory(op.id, true);
+    } else if (op.entity === "goal") {
+      if (op.action === "create") await financeApi.createGoal(body as never);
+      else if (op.action === "update") await financeApi.updateGoal(op.id, body as never);
+      else await financeApi.deleteGoal(op.id);
+    } else {
+      if (op.action === "create") await financeApi.addGoalAllocation(op.goalId!, body as never);
+      else await financeApi.deleteGoalAllocation(op.goalId!, op.id);
+    }
+    if (activeUserId() !== userId) return;
+    drop();
+  } catch (err) {
+    if (activeUserId() !== userId) return;
+    if (err instanceof ApiError && op.action !== "create" && err.status === 404) {
+      drop();
+      return;
+    }
+    mark("failed");
+  }
+}
+
+// Adds a change to the queue, folding it into what's already waiting: an edit
+// of something not sent yet goes into that create/edit; deleting something
+// never sent removes it (and what depends on it) from the queue instead.
+function enqueueEntity(
+  ops: EntityOp[],
+  next: Omit<EntityOp, "opId" | "status">,
+): EntityOp[] {
+  const same = (o: EntityOp) => o.entity === next.entity && o.id === next.id && o.status === "pending";
+  if (next.action === "update") {
+    const waiting = ops.find((o) => same(o) && o.action !== "delete");
+    if (waiting) return ops.map((o) => (o === waiting ? { ...o, body: { ...o.body, ...next.body } } : o));
+  }
+  if (next.action === "delete") {
+    const unsent = ops.find((o) => same(o) && o.action === "create");
+    const rest = ops.filter(
+      (o) =>
+        !same(o) &&
+        // a goal's set-asides go with it
+        !(next.entity === "goal" && o.entity === "allocation" && o.goalId === next.id && o.status === "pending"),
+    );
+    if (unsent) return rest;
+    return [...rest, { ...next, opId: Crypto.randomUUID(), status: "pending" }];
+  }
+  return [...ops, { ...next, opId: Crypto.randomUUID(), status: "pending" }];
+}
+
+// After a load from the server: keep what's still waiting to be sent, so the
+// screen doesn't jump back to the server's older copy.
+function keepQueued<T extends { id: string }>(server: T[], local: T[], ops: EntityOp[], kinds: EntityKind[]): T[] {
+  const mine = ops.filter((o) => kinds.includes(o.entity));
+  const deleted = new Set(mine.filter((o) => o.action === "delete" && o.entity === kinds[0]).map((o) => o.id));
+  const changed = new Set(mine.filter((o) => o.action !== "delete" || o.entity !== kinds[0]).map((o) => o.goalId ?? o.id));
+  const fromServer = server
+    .filter((s) => !deleted.has(s.id))
+    .map((s) => (changed.has(s.id) ? (local.find((l) => l.id === s.id) ?? s) : s));
+  const onlyHere = local.filter((l) => changed.has(l.id) && !server.some((s) => s.id === l.id));
+  return [...fromServer, ...onlyHere];
+}
+
 // Sends queued ops one at a time in the background. Only one runner exists at
 // a time, so an op is never sent twice in parallel; writes queued while it
 // runs are picked up by the same loop. retryFailed also re-sends ops that
@@ -627,6 +737,16 @@ function flushQueue(set: FinanceSet, get: FinanceGet, retryFailed = false): Prom
   flushing = (async () => {
     const retried = new Set<string>();
     while (get().isConnected) {
+      // Categories, funds and goals first: a queued transaction may use one
+      // that was just created.
+      const entity = get().entityOps.find(
+        (o) => o.status === "pending" || (retryFailed && o.status === "failed" && !retried.has(o.opId)),
+      );
+      if (entity) {
+        retried.add(entity.opId);
+        await runEntityOp(entity, set, get);
+        continue;
+      }
       const op = get().pendingOps.find(
         (o) =>
           o.status === "pending" || (retryFailed && o.status === "failed" && !retried.has(opKey(o))),
@@ -639,6 +759,65 @@ function flushQueue(set: FinanceSet, get: FinanceGet, retryFailed = false): Prom
     flushing = null;
   });
   return flushing;
+}
+
+// Category changes for either list (expense / income): on screen at once,
+// sent in the background. Deleting one moves its transactions to that type's
+// "Unassigned", as the server does.
+type CategoryType = "expense" | "income";
+const listKey = (type: CategoryType) => (type === "expense" ? "expenseCategories" : "incomeCategories") as
+  | "expenseCategories"
+  | "incomeCategories";
+
+async function addCategory(set: FinanceSet, get: FinanceGet, type: CategoryType, category: CategoryFields) {
+    const id = Crypto.randomUUID();
+    const key = listKey(type);
+    set((state) => ({
+      [key]: [...state[key], { id, label: category.label, icon: category.icon as Category["icon"], color: category.color }],
+      entityOps: enqueueEntity(state.entityOps, {
+        entity: "category",
+        action: "create",
+        id,
+        body: { id, name: category.label, icon: category.icon, color: category.color ?? null, type },
+      }),
+      justAddedId: id,
+    }));
+    void flushQueue(set, get);
+    return id;
+}
+
+async function updateCategory(set: FinanceSet, get: FinanceGet, type: CategoryType, id: string, changes: CategoryFields) {
+    const key = listKey(type);
+    set((state) => ({
+      [key]: state[key].map((c) =>
+        c.id === id ? { ...c, label: changes.label, icon: changes.icon as Category["icon"], color: changes.color, defaultKey: undefined } : c,
+      ),
+      entityOps: enqueueEntity(state.entityOps, {
+        entity: "category",
+        action: "update",
+        id,
+        body: { name: changes.label, icon: changes.icon, color: changes.color ?? null },
+      }),
+    }));
+    void flushQueue(set, get);
+}
+
+async function deleteCategory(set: FinanceSet, get: FinanceGet, type: CategoryType, id: string) {
+    const key = listKey(type);
+    const unassigned = get()[key].find((c) => c.locked && c.id !== id)?.id;
+    set((state) => ({
+      [key]: state[key].filter((c) => c.id !== id),
+      transactions: unassigned
+        ? state.transactions.map((t) => (t.category === id ? { ...t, category: unassigned } : t))
+        : state.transactions,
+      pendingOps: unassigned
+        ? state.pendingOps.map((o) =>
+            o.kind !== "delete" && o.payload.category === id ? { ...o, payload: { ...o.payload, category: unassigned } } : o,
+          )
+        : state.pendingOps,
+      entityOps: enqueueEntity(state.entityOps, { entity: "category", action: "delete", id }),
+    }));
+    void flushQueue(set, get);
 }
 
 export const useFinanceStore = create<FinanceStore>()(
@@ -663,6 +842,10 @@ export const useFinanceStore = create<FinanceStore>()(
       dashboardCardOrder: DEFAULT_DASHBOARD_CARD_ORDER,
       dashboardCollapsedCards: {},
       fundCardOrder: [],
+      goalOrder: [],
+      justAddedId: null,
+      clearJustAdded: () => set({ justAddedId: null }),
+      setAlertRuleOrder: (ids) => set((state) => ({ alertRules: sortByOrder(state.alertRules, ids) })),
       categoryOrder: [],
       themePreference: "system",
       notificationsEnabled: true,
@@ -672,10 +855,15 @@ export const useFinanceStore = create<FinanceStore>()(
       displayNameOverride: null,
       alertRules: DEFAULT_ALERT_RULES,
 
-      hydrate: async () => {
+      transactionsSyncedAt: null,
+      entityOps: [],
+
+      hydrate: async (options) => {
         // With cached data already on screen this is a background refresh, not
         // a cold load — don't blank the UI out behind a spinner for it.
-        const hasCache = get().status === "loaded";
+        // "refreshing" counts too: a sync can still be hanging from before the
+        // connection dropped, and the next one mustn't blank the screen for it.
+        const hasCache = get().status === "loaded" || get().status === "refreshing";
         set({ status: hasCache ? "refreshing" : "loading", syncError: null });
 
         // If the account switches while this is awaiting, whatever comes back
@@ -698,12 +886,15 @@ export const useFinanceStore = create<FinanceStore>()(
         // reflects pre-update server state and must not overwrite it.
         const settingsVersionAtFetch = get().settingsVersion;
 
+        const syncedAt = options?.full ? null : get().transactionsSyncedAt;
+        const since = syncedAt ? new Date(new Date(syncedAt).getTime() - SYNC_OVERLAP_MS).toISOString() : "1970-01-01T00:00:00Z";
+
         try {
-          const [me, apiCategories, apiFundCategories, apiTransactions, apiGoals] = await Promise.all([
+          const [me, apiCategories, apiFundCategories, changes, apiGoals] = await Promise.all([
             financeApi.getMe(),
             financeApi.listCategories(),
             financeApi.listFundCategories(),
-            financeApi.listTransactions(),
+            financeApi.listTransactionChanges(since),
             // Not fatal: keeps the last-known goals if this one call fails.
             financeApi.listGoals().catch(() => null),
           ]);
@@ -719,21 +910,47 @@ export const useFinanceStore = create<FinanceStore>()(
           const localPending = get().transactions.filter(
             (t) => pendingKeys.has(t.id) || isDemoId(t.id),
           );
-          const serverRows = apiTransactions
+          const serverRows = changes.transactions
             .filter((t) => !pendingKeys.has(t.id) && !pendingKeys.has(t.client_generated_id))
             .map(mapTransaction);
+          // A full load replaces the list; a change sync updates what it has:
+          // drops what was deleted, then adds or replaces what changed.
+          let merged: Transaction[];
+          if (!syncedAt) {
+            merged = [...localPending, ...serverRows];
+          } else {
+            const deleted = new Set(changes.deleted_ids);
+            const byId = new Map(
+              get()
+                .transactions.filter((t) => !deleted.has(t.id))
+                .map((t) => [t.id, t] as const),
+            );
+            for (const row of serverRows) byId.set(row.id, row);
+            merged = [...byId.values()];
+          }
 
           set({
             status: "loaded",
             lastSyncedAt: Date.now(),
             ...(settingsStale ? {} : { settings: mapSettings(me) }),
-            expenseCategories: apiCategories.filter((c) => c.type === "expense").map(mapCategory),
-            incomeCategories: apiCategories.filter((c) => c.type === "income").map(mapCategory),
-            fundCategories: apiFundCategories.map(mapFundCategory),
-            ...(apiGoals ? { goals: apiGoals.map(mapGoal) } : {}),
-            transactions: [...localPending, ...serverRows].sort(
-              (a, b) => b.date.getTime() - a.date.getTime(),
+            transactionsSyncedAt: changes.server_time,
+            expenseCategories: keepQueued(
+              apiCategories.filter((c) => c.type === "expense").map(mapCategory),
+              get().expenseCategories,
+              get().entityOps,
+              ["category"],
             ),
+            incomeCategories: keepQueued(
+              apiCategories.filter((c) => c.type === "income").map(mapCategory),
+              get().incomeCategories,
+              get().entityOps,
+              ["category"],
+            ),
+            fundCategories: keepQueued(apiFundCategories.map(mapFundCategory), get().fundCategories, get().entityOps, ["fund"]),
+            ...(apiGoals
+              ? { goals: keepQueued(apiGoals.map(mapGoal), get().goals, get().entityOps, ["goal", "allocation"]) }
+              : {}),
+            transactions: merged.sort((a, b) => b.date.getTime() - a.date.getTime()),
           });
           if (apiGoals) migrateSavingsTrackers(get);
         } catch (err) {
@@ -759,11 +976,13 @@ export const useFinanceStore = create<FinanceStore>()(
           incomeCategories: [],
           fundCategories: [],
           goals: [],
+          transactionsSyncedAt: null,
           settings: DEFAULT_SETTINGS,
           // Clears in memory only — the signed-out user's queue stays on disk in
           // their own slot (activeUserId is already null here, so this write
           // can't touch it) and comes back when they sign in again.
           pendingOps: [],
+          entityOps: [],
         }),
 
       updateSettings: async (changes) => {
@@ -902,131 +1121,77 @@ export const useFinanceStore = create<FinanceStore>()(
         void flushQueue(set, get);
       },
 
-      addExpenseCategory: async (category) => {
-        const created = await financeApi.createCategory({
-          name: category.label,
-          icon: category.icon,
-          color: category.color ?? null,
-          type: "expense",
-        });
-        set((state) => ({
-          expenseCategories: [...state.expenseCategories, mapCategory(created)],
-        }));
-        return created.id;
-      },
-
-      updateExpenseCategory: async (id, changes) => {
-        const updated = await financeApi.updateCategory(id, {
-          name: changes.label,
-          icon: changes.icon,
-          color: changes.color ?? null,
-        });
-        set((state) => ({
-          expenseCategories: state.expenseCategories.map((c) =>
-            c.id === id ? mapCategory(updated) : c,
-          ),
-        }));
-      },
-
-      deleteExpenseCategory: async (id, confirm = false) => {
-        await financeApi.deleteCategory(id, confirm);
-        const [categories, transactions] = await Promise.all([
-          financeApi.listCategories(),
-          financeApi.listTransactions(),
-        ]);
-        set({
-          expenseCategories: categories.filter((c) => c.type === "expense").map(mapCategory),
-          transactions: transactions
-            .map(mapTransaction)
-            .sort((a, b) => b.date.getTime() - a.date.getTime()),
-        });
-      },
-
-      addIncomeCategory: async (category) => {
-        const created = await financeApi.createCategory({
-          name: category.label,
-          icon: category.icon,
-          color: category.color ?? null,
-          type: "income",
-        });
-        set((state) => ({
-          incomeCategories: [...state.incomeCategories, mapCategory(created)],
-        }));
-        return created.id;
-      },
-
-      updateIncomeCategory: async (id, changes) => {
-        const updated = await financeApi.updateCategory(id, {
-          name: changes.label,
-          icon: changes.icon,
-          color: changes.color ?? null,
-        });
-        set((state) => ({
-          incomeCategories: state.incomeCategories.map((c) =>
-            c.id === id ? mapCategory(updated) : c,
-          ),
-        }));
-      },
-
-      deleteIncomeCategory: async (id, confirm = false) => {
-        await financeApi.deleteCategory(id, confirm);
-        const [categories, transactions] = await Promise.all([
-          financeApi.listCategories(),
-          financeApi.listTransactions(),
-        ]);
-        set({
-          incomeCategories: categories.filter((c) => c.type === "income").map(mapCategory),
-          transactions: transactions
-            .map(mapTransaction)
-            .sort((a, b) => b.date.getTime() - a.date.getTime()),
-        });
-      },
+      addExpenseCategory: async (category) => addCategory(set, get, "expense", category),
+      updateExpenseCategory: async (id, changes) => updateCategory(set, get, "expense", id, changes),
+      deleteExpenseCategory: async (id) => deleteCategory(set, get, "expense", id),
+      addIncomeCategory: async (category) => addCategory(set, get, "income", category),
+      updateIncomeCategory: async (id, changes) => updateCategory(set, get, "income", id, changes),
+      deleteIncomeCategory: async (id) => deleteCategory(set, get, "income", id),
 
       addFundCategory: async (fundCategory) => {
-        const created = await financeApi.createFundCategory({
-          name: fundCategory.name,
-          currency: get().settings.currency,
-          icon: fundCategory.icon,
-          color: fundCategory.color,
-        });
+        const id = Crypto.randomUUID();
         set((state) => ({
-          fundCategories: [...state.fundCategories, mapFundCategory(created)],
+          fundCategories: [...state.fundCategories, { id, ...fundCategory }],
+          fundCardOrder: [id, ...sortByOrder(state.fundCategories, state.fundCardOrder).map((f) => f.id)],
+          justAddedId: id,
+          entityOps: enqueueEntity(state.entityOps, {
+            entity: "fund",
+            action: "create",
+            id,
+            body: { id, name: fundCategory.name, currency: get().settings.currency, icon: fundCategory.icon, color: fundCategory.color },
+          }),
         }));
-        return created.id;
+        void flushQueue(set, get);
+        return id;
       },
 
       updateFundCategory: async (id, changes) => {
-        const updated = await financeApi.updateFundCategory(id, {
-          name: changes.name,
-          icon: changes.icon,
-          color: changes.color,
-        });
         set((state) => ({
           fundCategories: state.fundCategories.map((f) =>
-            f.id === id ? mapFundCategory(updated) : f,
+            f.id === id ? { ...f, ...changes, defaultKey: undefined } : f,
           ),
+          entityOps: enqueueEntity(state.entityOps, {
+            entity: "fund",
+            action: "update",
+            id,
+            body: { name: changes.name, icon: changes.icon, color: changes.color },
+          }),
         }));
+        void flushQueue(set, get);
       },
 
-      deleteFundCategory: async (id, confirm = false) => {
-        await financeApi.deleteFundCategory(id, confirm);
-        const [fundCategories, transactions] = await Promise.all([
-          financeApi.listFundCategories(),
-          financeApi.listTransactions(),
-        ]);
-        set({
-          fundCategories: fundCategories.map(mapFundCategory),
-          transactions: transactions
-            .map(mapTransaction)
-            .sort((a, b) => b.date.getTime() - a.date.getTime()),
-        });
+      // Like the server: its transactions (and money set aside from it) move
+      // to "Unassigned".
+      deleteFundCategory: async (id) => {
+        const unassigned = get().fundCategories.find((f) => f.locked && f.id !== id)?.id;
+        set((state) => ({
+          fundCategories: state.fundCategories.filter((f) => f.id !== id),
+          transactions: unassigned
+            ? state.transactions.map((t) => (t.fundCategory === id ? { ...t, fundCategory: unassigned } : t))
+            : state.transactions,
+          pendingOps: unassigned
+            ? state.pendingOps.map((o) =>
+                o.kind !== "delete" && o.payload.fundCategory === id
+                  ? { ...o, payload: { ...o.payload, fundCategory: unassigned } }
+                  : o,
+              )
+            : state.pendingOps,
+          goals: unassigned
+            ? state.goals.map((g) => ({
+                ...g,
+                allocations: g.allocations.map((a) => (a.fundId === id ? { ...a, fundId: unassigned } : a)),
+              }))
+            : state.goals,
+          entityOps: enqueueEntity(state.entityOps, { entity: "fund", action: "delete", id }),
+        }));
+        void flushQueue(set, get);
       },
 
       setConnected: (connected) => {
         const wasConnected = get().isConnected;
         set({ isConnected: connected });
         // Coming back online: sync, which drains the queue then refetches.
-        if (!wasConnected && connected && get().pendingOps.length > 0) {
+        if (!wasConnected && connected && get().pendingOps.length + get().entityOps.length > 0) {
           void get().hydrate();
         }
       },
@@ -1055,41 +1220,78 @@ export const useFinanceStore = create<FinanceStore>()(
       setGoalsNotified: (ids) => set({ goalsNotified: ids }),
 
       addGoal: async (fields) => {
-        const created = await financeApi.createGoal(fields);
-        set((state) => ({ goals: [...state.goals, mapGoal(created)] }));
-        return created.id;
+        const id = Crypto.randomUUID();
+        set((state) => ({
+          goals: [
+            ...state.goals,
+            { id, name: fields.name, target: fields.target, icon: fields.icon, color: fields.color ?? null, allocations: [] },
+          ],
+          goalOrder: [id, ...sortByOrder(state.goals, state.goalOrder).map((g) => g.id)],
+          justAddedId: id,
+          entityOps: enqueueEntity(state.entityOps, {
+            entity: "goal",
+            action: "create",
+            id,
+            body: { id, name: fields.name, target: fields.target, icon: fields.icon, color: fields.color ?? null },
+          }),
+        }));
+        void flushQueue(set, get);
+        return id;
       },
 
       updateGoal: async (id, fields) => {
-        const updated = await financeApi.updateGoal(id, fields);
-        set((state) => ({ goals: state.goals.map((g) => (g.id === id ? mapGoal(updated) : g)) }));
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === id ? { ...g, name: fields.name, target: fields.target, icon: fields.icon, color: fields.color ?? g.color } : g,
+          ),
+          entityOps: enqueueEntity(state.entityOps, {
+            entity: "goal",
+            action: "update",
+            id,
+            body: { name: fields.name, target: fields.target, icon: fields.icon, color: fields.color ?? null },
+          }),
+        }));
+        void flushQueue(set, get);
       },
 
       deleteGoal: async (id) => {
-        await financeApi.deleteGoal(id);
-        // The server unlinks its expenses too; mirror that locally.
+        // The server unlinks its expenses too; mirror that here.
         set((state) => ({
           goals: state.goals.filter((g) => g.id !== id),
           transactions: state.transactions.map((t) => (t.goalId === id ? { ...t, goalId: undefined } : t)),
+          pendingOps: state.pendingOps.map((o) =>
+            o.kind !== "delete" && o.payload.goalId === id ? { ...o, payload: { ...o.payload, goalId: undefined } } : o,
+          ),
+          entityOps: enqueueEntity(state.entityOps, { entity: "goal", action: "delete", id }),
         }));
+        void flushQueue(set, get);
       },
 
       addGoalAllocation: async (goalId, fundId, amount) => {
-        const created = await financeApi.addGoalAllocation(goalId, { fund_category_id: fundId, amount });
+        const id = Crypto.randomUUID();
         set((state) => ({
           goals: state.goals.map((g) =>
-            g.id === goalId ? { ...g, allocations: [...g.allocations, mapGoalAllocation(created)] } : g,
+            g.id === goalId ? { ...g, allocations: [...g.allocations, { id, fundId, amount, date: Date.now() }] } : g,
           ),
+          entityOps: enqueueEntity(state.entityOps, {
+            entity: "allocation",
+            action: "create",
+            id,
+            goalId,
+            body: { id, fund_category_id: fundId, amount },
+          }),
         }));
+        void flushQueue(set, get);
       },
 
       deleteGoalAllocation: async (goalId, allocationId) => {
-        await financeApi.deleteGoalAllocation(goalId, allocationId);
         set((state) => ({
           goals: state.goals.map((g) =>
             g.id === goalId ? { ...g, allocations: g.allocations.filter((a) => a.id !== allocationId) } : g,
           ),
+          entityOps: enqueueEntity(state.entityOps, { entity: "allocation", action: "delete", id: allocationId, goalId }),
         }));
+        void flushQueue(set, get);
       },
 
       convertCurrency: async (to, rate) => {
@@ -1102,13 +1304,10 @@ export const useFinanceStore = create<FinanceStore>()(
         await get().hydrate();
       },
 
-      addAlertRule: (rule) =>
-        set((state) => ({
-          alertRules: [
-            ...state.alertRules,
-            { ...rule, id: Date.now().toString() },
-          ],
-        })),
+      addAlertRule: (rule) => {
+        const id = Date.now().toString();
+        set((state) => ({ alertRules: [{ ...rule, id }, ...state.alertRules], justAddedId: id }));
+      },
 
       updateAlertRule: (id, changes) =>
         set((state) => ({
@@ -1148,6 +1347,7 @@ export const useFinanceStore = create<FinanceStore>()(
       setDisplayNameOverride: (name) => set({ displayNameOverride: name }),
       setDashboardCardOrder: (order) => set({ dashboardCardOrder: order }),
       setFundCardOrder: (order) => set({ fundCardOrder: order }),
+      setGoalOrder: (order) => set({ goalOrder: order }),
       setCategoryOrder: (order) => set((state) => ({ categoryOrder: mergeOrder(state.categoryOrder, order) })),
 
       addDemoTransactions: (demo) =>
@@ -1184,6 +1384,7 @@ export const useFinanceStore = create<FinanceStore>()(
         displayNameOverride: state.displayNameOverride,
         // per-user
         fundCardOrder: state.fundCardOrder,
+        goalOrder: state.goalOrder,
         lastAddedAt: state.lastAddedAt,
         categoryOrder: state.categoryOrder,
         alertRules: state.alertRules,
@@ -1194,7 +1395,9 @@ export const useFinanceStore = create<FinanceStore>()(
         incomeCategories: state.incomeCategories,
         fundCategories: state.fundCategories,
         goals: state.goals,
+        entityOps: state.entityOps,
         goalsNotified: state.goalsNotified,
+        transactionsSyncedAt: state.transactionsSyncedAt,
         settings: state.settings,
         lastSyncedAt: state.lastSyncedAt,
       }),
@@ -1223,6 +1426,12 @@ export const useFinanceStore = create<FinanceStore>()(
               ? { ...op, status }
               : { ...op, status, payload: { ...op.payload, date: new Date(op.payload.date) } };
           }),
+          // Same for category/fund/goal changes: one the app closed on while
+          // sending would otherwise stay "syncing" — and block the
+          // transactions that use it — for good.
+          entityOps: (saved.entityOps ?? []).map((op) =>
+            op.status === "syncing" ? { ...op, status: "pending" as const } : op,
+          ),
         };
       },
       onRehydrateStorage: () => (state) => {
@@ -1271,6 +1480,6 @@ if (Platform.OS === "web" && typeof window !== "undefined") {
 // the tab or the home-screen web app is the way to get fresh data.
 AppState.addEventListener("change", (appState) => {
   if (appState !== "active" || !activeUserId()) return;
-  const { isConnected, pendingOps, hydrate } = useFinanceStore.getState();
-  if (isConnected && (pendingOps.length > 0 || Platform.OS === "web")) void hydrate();
+  const { isConnected, pendingOps, entityOps, hydrate } = useFinanceStore.getState();
+  if (isConnected && (pendingOps.length + entityOps.length > 0 || Platform.OS === "web")) void hydrate();
 });

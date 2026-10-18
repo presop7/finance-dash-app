@@ -119,12 +119,49 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
     return () => clearTimeout(timer);
   }, [highlightTarget, flash, scrollTo]);
 
+  // Deletes the account and all its data on the server, then signs out.
+  // Asked twice: it can't be undone.
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const handleDeleteAccount = async () => {
+    if (!isConnected) {
+      await alertAsync(t("settings.deleteAccount"), t("settings.deleteAccountOffline"));
+      return;
+    }
+    const first = await confirmAsyncWithLabel(
+      t("settings.deleteAccountTitle"),
+      t("settings.deleteAccountConfirm"),
+      t("settings.deleteAccountContinue"),
+    );
+    if (!first) return;
+    const second = await confirmAsyncWithLabel(
+      t("settings.deleteAccountTitle"),
+      t("settings.deleteAccountFinal"),
+      t("settings.deleteAccountForever"),
+    );
+    if (!second) return;
+    setDeletingAccount(true);
+    try {
+      await financeApi.deleteAccount();
+      useFinanceStore.setState({ pendingOps: [], entityOps: [] }); // nothing left to send them to
+      await signOut();
+      await alertAsync(t("settings.deleteAccount"), t("settings.deleteAccountDone"));
+    } catch (err) {
+      await alertAsync(
+        t("settings.deleteAccountFailed"),
+        err instanceof Error ? err.message : t("common.somethingWrong"),
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const handleSignOut = async () => {
     // Nothing is lost by signing out — the queue is kept in this account's own
     // cache slot — but it can't drain until they're back online and signed in,
     // so it's worth saying so rather than letting it silently sit there.
-    if (pendingOps.length > 0) {
-      const n = pendingOps.length;
+    const unsent = pendingOps.length + useFinanceStore.getState().entityOps.length;
+    if (unsent > 0) {
+      const n = unsent;
       const proceed = await confirmAsyncWithLabel(
         t("settings.unsyncedTitle"),
         t("settings.unsyncedSignOut", { count: n }),
@@ -186,7 +223,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       // Sends anything queued and reloads, then checks it all went through.
       await store.hydrate();
       const after = useFinanceStore.getState();
-      if (after.pendingOps.length > 0 || after.syncError || after.settings.currency !== from) {
+      if (after.pendingOps.length + after.entityOps.length > 0 || after.syncError || after.settings.currency !== from) {
         await alertAsync(t("settings.currencyNotYetTitle"), t("settings.currencyUnsynced"));
         return;
       }
@@ -794,6 +831,20 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
             </View>
             <View style={styles.rowInfo}>
               <Text style={[styles.rowTitle, { color: Colors.expense }]}>{t("settings.signOut")}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity style={styles.row} onPress={handleDeleteAccount} activeOpacity={0.7} disabled={deletingAccount}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="trash-outline" size={18} color={Colors.expense} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowTitle, { color: Colors.expense }]}>
+                {deletingAccount ? t("settings.deletingAccount") : t("settings.deleteAccount")}
+              </Text>
+              <Text style={styles.rowSubtitle}>{t("settings.deleteAccountHint")}</Text>
             </View>
           </TouchableOpacity>
         </View>

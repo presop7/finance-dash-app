@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -10,12 +11,13 @@ from database import get_db
 from models.category import Category
 from models.fund_category import FundCategory
 from models.goal import Goal
-from models.transaction import Transaction
+from models.transaction import DeletedTransaction, Transaction
 from models.user import User
 from schemas.transaction import (
     TransactionBulkCreate,
     TransactionBulkFailure,
     TransactionBulkResult,
+    TransactionChanges,
     TransactionCreate,
     TransactionOut,
     TransactionUpdate,
@@ -162,6 +164,32 @@ def bulk_create_transactions(
     return TransactionBulkResult(
         created=to_insert, skipped_duplicates=skipped_duplicates, failed=failed
     )
+
+
+@router.get("/changes", response_model=TransactionChanges)
+def list_transaction_changes(
+    since: datetime,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Transactions added or edited after `since`, and ids deleted after it.
+    The app passes back `server_time` minus a safety margin next time: a
+    change committed while this read ran is then picked up on the next sync
+    (repeats are harmless)."""
+    server_time = db.execute(select(func.now())).scalar_one()
+    changed = (
+        db.query(Transaction)
+        .join(FundCategory, Transaction.fund_category_id == FundCategory.id)
+        .filter(FundCategory.user_id == current_user.id, Transaction.updated_at > since)
+        .all()
+    )
+    deleted = [
+        row.id
+        for row in db.query(DeletedTransaction.id).filter(
+            DeletedTransaction.user_id == current_user.id, DeletedTransaction.deleted_at > since
+        )
+    ]
+    return TransactionChanges(transactions=changed, deleted_ids=deleted, server_time=server_time)
 
 
 @router.get("", response_model=list[TransactionOut])

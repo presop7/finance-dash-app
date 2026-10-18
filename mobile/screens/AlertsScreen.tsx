@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ReorderItem, useReorder } from "../components/Reorderable";
+import FlashBorder from "../components/FlashBorder";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ColorsType } from "../constants/colors";
@@ -6,7 +8,7 @@ import { useThemeColors, getThemedStyles } from "../hooks/useThemeColors";
 import { GlobalStyles } from "../constants/styles";
 import { useScreenTop } from "../hooks/useScreenTop";
 import { useFinanceStore, AlertRule } from "../store/useFinanceStore";
-import { isTracker, trackerProgress } from "../utils/alertEvaluation";
+import { isTracker, ruleProgress, trackerProgress } from "../utils/alertEvaluation";
 import { isDemoId } from "../utils/demoTransactions";
 import { formatCurrency } from "../utils/currency";
 import { confirmAsync } from "../utils/confirm";
@@ -25,6 +27,7 @@ import { FONT } from "../constants/typography";
 export default function AlertsScreen() {
   const {
     alertRules,
+    setAlertRuleOrder,
     transactions,
     expenseCategories,
     incomeCategories,
@@ -123,19 +126,50 @@ export default function AlertsScreen() {
     deleteAlertRule(rule.id);
   };
 
+  // Both lists fold away from their heading (tap it); the count stays visible.
+  const [showReminders, setShowReminders] = useState(true);
+  const [showTrackers, setShowTrackers] = useState(true);
+  const sectionHeader = (label: string, count: number | string, open: boolean, toggle: () => void) => (
+    <TouchableOpacity style={[styles.sectionHeader, GlobalStyles.screenPadding]} onPress={toggle} activeOpacity={0.6}>
+      <Text style={styles.sectionLabel}>
+        {label} · {count}
+      </Text>
+      <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={Colors.textMuted} />
+    </TouchableOpacity>
+  );
+
+  // Tap or hold-and-release: edit. Hold and move: reorder within its list
+  // (same gestures as the funds and goals). No auto-scroll while dragging —
+  // ponytail: these lists are short; give useReorder the screen's scroll
+  // view (and items directly in its content) if they grow long.
+  const openRule = (rule: AlertRule) => {
+    setEditingRule(rule);
+    setShowModal(true);
+  };
+  const noScroll = useRef(null);
+  const reorderWithin = (list: AlertRule[]) => (ids: string[]) =>
+    setAlertRuleOrder([...ids, ...alertRules.filter((r) => !list.includes(r)).map((r) => r.id)]);
+  const reminderOrder = useReorder(reminders.map((r) => r.id), reorderWithin(reminders), true, { ref: noScroll, horizontal: false });
+  const trackerOrder = useReorder(trackers.map((r) => r.id), reorderWithin(trackers), true, { ref: noScroll, horizontal: false });
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
+
   const renderRule = (rule: AlertRule) => {
     const tracker = isTracker(rule);
     const share = tracker ? Math.min(1, progressOf(rule) / rule.amount) : 0;
+    // Amount reminders: where it stands now against its amount.
+    const standing = tracker ? null : ruleProgress(rule, realTransactions);
     return (
-      <TouchableOpacity
+      <ReorderItem
         key={rule.id}
+        id={rule.id}
+        reorder={tracker ? trackerOrder : reminderOrder}
         style={styles.ruleRow}
-        activeOpacity={0.7}
-        onPress={() => {
-          setEditingRule(rule);
-          setShowModal(true);
-        }}
+        fillColor={Colors.primary + "14"}
+        onPress={() => openRule(rule)}
+        onHold={() => openRule(rule)}
       >
+        {justAdded === rule.id && <FlashBorder radius={8} onDone={clearJustAdded} />}
         <View style={styles.ruleIcon}>
           <Ionicons name={RULE_ICONS[rule.type]} size={18} color={Colors.primary} />
         </View>
@@ -151,6 +185,27 @@ export default function AlertsScreen() {
                 ]}
               />
             </View>
+          ) : standing ? (
+            <>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.max(0, Math.min(1, standing.value / standing.limit)) * 100}%`,
+                      backgroundColor: standing.bad ? Colors.expense : standing.reached ? Colors.income : Colors.primary,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.ruleHint, standing.reached && { color: standing.bad ? Colors.expense : Colors.income, fontStyle: "normal", fontWeight: "600" }]}>
+                {t("reminders.standing", {
+                  value: formatCurrency(standing.value, settings.currency),
+                  limit: formatCurrency(standing.limit, settings.currency),
+                })}
+                {standing.reached ? ` · ${t("reminders.reachedNow")}` : ""}
+              </Text>
+            </>
           ) : (
             <Text style={styles.ruleHint}>{t("reminders.tapToEdit")}</Text>
           )}
@@ -164,7 +219,7 @@ export default function AlertsScreen() {
         <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(rule)} hitSlop={8}>
           <Ionicons name="trash-outline" size={16} color={Colors.expense} />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </ReorderItem>
     );
   };
 
@@ -208,10 +263,10 @@ export default function AlertsScreen() {
           )
         )}
 
-        <Text style={[styles.sectionLabel, GlobalStyles.screenPadding]}>{t("reminders.listLabel")}</Text>
+        {sectionHeader(t("reminders.listLabel"), reminders.length, showReminders, () => setShowReminders((v) => !v))}
 
         <View style={styles.list} ref={listRef} collapsable={false}>
-          {reminders.length === 0 ? (
+          {!showReminders ? null : reminders.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.empty")}</Text>
@@ -221,14 +276,18 @@ export default function AlertsScreen() {
           )}
         </View>
 
-        {/* Loans, lends and savings goals: progress toward an amount. */}
-        <Text style={[styles.sectionLabel, styles.sectionGap, GlobalStyles.screenPadding]}>
-          {t("reminders.trackersLabel")}
-        </Text>
+        {/* Loans and lends: progress toward an amount. */}
+        <View style={styles.sectionGap} />
+        {sectionHeader(
+          t("reminders.trackersLabel"),
+          trackers.length,
+          showTrackers,
+          () => setShowTrackers((v) => !v),
+        )}
         <View style={styles.list}>
-          {trackers.length === 0 ? (
+          {!showTrackers ? null : trackers.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="flag-outline" size={36} color={Colors.textMuted} />
+              <Ionicons name="card-outline" size={36} color={Colors.textMuted} />
               <Text style={styles.emptyText}>{t("reminders.trackersEmpty")}</Text>
             </View>
           ) : (
@@ -289,6 +348,7 @@ function createStyles(Colors: ColorsType) {
     backgroundColor: Colors.primary,
   },
   enableBtnText: { fontSize: FONT.small, fontWeight: "600", color: "#fff" },
+  sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
   sectionLabel: {
     fontSize: FONT.label,
     fontWeight: "500",

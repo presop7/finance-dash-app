@@ -32,6 +32,7 @@ import type { DeleteConflictDetail } from "../../services/financeApi";
 import { ReorderItem, useReorder } from "../../components/Reorderable";
 import { sortByOrder } from "../../utils/reorder";
 import ModalCloseButton from "../../components/ModalCloseButton";
+import FlashBorder from "../../components/FlashBorder";
 import CategoryEditModal from "./CategoryEditModal";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { useTranslation } from "react-i18next";
@@ -123,8 +124,8 @@ export default function CategoriesModal({
     const match = initialEditId ? list.find((i) => i.id === initialEditId) : undefined;
 
     // "Unassigned" can't be edited: holding it in the transaction form
-    // just opens the list.
-    setEditTarget(match && !match.locked ? match : null);
+    // just opens the list. "new" opens straight into creating one.
+    setEditTarget(initialEditId === "new" ? "new" : match && !match.locked ? match : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialType, initialEditId]);
 
@@ -304,6 +305,18 @@ export default function CategoriesModal({
     setEditTarget(item);
   };
 
+  // A new one goes first in the list (its saved order: the transaction
+  // form's chips and, for funds, the Dashboard cards too), the grid scrolls
+  // to the top, and it's outlined for a moment so it's easy to spot.
+  const justAdded = useFinanceStore((s) => s.justAddedId);
+  const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
+  const showNew = (id: string) => {
+    const order = [id, ...items.map((i) => i.id)];
+    if (activeType === "fund") setFundCardOrder(order);
+    else setCategoryOrder(order);
+    gridScrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   const handleFormSave = async (fields: {
     name: string;
     icon: keyof typeof Ionicons.glyphMap;
@@ -311,20 +324,22 @@ export default function CategoriesModal({
   }) => {
     const editingId = editTarget && editTarget !== "new" ? editTarget.id : null;
     try {
+      let createdId: string | null = null;
       if (activeType === "expense") {
         const payload = { label: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateExpenseCategory(editingId, payload);
-        else await addExpenseCategory(payload);
+        else createdId = await addExpenseCategory(payload);
       } else if (activeType === "income") {
         const payload = { label: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateIncomeCategory(editingId, payload);
-        else await addIncomeCategory(payload);
+        else createdId = await addIncomeCategory(payload);
       } else {
         const payload = { name: fields.name, icon: fields.icon, color: fields.color };
         if (editingId) await updateFundCategory(editingId, payload);
-        else await addFundCategory(payload);
+        else createdId = await addFundCategory(payload);
       }
       setEditTarget(null);
+      if (createdId) showNew(createdId);
     } catch (err) {
       await alertAsync(
         t("categories.saveFailed"),
@@ -342,44 +357,27 @@ export default function CategoriesModal({
     );
     if (!ok) return;
 
-    const deleteFn =
-      activeType === "expense"
-        ? deleteExpenseCategory
-        : activeType === "income"
-          ? deleteIncomeCategory
-          : deleteFundCategory;
     const id = editTarget.id;
-
-    try {
-      await deleteFn(id);
-      setEditTarget(null);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const detail = (err.body as { detail?: DeleteConflictDetail })?.detail;
-        const count = detail?.transaction_count ?? 0;
-        const confirmAgain = await confirmAsyncWithLabel(
-          t(`categories.delete_${kind}`),
-          t(`categories.inUse_${kind}`, { count }),
-          t("categories.deleteAnyway"),
-        );
-        if (!confirmAgain) return;
-        try {
-          await deleteFn(id, true);
-          setEditTarget(null);
-        } catch (err2) {
-          await alertAsync(
-            t("categories.deleteFailed"),
-            err2 instanceof Error ? err2.message : t("common.somethingWrong"),
-          );
-        }
-      } else {
-        await alertAsync(
-          t("categories.deleteFailed"),
-          err instanceof Error ? err.message : t("common.somethingWrong"),
-        );
-      }
+    // Used by transactions? Say how many move to "Unassigned" first.
+    const count = usedBy(id);
+    if (count > 0) {
+      const confirmAgain = await confirmAsyncWithLabel(
+        t(`categories.delete_${kind}`),
+        t(`categories.inUse_${kind}`, { count }),
+        t("categories.deleteAnyway"),
+      );
+      if (!confirmAgain) return;
     }
+    // Gone from the screen at once; the server catches up in the background.
+    await deleteFor(activeType)(id);
+    setEditTarget(null);
   };
+
+  // How many transactions use a category/fund (they move to "Unassigned").
+  const usedBy = (id: string) =>
+    transactions.filter((tx) => (activeType === "fund" ? tx.fundCategory === id : tx.category === id)).length;
+  const deleteFor = (type: CategoryTabType) =>
+    type === "expense" ? deleteExpenseCategory : type === "income" ? deleteIncomeCategory : deleteFundCategory;
 
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
@@ -393,54 +391,22 @@ export default function CategoriesModal({
     );
     if (!ok) return;
 
-    // Deliberately bypasses deleteExpenseCategory/deleteIncomeCategory/
-    // deleteFundCategory here — each of those does its own full categories+
-    // transactions refetch after every single delete, which for a batch of
-    // N means up to 3N sequential round trips (and the refetches get more
-    // redundant as more of the batch has already landed). Calling the API
-    // directly, in parallel, and refetching once at the very end turns that
-    // into N concurrent deletes plus a single refetch.
-    const apiDelete = activeType === "fund" ? financeApi.deleteFundCategory : financeApi.deleteCategory;
-
-    setBulkDeleting(true);
-    const conflicted: string[] = [];
-    const failed: string[] = [];
-    const results = await Promise.allSettled(ids.map((id) => apiDelete(id, false)));
-    results.forEach((result, i) => {
-      if (result.status !== "rejected") return;
-      const err = result.reason;
-      if (err instanceof ApiError && err.status === 409) conflicted.push(ids[i]);
-      else failed.push(ids[i]);
-    });
-
-    // Anything still in use gets one combined "delete anyway" prompt rather
-    // than one per item — the single-delete flow's 409 handling adapted to
-    // a batch instead of asked N times.
-    if (conflicted.length > 0) {
+    // Ones still used by transactions get one combined "delete anyway"
+    // prompt; declining it keeps those and deletes only the unused ones.
+    const inUse = ids.filter((id) => usedBy(id) > 0);
+    let toDelete = ids;
+    if (inUse.length > 0) {
       const confirmAgain = await confirmAsyncWithLabel(
         t("categories.someInUse"),
-        t("categories.someInUseInfo", { count: conflicted.length }),
+        t("categories.someInUseInfo", { count: inUse.length }),
         t("categories.deleteAnyway"),
       );
-      if (confirmAgain) {
-        const retryResults = await Promise.allSettled(conflicted.map((id) => apiDelete(id, true)));
-        retryResults.forEach((result, i) => {
-          if (result.status === "rejected") failed.push(conflicted[i]);
-        });
-      }
+      if (!confirmAgain) toDelete = ids.filter((id) => !inUse.includes(id));
     }
-
-    await useFinanceStore.getState().hydrate();
-
-    setBulkDeleting(false);
+    // Instant on screen, sent in the background (see the sync line).
+    const remove = deleteFor(activeType);
+    for (const id of toDelete) await remove(id);
     exitSelectMode();
-
-    if (failed.length > 0) {
-      await alertAsync(
-        t("settings.someDeletesFailed"),
-        t("categories.deletesFailed", { count: failed.length }),
-      );
-    }
   };
 
   const noun = activeType === "fund" ? "Fund" : "Category";
@@ -638,6 +604,7 @@ export default function CategoriesModal({
                     onHold={() => enterSelectMode(item.id)}
                   >
                     {iconAndLabel}
+                    {justAdded === item.id && <FlashBorder radius={20} onDone={clearJustAdded} />}
                     {!item.locked && (
                     <Pressable
                       style={styles.editIconBtn}
@@ -675,7 +642,10 @@ export default function CategoriesModal({
               sheet instead of scrolling away with the grid. */}
           {!selectMode && (
             <View style={styles.addNewFooter}>
-              <TouchableOpacity style={styles.addNewBtn} onPress={() => setEditTarget("new")}>
+              <TouchableOpacity
+                style={styles.addNewBtn}
+                onPress={() => setEditTarget("new")}
+              >
                 <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
                 <Text style={styles.addNewText}>{t(`categories.addNew_${noun === "Fund" ? "fund" : "category"}`)}</Text>
               </TouchableOpacity>

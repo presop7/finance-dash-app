@@ -89,6 +89,25 @@ export async function scheduleDailyReminder(
   });
 }
 
+// "Your month in numbers is ready": the 1st of every month at 10:00.
+const MONTHLY_REPORT_ID = "monthly-report";
+export async function scheduleMonthlyReport(title: string, body: string) {
+  const Notifications = getNotifications();
+  if (!Notifications || !(await hasNotificationPermission())) return;
+  await Notifications.cancelScheduledNotificationAsync(MONTHLY_REPORT_ID).catch(() => {});
+  await Notifications.scheduleNotificationAsync({
+    identifier: MONTHLY_REPORT_ID,
+    content: { title, body },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day: 1, hour: 10, minute: 0 },
+  });
+}
+
+export async function cancelMonthlyReport() {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+  await Notifications.cancelScheduledNotificationAsync(MONTHLY_REPORT_ID).catch(() => {});
+}
+
 export async function cancelDailyReminder(id: string) {
   const Notifications = getNotifications();
   if (!Notifications) return;

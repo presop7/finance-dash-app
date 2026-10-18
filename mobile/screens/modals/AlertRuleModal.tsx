@@ -267,24 +267,41 @@ export default function AlertRuleModal({
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             <View style={styles.body}>
               <Text style={styles.formLabel}>{t("reminders.type")}</Text>
-              <View style={styles.typeGrid}>
-                {shownTypes.map((ruleType) => (
-                  <TouchableOpacity
-                    key={ruleType}
-                    style={[styles.typeChip, type === ruleType && styles.typeChipActive]}
-                    onPress={() => setType(ruleType)}
-                  >
-                    <Ionicons
-                      name={RULE_ICONS[ruleType]}
-                      size={16}
-                      color={type === ruleType ? "#fff" : Colors.textMuted}
-                    />
-                    <Text style={[styles.typeChipText, type === ruleType && styles.typeChipTextActive]}>
-                      {t(`reminders.types.${ruleType}`)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {/* Reminders first; trackers (loans, lends) under their own heading. */}
+              {[
+                shownTypes.filter((r) => !(TRACKER_TYPES as readonly AlertRuleType[]).includes(r)),
+                shownTypes.filter((r) => (TRACKER_TYPES as readonly AlertRuleType[]).includes(r)),
+              ].map((group, gi) =>
+                group.length === 0 ? null : (
+                  <View key={gi}>
+                    <View style={[styles.groupDivider, gi === 0 && styles.groupDividerFirst]}>
+                      <View style={styles.groupLine} />
+                      <Text style={styles.groupLabel}>
+                        {gi === 0 ? t("reminders.listLabel") : t("reminders.trackersLabel")}
+                      </Text>
+                      <View style={styles.groupLine} />
+                    </View>
+                    <View style={styles.typeGrid}>
+                      {group.map((ruleType) => (
+                        <TouchableOpacity
+                          key={ruleType}
+                          style={[styles.typeChip, type === ruleType && styles.typeChipActive]}
+                          onPress={() => setType(ruleType)}
+                        >
+                          <Ionicons
+                            name={RULE_ICONS[ruleType]}
+                            size={16}
+                            color={type === ruleType ? "#fff" : Colors.textMuted}
+                          />
+                          <Text style={[styles.typeChipText, type === ruleType && styles.typeChipTextActive]}>
+                            {t(`reminders.types.${ruleType}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ),
+              )}
 
               {type === "dailyReminder" ? (
                 <>
@@ -542,6 +559,16 @@ function createStyles(Colors: ColorsType) {
     marginTop: 12,
   },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  groupDivider: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 14, marginBottom: 10 },
+  groupDividerFirst: { marginTop: 4 },
+  groupLine: { flex: 1, height: 0.5, backgroundColor: Colors.border },
+  groupLabel: {
+    fontSize: FONT.label,
+    fontWeight: "600",
+    color: Colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
   typeChip: {
     flexDirection: "row",
     alignItems: "center",

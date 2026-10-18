@@ -30,6 +30,7 @@ import AuthScreen from "./screens/AuthScreen";
 
 // Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
+import MonthlyReportModal from "./screens/modals/MonthlyReportModal";
 
 // Components
 import FABButton from "./components/FABButton";
@@ -314,9 +315,14 @@ function RootNavigator() {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="cloud-offline-outline" size={40} color={Colors.textMuted} />
-        <Text style={styles.errorText}>{syncError ?? t("app.loadFailed")}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={hydrate}>
+        {/* || not ??: a failed request can come back with an empty message. */}
+        <Text style={styles.errorText}>{syncError || t("app.loadFailed")}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => hydrate()}>
           <Text style={styles.retryBtnText}>{t("common.retry")}</Text>
+        </TouchableOpacity>
+        {/* Never a dead end: whatever failed, you can still sign out. */}
+        <TouchableOpacity onPress={() => useAuthStore.getState().signOut()} hitSlop={8}>
+          <Text style={styles.errorText}>{t("settings.signOut")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -332,8 +338,12 @@ function SyncIndicator() {
   const status = useFinanceStore((s) => s.status);
   const syncError = useFinanceStore((s) => s.syncError);
   const isConnected = useFinanceStore((s) => s.isConnected);
-  const pendingCount = useFinanceStore((s) => s.pendingOps.length);
-  const failedCount = useFinanceStore((s) => s.pendingOps.filter((o) => o.status === "failed").length);
+  // Transactions plus category/fund/goal changes still to send.
+  const pendingCount = useFinanceStore((s) => s.pendingOps.length + s.entityOps.length);
+  const failedCount = useFinanceStore(
+    (s) =>
+      s.pendingOps.filter((o) => o.status === "failed").length + s.entityOps.filter((o) => o.status === "failed").length,
+  );
   const Colors = useThemeColors();
   const styles = getThemedStyles(createStyles, Colors);
   const { t } = useTranslation();
@@ -662,6 +672,7 @@ function AppContent() {
         }
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
+      <MonthlyReportModal />
       <NamePromptModal />
       <CurrencyPromptModal />
 

@@ -12,6 +12,8 @@ import { useHighlightStore } from "../store/useHighlightStore";
 import { hasNotificationPermission, notificationsSupported } from "../utils/notifications";
 import { activeAlerts } from "../utils/alertEvaluation";
 import { isDemoId } from "../utils/demoTransactions";
+import { useReportStore } from "../store/useReportStore";
+import { currentLocale } from "../i18n";
 
 export type Tip = {
   id: string;
@@ -20,6 +22,9 @@ export type Tip = {
   text: string;
   action?: string;
   onAction?: () => void;
+  // Called when it's closed (✕ or its button): for tips that must not come
+  // back at the next opening, like the monthly report's.
+  onDismiss?: () => void;
 };
 
 // Hours without a newly added transaction before the reminder tip shows.
@@ -45,6 +50,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
   const notifications = useNotificationTip(onShowNotifications);
   const alerts = useAlertTips(notifications.delivered);
   const reminder = useReminderTip();
+  const report = useReportTip();
 
   const queue = [
     enabled.install ? install : null,
@@ -53,6 +59,7 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
       ? []
       : [
           enabled.notifications ? notifications.tip : null,
+          report,
           ...(enabled.alerts ? alerts : []),
           enabled.reminder ? reminder : null,
         ]),
@@ -60,7 +67,10 @@ export default function FloatingTips({ onShowNotifications }: { onShowNotificati
 
   const tip = queue[0];
   if (!tip) return null;
-  const close = () => setClosed((prev) => new Set(prev).add(tip.id));
+  const close = () => {
+    tip.onDismiss?.();
+    setClosed((prev) => new Set(prev).add(tip.id));
+  };
 
   return (
     <View pointerEvents="box-none" style={[styles.stack, { top: insets.top + 8 }]}>
@@ -182,6 +192,35 @@ function useReminderTip(): Tip | null {
     text: t("reminderTip.text", { count: REMINDER_AFTER_H }),
     action: t("reminderTip.add"),
     onAction: () => openAddTransaction?.(),
+  };
+}
+
+// Last month's report, on the first opening of a new month (if last month
+// had anything in it).
+function useReportTip(): Tip | null {
+  const { t } = useTranslation();
+  const signedIn = useAuthStore((s) => s.session !== null);
+  const tipMonth = useReportStore((s) => s.tipMonth);
+  const transactions = useFinanceStore((s) => s.transactions);
+  if (!signedIn) return null;
+  const today = new Date();
+  const monthKey = `${today.getFullYear()}-${today.getMonth()}`;
+  const last = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthHasData =
+    tipMonth !== monthKey &&
+    transactions.some((tx) => {
+      const d = new Date(tx.date);
+      return !isDemoId(tx.id) && d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth();
+    });
+  if (!lastMonthHasData) return null;
+  return {
+    id: `report-${monthKey}`,
+    icon: "document-text-outline",
+    title: t("report.tipTitle"),
+    text: t("report.tipText", { month: last.toLocaleDateString(currentLocale(), { month: "long" }) }),
+    action: t("report.open"),
+    onAction: () => useReportStore.getState().setOpen(true),
+    onDismiss: () => useReportStore.getState().setTipMonth(monthKey),
   };
 }
 

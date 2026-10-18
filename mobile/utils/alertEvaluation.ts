@@ -172,3 +172,41 @@ export function activeAlerts(
     return c?.active ? [{ id: rule.id, title: c.title, body: c.body }] : [];
   });
 }
+
+
+// Where an amount reminder stands now, for its progress bar: the value it
+// watches (balance, this month's spending/income, a category's month) against
+// its amount. `bad`: past the limit in the direction it warns about.
+export function ruleProgress(
+  rule: AlertRule,
+  transactions: Transaction[],
+  now: Date = new Date(),
+): { value: number; limit: number; reached: boolean; bad: boolean } | null {
+  const balance = () => transactions.reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
+  switch (rule.type) {
+    case "lowBalance": {
+      const value = balance();
+      return { value, limit: rule.amount, reached: value < rule.amount, bad: value < rule.amount };
+    }
+    case "balanceAbove": {
+      const value = balance();
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: false };
+    }
+    case "monthlyExpenseOver": {
+      const value = sumInMonth(transactions, now, "expense");
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: value > rule.amount };
+    }
+    case "monthlyIncomeOver": {
+      const value = sumInMonth(transactions, now, "income");
+      return { value, limit: rule.amount, reached: value > rule.amount, bad: false };
+    }
+    case "categoryAmount": {
+      if (!rule.categoryId || !rule.categoryType) return null;
+      const value = sumInMonth(transactions, now, rule.categoryType, rule.categoryId);
+      const reached = value > rule.amount;
+      return { value, limit: rule.amount, reached, bad: reached && rule.categoryType === "expense" };
+    }
+    default:
+      return null;
+  }
+}

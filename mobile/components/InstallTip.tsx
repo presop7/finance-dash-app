@@ -78,7 +78,7 @@ if (isBrowserTab) {
 // apps or once it's installed. A one-tap Install button wherever the browser
 // offers its prompt; otherwise that browser's own steps. iPhones/iPads never
 // offer it (Share → Add to Home Screen is the only way), and Firefox on a
-// computer can't install web apps, so it gets no tip.
+// computer can't install web apps, so it's pointed to Chrome or Edge.
 export function useInstallTip(): Tip | null {
   const { t } = useTranslation();
   const [canPrompt, setCanPrompt] = useState(installPrompt !== null);
@@ -117,7 +117,10 @@ export function useInstallTip(): Tip | null {
       },
     };
   }
-  if (isDesktopWeb && !canPrompt && isDesktopFirefox) return null;
+  // Firefox on a computer can't install web apps: suggest a browser that can.
+  if (isDesktopWeb && !canPrompt && isDesktopFirefox) {
+    return { id: "install", icon: "browsers-outline", title: t("installTip.firefoxTitle"), text: t("installTip.firefox") };
+  }
   const text = canPrompt
     ? isDesktopWeb
       ? t("installTip.oneTapDesktop")

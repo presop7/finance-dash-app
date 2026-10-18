@@ -88,3 +88,8 @@ function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {
   const base64 = (value + "=".repeat((4 - (value.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
+
+// The monthly report's reminder is a tip on the web (first opening of a
+// month); a server push for it can come later.
+export async function scheduleMonthlyReport(_title: string, _body: string) {}
+export async function cancelMonthlyReport() {}

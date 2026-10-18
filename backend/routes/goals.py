@@ -31,7 +31,13 @@ def create_goal(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    goal = Goal(**payload.model_dump(), user_id=current_user.id)
+    if payload.id is not None:
+        existing = db.get(Goal, payload.id)
+        if existing is not None:
+            if existing.user_id == current_user.id:
+                return existing  # a repeat of a create that already landed
+            raise HTTPException(status_code=409, detail="Id already in use")
+    goal = Goal(**payload.model_dump(exclude_none=True), user_id=current_user.id)
     db.add(goal)
     db.commit()
     db.refresh(goal)
@@ -74,6 +80,12 @@ def add_allocation(
     goal = _get_owned_goal(db, goal_id, current_user)
     if payload.amount == 0:
         raise HTTPException(status_code=422, detail="Amount can't be zero")
+    if payload.id is not None:
+        existing = db.get(GoalAllocation, payload.id)
+        if existing is not None:
+            if existing.goal_id == goal.id:
+                return existing  # a repeat of a create that already landed
+            raise HTTPException(status_code=409, detail="Id already in use")
     fund = (
         db.query(FundCategory)
         .filter(FundCategory.id == payload.fund_category_id, FundCategory.user_id == current_user.id)
@@ -81,7 +93,7 @@ def add_allocation(
     )
     if fund is None:
         raise HTTPException(status_code=404, detail="Fund category not found")
-    allocation = GoalAllocation(goal_id=goal.id, **payload.model_dump())
+    allocation = GoalAllocation(goal_id=goal.id, **payload.model_dump(exclude_none=True))
     db.add(allocation)
     db.commit()
     db.refresh(allocation)

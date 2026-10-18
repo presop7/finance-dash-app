@@ -60,7 +60,13 @@ def create_fund_category(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    fund_category = FundCategory(**payload.model_dump(), user_id=current_user.id)
+    if payload.id is not None:
+        existing = db.get(FundCategory, payload.id)
+        if existing is not None:
+            if existing.user_id == current_user.id:
+                return existing  # a repeat of a create that already landed
+            raise HTTPException(status_code=409, detail="Id already in use")
+    fund_category = FundCategory(**payload.model_dump(exclude_none=True), user_id=current_user.id)
     db.add(fund_category)
     db.commit()
     db.refresh(fund_category)

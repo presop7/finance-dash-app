@@ -6,6 +6,9 @@ from models.category import CategoryType
 
 
 class CategoryCreate(BaseModel):
+    # Optional id chosen by the app, so it can use the new item at once and
+    # sync it later; sending the same create again returns the existing one.
+    id: uuid.UUID | None = None
     name: str
     icon: str | None = None
     color: str | None = None

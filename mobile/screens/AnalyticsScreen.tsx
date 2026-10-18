@@ -69,6 +69,7 @@ import {
 } from "../utils/filterTransactions";
 import { getCurrency } from "../constants/currencies";
 import { confirmAsyncWithLabel, alertAsync, showDialog } from "../utils/confirm";
+import { useReportStore } from "../store/useReportStore";
 import { useTranslation } from "react-i18next";
 import { FONT } from "../constants/typography";
 
@@ -903,6 +904,17 @@ function AnalyticsScreen({
                 <Ionicons name="close-outline" size={16} color={Colors.textMuted} />
               </TouchableOpacity>
             )}
+            {/* "Report" next to the icon when there's room; with filters on, the
+                clear-filters ✕ takes that room and only the icon stays. */}
+            <TouchableOpacity
+              style={activeFilterCount > 0 ? styles.quickResetBtn : styles.filterBtn}
+              onPress={() => useReportStore.getState().setOpen(true)}
+              hitSlop={6}
+              accessibilityLabel={t("report.title")}
+            >
+              <Ionicons name="document-text-outline" size={activeFilterCount > 0 ? 16 : 14} color={Colors.primary} />
+              {activeFilterCount === 0 && <Text style={styles.filterBtnText}>{t("report.short")}</Text>}
+            </TouchableOpacity>
             <View ref={filtersTargetRef} collapsable={false}>
               <TouchableOpacity
                 style={styles.filterBtn}

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Shared secret the scheduler (Supabase pg_cron) sends to POST /push/send-due.
     CRON_SECRET: str = ""
 
+    # Lets DELETE /auth/me remove the sign-in itself, not just the data.
+    # Supabase → Project Settings → API → service_role (or a secret key).
+    # Server only, never in the app or in git.
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
