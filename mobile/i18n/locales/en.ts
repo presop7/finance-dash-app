@@ -280,6 +280,24 @@ const en = {
       text: "Celebrate the anniversary with Premium at a lower price.",
     },
   },
+  whatsNew: {
+    title: "What's new in Fi-Track {{version}}",
+    new: "New",
+    fixes: "Fixes and improvements",
+    gotIt: "Got it",
+    feedback: "Found something wrong? Tell us in Settings → Send Feedback.",
+    items: {
+      search: { title: "Search transactions", text: "Tap the magnifier next to \"All transactions\" in Analytics. Type any words, in any order." },
+      report: { title: "Monthly report", text: "Analytics → Report. Each month you also get a reminder when last month's report is ready." },
+      reorder: { title: "Reorder goals, reminders and trackers", text: "Hold one and drag it. Hold a goal and let go to edit it." },
+      progress: { title: "Reminder progress", text: "Each limit shows how far along you are, and when it's reached." },
+      newFirst: { title: "New items go first", text: "A new category, fund, goal or reminder appears at the top, outlined for a moment." },
+      instant: { title: "Instant changes", text: "Categories, funds, goals and set-asides save at once, even offline, and sync in the background." },
+      sync: { title: "Faster sync", text: "Only what changed is downloaded. Pull down to reload everything." },
+      online: { title: "Back online without the loading screen", text: "The app stays usable while it syncs." },
+      reminders: { title: "Tidier Reminders screen", text: "The lists fold away, and the editor separates reminders from trackers." },
+    },
+  },
   report: {
     short: "Report",
     title: "Your month in numbers",
@@ -404,6 +422,8 @@ const en = {
     replayTour: "Take the Tour Again",
     replayTourHint: "A quick walk through the whole app",
     version: "Version",
+    whatsNew: "What's new",
+    whatsNewHint: "This update's new features and fixes",
   },
   currencies: {
     EUR: "Euro",

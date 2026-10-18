@@ -282,6 +282,24 @@ const pt: Locale = {
       text: "Comemore o aniversário com o Premium por menos.",
     },
   },
+  whatsNew: {
+    title: "Novidades do Fi-Track {{version}}",
+    new: "Novo",
+    fixes: "Correções e melhorias",
+    gotIt: "Entendi",
+    feedback: "Encontrou um problema? Conte para nós em Ajustes → Enviar feedback.",
+    items: {
+      search: { title: "Pesquisar transações", text: "Toque na lupa ao lado de \"Todas as transações\" em Análises. Quaisquer palavras, em qualquer ordem." },
+      report: { title: "Relatório mensal", text: "Análises → Relatório. Todo mês você também recebe um aviso quando o relatório do mês passado fica pronto." },
+      reorder: { title: "Reordenar metas, lembretes e acompanhamentos", text: "Toque e segure, depois arraste. Segure uma meta e solte para editá-la." },
+      progress: { title: "Progresso dos lembretes", text: "Cada limite mostra quanto já foi usado e quando foi atingido." },
+      newFirst: { title: "Itens novos primeiro", text: "Uma nova categoria, conta, meta ou lembrete aparece no topo, destacado por um instante." },
+      instant: { title: "Mudanças instantâneas", text: "Categorias, contas, metas e valores reservados são salvos na hora, mesmo offline, e sincronizados em segundo plano." },
+      sync: { title: "Sincronização mais rápida", text: "Só o que mudou é baixado. Puxe para baixo para recarregar tudo." },
+      online: { title: "De volta online sem tela de carregamento", text: "O app continua utilizável enquanto sincroniza." },
+      reminders: { title: "Tela de lembretes mais organizada", text: "As listas se recolhem e o editor separa lembretes de acompanhamentos." },
+    },
+  },
   report: {
     short: "Relatório",
     title: "Seu mês em números",
@@ -406,6 +424,8 @@ const pt: Locale = {
     replayTour: "Refazer o tour",
     replayTourHint: "Um passeio rápido por todo o app",
     version: "Versão",
+    whatsNew: "Novidades",
+    whatsNewHint: "Novidades e correções desta versão",
   },
   currencies: {
     EUR: "Euro",

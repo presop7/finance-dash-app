@@ -31,6 +31,7 @@ import AuthScreen from "./screens/AuthScreen";
 // Transaction Modal
 import AddTransactionModal from "./screens/modals/AddTransactionModal";
 import MonthlyReportModal from "./screens/modals/MonthlyReportModal";
+import WhatsNewModal from "./screens/modals/WhatsNewModal";
 
 // Components
 import FABButton from "./components/FABButton";
@@ -673,6 +674,7 @@ function AppContent() {
       />
       <ImportCsvModal visible={showImportCsv} onClose={() => setShowImportCsv(false)} />
       <MonthlyReportModal />
+      <WhatsNewModal />
       <NamePromptModal />
       <CurrencyPromptModal />
 

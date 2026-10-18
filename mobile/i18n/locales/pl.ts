@@ -297,6 +297,24 @@ const pl: Locale = {
       text: "Świętuj rocznicę z Premium w niższej cenie.",
     },
   },
+  whatsNew: {
+    title: "Nowości w Fi-Track {{version}}",
+    new: "Nowe",
+    fixes: "Poprawki i ulepszenia",
+    gotIt: "Rozumiem",
+    feedback: "Coś nie działa? Napisz nam w Ustawienia → Wyślij opinię.",
+    items: {
+      search: { title: "Wyszukiwanie transakcji", text: "Stuknij lupę obok „Wszystkie transakcje” w Analizie. Dowolne słowa, w dowolnej kolejności." },
+      report: { title: "Raport miesięczny", text: "Analiza → Raport. Co miesiąc dostaniesz też przypomnienie, gdy raport za poprzedni miesiąc będzie gotowy." },
+      reorder: { title: "Kolejność celów, przypomnień i trackerów", text: "Przytrzymaj i przeciągnij. Przytrzymaj cel i puść, aby go edytować." },
+      progress: { title: "Postęp przypomnień", text: "Każdy limit pokazuje, ile już wykorzystano i kiedy został osiągnięty." },
+      newFirst: { title: "Nowe elementy na początku", text: "Nowa kategoria, konto, cel lub przypomnienie pojawia się na górze, na chwilę wyróżnione." },
+      instant: { title: "Natychmiastowe zmiany", text: "Kategorie, konta, cele i odłożone kwoty zapisują się od razu, także offline, i synchronizują w tle." },
+      sync: { title: "Szybsza synchronizacja", text: "Pobierane są tylko zmiany. Pociągnij w dół, aby wczytać wszystko od nowa." },
+      online: { title: "Powrót do sieci bez ekranu ładowania", text: "Aplikacja działa normalnie podczas synchronizacji." },
+      reminders: { title: "Bardziej uporządkowany ekran przypomnień", text: "Listy można zwijać, a edytor oddziela przypomnienia od trackerów." },
+    },
+  },
   report: {
     short: "Raport",
     title: "Twój miesiąc w liczbach",
@@ -429,6 +447,8 @@ const pl: Locale = {
     replayTour: "Powtórz przewodnik",
     replayTourHint: "Krótki spacer po całej aplikacji",
     version: "Wersja",
+    whatsNew: "Co nowego",
+    whatsNewHint: "Nowości i poprawki w tej wersji",
   },
   currencies: {
     EUR: "Euro",

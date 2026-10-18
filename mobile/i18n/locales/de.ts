@@ -281,6 +281,24 @@ const de: Locale = {
       text: "Feiere das Jubiläum mit Premium zum günstigeren Preis.",
     },
   },
+  whatsNew: {
+    title: "Neu in Fi-Track {{version}}",
+    new: "Neu",
+    fixes: "Korrekturen und Verbesserungen",
+    gotIt: "Verstanden",
+    feedback: "Etwas stimmt nicht? Sag es uns unter Einstellungen → Feedback senden.",
+    items: {
+      search: { title: "Buchungen durchsuchen", text: "Tippe in Analysen auf die Lupe neben „Alle Buchungen“. Beliebige Wörter, in beliebiger Reihenfolge." },
+      report: { title: "Monatsbericht", text: "Analysen → Bericht. Jeden Monat erinnert dich die App, wenn der Bericht für den Vormonat bereit ist." },
+      reorder: { title: "Ziele, Erinnerungen und Tracker sortieren", text: "Gedrückt halten und ziehen. Ein Ziel halten und loslassen, um es zu bearbeiten." },
+      progress: { title: "Fortschritt bei Erinnerungen", text: "Jedes Limit zeigt, wie weit du bist und wann es erreicht ist." },
+      newFirst: { title: "Neues steht oben", text: "Eine neue Kategorie, ein Konto, Ziel oder eine Erinnerung erscheint oben und wird kurz hervorgehoben." },
+      instant: { title: "Sofortige Änderungen", text: "Kategorien, Konten, Ziele und Rücklagen werden sofort gespeichert, auch offline, und im Hintergrund synchronisiert." },
+      sync: { title: "Schnellere Synchronisierung", text: "Nur Änderungen werden geladen. Nach unten ziehen lädt alles neu." },
+      online: { title: "Wieder online ohne Ladebildschirm", text: "Die App bleibt benutzbar, während sie synchronisiert." },
+      reminders: { title: "Aufgeräumter Erinnerungen-Bildschirm", text: "Die Listen lassen sich einklappen, und der Editor trennt Erinnerungen von Trackern." },
+    },
+  },
   report: {
     short: "Bericht",
     title: "Dein Monat in Zahlen",
@@ -405,6 +423,8 @@ const de: Locale = {
     replayTour: "Tour wiederholen",
     replayTourHint: "Ein kurzer Rundgang durch die ganze App",
     version: "Version",
+    whatsNew: "Was ist neu",
+    whatsNewHint: "Neue Funktionen und Korrekturen dieses Updates",
   },
   currencies: {
     EUR: "Euro",
