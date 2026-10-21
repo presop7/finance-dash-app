@@ -489,6 +489,7 @@ const pl: Locale = {
   dashboard: {
     addFirst: "Dotknij przycisku +, by dodać pierwszą",
     totalBalance: "Saldo całkowite",
+    freeToSpend: "{{amount}} do wydania",
     savings: "Oszczędności",
     insights: "Wskazówki",
     topExpenses: "Największe wydatki",

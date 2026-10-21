@@ -465,6 +465,7 @@ const es: Locale = {
   dashboard: {
     addFirst: "Toca el botón + para añadir el primero",
     totalBalance: "Saldo total",
+    freeToSpend: "{{amount}} disponibles para gastar",
     savings: "Ahorro",
     insights: "Consejos",
     topExpenses: "Mayores gastos",

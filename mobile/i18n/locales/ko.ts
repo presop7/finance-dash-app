@@ -466,6 +466,7 @@ const ko: Locale = {
   dashboard: {
     addFirst: "+ 버튼을 탭해 첫 거래를 추가하세요",
     totalBalance: "총 잔액",
+    freeToSpend: "자유롭게 쓸 수 있는 금액 {{amount}}",
     savings: "저축",
     insights: "팁",
     topExpenses: "큰 지출",
