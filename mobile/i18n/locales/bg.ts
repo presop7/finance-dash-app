@@ -465,6 +465,7 @@ const bg: Translations = {
   dashboard: {
     addFirst: "Докоснете бутона +, за да добавите първата",
     totalBalance: "Общ баланс",
+    freeToSpend: "{{amount}} свободни за харчене",
     savings: "Спестявания",
     insights: "Съвети",
     topExpenses: "Най-големи разходи",

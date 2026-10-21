@@ -13,6 +13,8 @@ import {
   percentageChange,
 } from "../utils/dateRanges";
 import { formatCurrency } from "../utils/currency";
+import { reservedByFund } from "../utils/goals";
+import { isDemoId } from "../utils/demoTransactions";
 import HoldPressable from "./HoldPressable";
 import type { AnalyticsInitialFilter } from "../screens/AnalyticsScreen";
 import { useTranslation } from "react-i18next";
@@ -43,6 +45,14 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
       0,
     );
   }, [transactions]);
+
+  // Money set aside for goals (demo rows never count, as in FundsCard).
+  const goals = useFinanceStore((s) => s.goals);
+  const reserved = useMemo(() => {
+    let sum = 0;
+    reservedByFund(goals, transactions.filter((tx) => !isDemoId(tx.id))).forEach((v) => (sum += v));
+    return sum;
+  }, [goals, transactions]);
 
   const stats = useMemo(() => {
     const { start, end, prevStart, prevEnd } = getRangeForPreset(preset);
@@ -135,6 +145,13 @@ export default function BalanceCard({ transactions, onNavigateToAnalytics }: Bal
       <Animated.Text style={[styles.balanceAmount, { opacity: fadeAnim }]}>
         {displayedMasked ? "•••••" : formatCurrency(balance, settings.currency)}
       </Animated.Text>
+      {reserved > 0 && (
+        <Animated.Text style={[styles.freeToSpend, { opacity: fadeAnim }]}>
+          {displayedMasked
+            ? "•••"
+            : `${t("dashboard.freeToSpend", { amount: formatCurrency(balance - reserved, settings.currency) })} · ${t("goals.reservedInFund", { amount: formatCurrency(reserved, settings.currency) })}`}
+        </Animated.Text>
+      )}
 
       {/* Divider */}
       <View style={styles.divider} />
@@ -268,6 +285,12 @@ function createStyles(Colors: ColorsType) {
     fontSize: FONT.hero,
     fontWeight: "600",
     color: "#FFFFFF",
+    marginBottom: 16,
+  },
+  freeToSpend: {
+    fontSize: FONT.small,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: -12,
     marginBottom: 16,
   },
   divider: {

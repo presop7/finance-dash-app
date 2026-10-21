@@ -466,6 +466,7 @@ const zh: Locale = {
   dashboard: {
     addFirst: "点按 + 按钮添加第一笔",
     totalBalance: "总余额",
+    freeToSpend: "可自由支配 {{amount}}",
     savings: "结余",
     insights: "小贴士",
     topExpenses: "最大支出",

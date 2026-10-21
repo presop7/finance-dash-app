@@ -477,6 +477,7 @@ const ro: Locale = {
   dashboard: {
     addFirst: "Atinge butonul + ca să o adaugi pe prima",
     totalBalance: "Sold total",
+    freeToSpend: "{{amount}} disponibili de cheltuit",
     savings: "Economii",
     insights: "Sfaturi",
     topExpenses: "Cele mai mari cheltuieli",

@@ -464,6 +464,7 @@ const en = {
   dashboard: {
     addFirst: "Tap the + button to add your first one",
     totalBalance: "Total Balance",
+    freeToSpend: "{{amount}} free to spend",
     savings: "Savings",
     insights: "Insights",
     topExpenses: "Top Expenses",

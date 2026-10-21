@@ -466,6 +466,7 @@ const ja: Locale = {
   dashboard: {
     addFirst: "+ ボタンをタップして最初の取引を追加",
     totalBalance: "合計残高",
+    freeToSpend: "自由に使える額 {{amount}}",
     savings: "貯蓄",
     insights: "ヒント",
     topExpenses: "大きな支出",
