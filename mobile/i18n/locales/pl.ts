@@ -304,6 +304,7 @@ const pl: Locale = {
     gotIt: "Rozumiem",
     feedback: "Coś nie działa? Napisz nam w Ustawienia → Wyślij opinię.",
     items: {
+      freeToSpend: { title: "Do wydania", text: "Saldo na Pulpicie pokazuje, ile naprawdę możesz wydać po odliczeniu pieniędzy odłożonych na cele." },
       search: { title: "Wyszukiwanie transakcji", text: "Stuknij lupę obok „Wszystkie transakcje” w Analizie. Dowolne słowa, w dowolnej kolejności." },
       report: { title: "Raport miesięczny", text: "Analiza → Raport. Co miesiąc dostaniesz też przypomnienie, gdy raport za poprzedni miesiąc będzie gotowy." },
       reorder: { title: "Kolejność celów, przypomnień i trackerów", text: "Przytrzymaj i przeciągnij. Przytrzymaj cel i puść, aby go edytować." },

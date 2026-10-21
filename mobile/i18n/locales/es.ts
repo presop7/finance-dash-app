@@ -288,6 +288,7 @@ const es: Locale = {
     gotIt: "Entendido",
     feedback: "¿Algo no funciona? Cuéntanoslo en Ajustes → Enviar comentarios.",
     items: {
+      freeToSpend: { title: "Disponible para gastar", text: "El saldo de Inicio muestra cuánto puedes gastar de verdad, tras el dinero apartado para metas." },
       search: { title: "Buscar transacciones", text: "Toca la lupa junto a «Todas las transacciones» en Análisis. Escribe cualquier palabra, en cualquier orden." },
       report: { title: "Informe mensual", text: "Análisis → Informe. Cada mes también recibes un aviso cuando el informe del mes anterior está listo." },
       reorder: { title: "Reordenar metas, recordatorios y seguimientos", text: "Mantén pulsado y arrastra. Mantén pulsada una meta y suelta para editarla." },

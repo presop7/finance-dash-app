@@ -289,6 +289,7 @@ const zh: Locale = {
     gotIt: "知道了",
     feedback: "发现问题？请在 设置 → 发送反馈 中告诉我们。",
     items: {
+      freeToSpend: { title: "可自由支配", text: "概览中的余额会显示扣除为目标预留的钱后，你真正可以花的金额。" },
       search: { title: "搜索交易", text: "在分析中点击“所有交易”旁的放大镜。输入任意词语，顺序不限。" },
       report: { title: "月度报告", text: "分析 → 报告。每月上月报告准备好时也会提醒你。" },
       reorder: { title: "调整目标、提醒和追踪的顺序", text: "长按并拖动。长按目标后松开即可编辑。" },

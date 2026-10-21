@@ -7,7 +7,7 @@ import ModalCloseButton from "../../components/ModalCloseButton";
 import { ColorsType } from "../../constants/colors";
 import { CONTENT_MAX_WIDTH } from "../../constants/layout";
 import { FONT } from "../../constants/typography";
-import { WHATS_NEW, WHATS_NEW_VERSION } from "../../constants/whatsNew";
+import { WHATS_NEW, WHATS_NEW_SEEN_KEY, WHATS_NEW_VERSION } from "../../constants/whatsNew";
 import { useThemeColors, getThemedStyles } from "../../hooks/useThemeColors";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { useTutorialStore } from "../../store/useTutorialStore";
@@ -28,8 +28,8 @@ export default function WhatsNewModal({ blocked = false }: { blocked?: boolean }
   const touring = useTutorialStore((s) => s.active);
 
   useEffect(() => {
-    if (!hydrated || status !== "loaded" || touring || blocked || seenVersion === WHATS_NEW_VERSION) return;
-    markSeen(WHATS_NEW_VERSION);
+    if (!hydrated || status !== "loaded" || touring || blocked || seenVersion === WHATS_NEW_SEEN_KEY) return;
+    markSeen(WHATS_NEW_SEEN_KEY);
     const hasData = useFinanceStore.getState().transactions.some((tx) => !isDemoId(tx.id));
     if (hasData) setOpen(true);
   }, [hydrated, status, touring, blocked, seenVersion, markSeen, setOpen]);

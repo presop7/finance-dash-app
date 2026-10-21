@@ -287,6 +287,7 @@ const en = {
     gotIt: "Got it",
     feedback: "Found something wrong? Tell us in Settings → Send Feedback.",
     items: {
+      freeToSpend: { title: "Free to spend", text: "The Dashboard balance shows how much is really yours to spend, after the money set aside for goals." },
       search: { title: "Search transactions", text: "Tap the magnifier next to \"All transactions\" in Analytics. Type any words, in any order." },
       report: { title: "Monthly report", text: "Analytics → Report. Each month you also get a reminder when last month's report is ready." },
       reorder: { title: "Reorder goals, reminders and trackers", text: "Hold one and drag it. Hold a goal and let go to edit it." },

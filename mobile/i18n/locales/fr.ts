@@ -288,6 +288,7 @@ const fr: Locale = {
     gotIt: "Compris",
     feedback: "Un problème ? Dites-le-nous dans Réglages → Envoyer un avis.",
     items: {
+      freeToSpend: { title: "Disponible à dépenser", text: "Le solde de l'Accueil montre ce que vous pouvez vraiment dépenser, après l'argent mis de côté pour les objectifs." },
       search: { title: "Rechercher des transactions", text: "Touchez la loupe à côté de « Toutes les transactions » dans Analyses. N'importe quels mots, dans n'importe quel ordre." },
       report: { title: "Rapport mensuel", text: "Analyses → Rapport. Chaque mois, un rappel vous prévient quand le rapport du mois dernier est prêt." },
       reorder: { title: "Réorganiser objectifs, rappels et suivis", text: "Maintenez puis faites glisser. Maintenez un objectif et relâchez pour le modifier." },
