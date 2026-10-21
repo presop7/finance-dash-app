@@ -296,6 +296,7 @@ const ro: Locale = {
     gotIt: "Am înțeles",
     feedback: "Ai găsit o problemă? Spune-ne în Setări → Trimite feedback.",
     items: {
+      freeToSpend: { title: "Disponibil de cheltuit", text: "Soldul din Acasă arată cât poți cheltui cu adevărat, după banii puși deoparte pentru obiective." },
       search: { title: "Caută tranzacții", text: "Atinge lupa de lângă „Toate tranzacțiile” în Analize. Orice cuvinte, în orice ordine." },
       report: { title: "Raport lunar", text: "Analize → Raport. În fiecare lună primești și un memento când raportul lunii trecute este gata." },
       reorder: { title: "Reordonează obiective, mementouri și urmăritoare", text: "Ține apăsat și trage. Ține apăsat un obiectiv și eliberează ca să-l editezi." },

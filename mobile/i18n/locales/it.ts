@@ -288,6 +288,7 @@ const it: Locale = {
     gotIt: "Ho capito",
     feedback: "Qualcosa non va? Diccelo in Impostazioni → Invia feedback.",
     items: {
+      freeToSpend: { title: "Disponibile da spendere", text: "Il saldo nella Home mostra quanto puoi davvero spendere, dopo i soldi messi da parte per gli obiettivi." },
       search: { title: "Cerca transazioni", text: "Tocca la lente accanto a «Tutte le transazioni» in Analisi. Qualsiasi parola, in qualsiasi ordine." },
       report: { title: "Report mensile", text: "Analisi → Report. Ogni mese ricevi anche un promemoria quando il report del mese scorso è pronto." },
       reorder: { title: "Riordina obiettivi, promemoria e tracker", text: "Tieni premuto e trascina. Tieni premuto un obiettivo e rilascia per modificarlo." },

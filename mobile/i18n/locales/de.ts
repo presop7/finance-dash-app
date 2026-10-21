@@ -288,6 +288,7 @@ const de: Locale = {
     gotIt: "Verstanden",
     feedback: "Etwas stimmt nicht? Sag es uns unter Einstellungen → Feedback senden.",
     items: {
+      freeToSpend: { title: "Frei verfügbar", text: "Der Kontostand in der Übersicht zeigt, wie viel du nach dem für Ziele zurückgelegten Geld wirklich ausgeben kannst." },
       search: { title: "Buchungen durchsuchen", text: "Tippe in Analysen auf die Lupe neben „Alle Buchungen“. Beliebige Wörter, in beliebiger Reihenfolge." },
       report: { title: "Monatsbericht", text: "Analysen → Bericht. Jeden Monat erinnert dich die App, wenn der Bericht für den Vormonat bereit ist." },
       reorder: { title: "Ziele, Erinnerungen und Tracker sortieren", text: "Gedrückt halten und ziehen. Ein Ziel halten und loslassen, um es zu bearbeiten." },
