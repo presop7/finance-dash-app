@@ -318,6 +318,9 @@ const pl: Locale = {
       sync: { title: "Szybsza synchronizacja", text: "Pobierane są tylko zmiany. Pociągnij w dół, aby wczytać wszystko od nowa." },
       online: { title: "Powrót do sieci bez ekranu ładowania", text: "Aplikacja działa normalnie podczas synchronizacji." },
       reminders: { title: "Bardziej uporządkowany ekran przypomnień", text: "Listy można zwijać, a edytor oddziela przypomnienia od trackerów." },
+      required: { title: "Koniec z niepełnymi transakcjami", text: "Kategoria i konto są zawsze wybrane. Brakujące pola są oznaczone jako wymagane, a przed zapisem z „Nieprzypisane” pojawia się pytanie." },
+      lastUsed: { title: "Ostatnio używane najpierw", text: "Ostatnio używane kategorie i konta są na początku. Wyłączysz to w Ustawienia → Ustawienia kategorii. Menedżer kategorii sortuje wg ostatniego użycia, A–Z, najczęściej używanych lub własnej kolejności." },
+      stuckSync: { title: "Napraw to, co się nie synchronizuje", text: "Stuknij pasek „nie zsynchronizowano”, aby zobaczyć, która transakcja utknęła i dlaczego, i od razu ją popraw." },
     },
   },
   report: {

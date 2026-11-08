@@ -301,6 +301,9 @@ const en = {
       sync: { title: "Faster sync", text: "Only what changed is downloaded. Pull down to reload everything." },
       online: { title: "Back online without the loading screen", text: "The app stays usable while it syncs." },
       reminders: { title: "Tidier Reminders screen", text: "The lists fold away, and the editor separates reminders from trackers." },
+      required: { title: "No more incomplete transactions", text: "Category and fund are always picked. Anything missing is marked Required, and you're asked before saving with \"Unassigned\"." },
+      lastUsed: { title: "Last used first", text: "The categories and funds you used last come first. Turn it off in Settings → Category settings. The category manager can sort by last used, A–Z, most used or your own order." },
+      stuckSync: { title: "Fix what can't sync", text: "Tap the \"couldn't sync\" bar to see which transaction is stuck and why, and fix it right there." },
     },
   },
   report: {

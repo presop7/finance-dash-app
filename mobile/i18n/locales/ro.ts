@@ -310,6 +310,9 @@ const ro: Locale = {
       sync: { title: "Sincronizare mai rapidă", text: "Se descarcă doar ce s-a schimbat. Trage în jos ca să reîncarci tot." },
       online: { title: "Din nou online fără ecran de încărcare", text: "Aplicația rămâne utilizabilă cât timp se sincronizează." },
       reminders: { title: "Ecran de mementouri mai ordonat", text: "Listele se pot restrânge, iar editorul separă mementourile de urmăritoare." },
+      required: { title: "Gata cu tranzacțiile incomplete", text: "Categoria și contul sunt mereu alese. Ce lipsește e marcat ca obligatoriu, iar înainte de a salva cu „Nealocat” ești întrebat." },
+      lastUsed: { title: "Cele folosite ultima dată primele", text: "Categoriile și conturile folosite ultima dată apar primele. Se dezactivează din Setări → Setări categorii. Managerul de categorii sortează după ultima utilizare, A–Z, cele mai folosite sau ordinea ta." },
+      stuckSync: { title: "Repară ce nu se sincronizează", text: "Atinge bara „nu s-au sincronizat” ca să vezi ce tranzacție e blocată și de ce, și repar-o pe loc." },
     },
   },
   report: {

@@ -302,6 +302,9 @@ const fr: Locale = {
       sync: { title: "Synchronisation plus rapide", text: "Seuls les changements sont téléchargés. Tirez vers le bas pour tout recharger." },
       online: { title: "De retour en ligne sans écran de chargement", text: "L'app reste utilisable pendant la synchronisation." },
       reminders: { title: "Écran des rappels plus clair", text: "Les listes se replient et l'éditeur sépare rappels et suivis." },
+      required: { title: "Fini les transactions incomplètes", text: "La catégorie et le compte sont toujours choisis. Ce qui manque est marqué Obligatoire, et une confirmation est demandée avant d'enregistrer avec « Non attribué »." },
+      lastUsed: { title: "Les derniers utilisés en premier", text: "Les catégories et comptes utilisés en dernier apparaissent en premier. Désactivable dans Réglages → Réglages des catégories. Le gestionnaire trie par dernière utilisation, A–Z, plus utilisées ou votre ordre." },
+      stuckSync: { title: "Corriger ce qui ne se synchronise pas", text: "Touchez la barre « non synchronisé » pour voir quelle transaction est bloquée et pourquoi, et corrigez-la directement." },
     },
   },
   report: {
