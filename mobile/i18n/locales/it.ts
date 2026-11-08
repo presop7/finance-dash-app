@@ -302,6 +302,9 @@ const it: Locale = {
       sync: { title: "Sincronizzazione più veloce", text: "Si scarica solo ciò che è cambiato. Trascina in basso per ricaricare tutto." },
       online: { title: "Di nuovo online senza schermata di caricamento", text: "L'app resta utilizzabile durante la sincronizzazione." },
       reminders: { title: "Schermata promemoria più ordinata", text: "Gli elenchi si comprimono e l'editor separa promemoria e tracker." },
+      required: { title: "Niente più transazioni incomplete", text: "Categoria e conto sono sempre scelti. Ciò che manca è segnato come obbligatorio e viene chiesta conferma prima di salvare con «Non assegnato»." },
+      lastUsed: { title: "Prima gli ultimi usati", text: "Le categorie e i conti usati per ultimi compaiono per primi. Si disattiva in Impostazioni → Impostazioni categorie. La gestione categorie ordina per ultimo uso, A–Z, più usate o ordine personale." },
+      stuckSync: { title: "Correggi ciò che non si sincronizza", text: "Tocca la barra «non sincronizzate» per vedere quale transazione è bloccata e perché, e correggila subito." },
     },
   },
   report: {

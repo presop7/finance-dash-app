@@ -302,6 +302,9 @@ const de: Locale = {
       sync: { title: "Schnellere Synchronisierung", text: "Nur Änderungen werden geladen. Nach unten ziehen lädt alles neu." },
       online: { title: "Wieder online ohne Ladebildschirm", text: "Die App bleibt benutzbar, während sie synchronisiert." },
       reminders: { title: "Aufgeräumter Erinnerungen-Bildschirm", text: "Die Listen lassen sich einklappen, und der Editor trennt Erinnerungen von Trackern." },
+      required: { title: "Keine unvollständigen Buchungen mehr", text: "Kategorie und Konto sind immer gewählt. Fehlendes wird als Pflichtfeld markiert, und vor dem Speichern mit „Ohne Kategorie“ wird nachgefragt." },
+      lastUsed: { title: "Zuletzt genutzte zuerst", text: "Zuletzt genutzte Kategorien und Konten stehen vorne. Abschaltbar unter Einstellungen → Kategorie-Einstellungen. Die Kategorieverwaltung sortiert nach letzter Nutzung, A–Z, Häufigkeit oder eigener Reihenfolge." },
+      stuckSync: { title: "Nicht Synchronisiertes beheben", text: "Tippe auf die Leiste „nicht synchronisiert“, um zu sehen, welche Buchung hängt und warum – und behebe es direkt." },
     },
   },
   report: {

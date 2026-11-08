@@ -5,11 +5,11 @@ import type { Ionicons } from "@expo/vector-icons";
 // version (and from Settings → About). For the next update: change the
 // version (same as app.config.js), the items, and their texts under
 // whatsNew.items in every language.
-export const WHATS_NEW_VERSION = "1.1.1";
+export const WHATS_NEW_VERSION = "1.1.2";
 // What "seen" is recorded as. Bump the suffix (e.g. "-3") to show the sheet
 // again to devices that already saw it, when items are added without a new
 // version; on a new version make it just the version.
-export const WHATS_NEW_SEEN_KEY = WHATS_NEW_VERSION + "-2";
+export const WHATS_NEW_SEEN_KEY = WHATS_NEW_VERSION;
 
 type Item = { key: string; icon: ComponentProps<typeof Ionicons>["name"] };
 
@@ -27,5 +27,8 @@ export const WHATS_NEW: { new: Item[]; fixes: Item[] } = {
     { key: "sync", icon: "sync-outline" },
     { key: "online", icon: "wifi-outline" },
     { key: "reminders", icon: "notifications-outline" },
+    { key: "required", icon: "alert-circle-outline" },
+    { key: "lastUsed", icon: "time-outline" },
+    { key: "stuckSync", icon: "cloud-upload-outline" },
   ],
 };

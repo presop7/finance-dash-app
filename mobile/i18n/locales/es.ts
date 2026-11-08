@@ -302,6 +302,9 @@ const es: Locale = {
       sync: { title: "Sincronización más rápida", text: "Solo se descarga lo que cambió. Desliza hacia abajo para recargarlo todo." },
       online: { title: "De nuevo en línea sin pantalla de carga", text: "La app sigue usable mientras se sincroniza." },
       reminders: { title: "Pantalla de recordatorios más ordenada", text: "Las listas se pliegan y el editor separa recordatorios de seguimientos." },
+      required: { title: "Se acabaron las transacciones incompletas", text: "La categoría y la cuenta siempre están elegidas. Lo que falta se marca como obligatorio y se pide confirmación antes de guardar con «Sin asignar»." },
+      lastUsed: { title: "Lo último usado primero", text: "Las categorías y cuentas que usaste por última vez aparecen primero. Desactívalo en Ajustes → Ajustes de categorías. El gestor de categorías ordena por último uso, A–Z, más usadas o tu propio orden." },
+      stuckSync: { title: "Arregla lo que no se sincroniza", text: "Toca la barra «no se sincronizaron» para ver qué transacción está atascada y por qué, y corrígela ahí mismo." },
     },
   },
   report: {
