@@ -56,7 +56,7 @@ import type { TutorialEvent } from "./constants/tutorialSteps";
 import { accountName } from "./utils/greeting";
 import { DEV_TOOLS } from "./constants/devTools";
 import { useTranslation } from "react-i18next";
-import { applyLanguage, languageReady } from "./i18n";
+import i18n, { applyLanguage, languageReady } from "./i18n";
 import { wakeBackend } from "./services/api";
 import { CONTENT_MAX_WIDTH } from "./constants/layout";
 import { isDesktopWeb } from "./utils/webPlatform";
@@ -69,7 +69,8 @@ import { useAlertsMonitor } from "./hooks/useAlertsMonitor";
 import { useDailyReminderSync } from "./hooks/useDailyReminderSync";
 
 // Explanation dialog for the offline / failed-sync status bar
-import { alertAsync } from "./utils/confirm";
+import { alertAsync, confirmAsyncWithLabel } from "./utils/confirm";
+import { txProblems } from "./utils/categorySort";
 import WebDialogHost from "./components/WebDialogHost";
 import BackExitHint from "./components/BackExitHint";
 import { installWebBack, syncWebTab, useAndroidDoubleBackExit } from "./hooks/useBackNavigation";
@@ -332,6 +333,39 @@ function RootNavigator() {
   return <AppContent />;
 }
 
+// Opens a transaction in the edit form from outside AppContent (the sync
+// bar lives in the tab bar); AppContent sets it.
+let openTransactionEditor: (transaction: Transaction) => void = () => {};
+
+// Tapping the "couldn't sync" bar: names the first stuck transaction and why
+// — missing/deleted data first (the user can fix that), else the server's
+// own reason — and offers to open it for fixing; saving it re-sends it.
+// Nothing transaction-specific to say: the general explanation.
+async function explainFailedSync(failedCount: number) {
+  const t = i18n.t.bind(i18n);
+  const s = useFinanceStore.getState();
+  const stuck = s.pendingOps.flatMap((op) => {
+    if (op.status !== "failed" || op.kind === "delete") return [];
+    const id = op.kind === "create" ? op.clientGeneratedId : op.transactionId;
+    const tx = s.transactions.find((x) => x.id === id);
+    if (!tx) return [];
+    const categories = op.payload.type === "income" ? s.incomeCategories : s.expenseCategories;
+    const problems = txProblems(op.payload, { categories, funds: s.fundCategories, goals: s.goals });
+    return [{ tx, problems, error: op.error }];
+  });
+  const item = stuck.find((x) => x.problems.length > 0) ?? stuck.find((x) => x.error);
+  if (!item) {
+    await alertAsync(t("app.failedTitle"), t("app.failedInfo", { count: failedCount }));
+    return;
+  }
+  const title = item.tx.title.trim() || t("transaction.thisOne");
+  const message = item.problems.length
+    ? t("app.cantSyncInfo", { title, problems: item.problems.map((p) => t(`txProblem.${p}`)).join(", ") })
+    : t("app.cantSyncServer", { title, error: item.error });
+  const fix = await confirmAsyncWithLabel(t("app.cantSyncTitle"), message, t("app.fix"), { destructive: false });
+  if (fix) openTransactionEditor(item.tx);
+}
+
 // Status line above the tab bar. Offline and failed states get a colour so they
 // actually get noticed, and are tappable for an explanation of what's at risk;
 // routine background syncing stays quiet since it needs no action.
@@ -379,9 +413,7 @@ function SyncIndicator() {
       <TouchableOpacity
         style={[styles.syncBar, styles.syncBarError]}
         activeOpacity={0.7}
-        onPress={() =>
-          alertAsync(t("app.failedTitle"), t("app.failedInfo", { count: failedCount }))
-        }
+        onPress={() => explainFailedSync(failedCount)}
       >
         <Ionicons name="alert-circle-outline" size={13} color={Colors.errorText} />
         <Text style={[styles.syncText, styles.syncTextError]}>
@@ -558,6 +590,7 @@ function AppContent() {
     setEditTransaction(transaction);
     setShowTransaction(true);
   }, []);
+  openTransactionEditor = handleEditTransaction;
 
   // Same reasoning as handleEditTransaction, for the rest of the props the
   // tab screens take: opening any modal from a tab changes AppContent's own

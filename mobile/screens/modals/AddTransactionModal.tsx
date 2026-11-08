@@ -24,7 +24,7 @@ import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
 import DateTimeFields from "../../components/DateTimeFields";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
-import { confirmAsync, alertAsync } from "../../utils/confirm";
+import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../../utils/confirm";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import TutorialOverlay from "../../components/TutorialOverlay";
 import {
@@ -39,6 +39,8 @@ import FieldIcon from "../../components/FieldIcon";
 import { FONT } from "../../constants/typography";
 import { isDemoId } from "../../utils/demoTransactions";
 import { goalSpent } from "../../utils/goals";
+import { sortItems, txProblems } from "../../utils/categorySort";
+import { useUsage } from "../../hooks/useUsage";
 
 type TransactionType = "expense" | "income";
 
@@ -74,8 +76,21 @@ export default function AddTransactionModal({
   onOpenManageFundCategories,
   editTransaction,
 }: AddTransactionModalProps) {
-  const { expenseCategories, incomeCategories, fundCategories, updateTransaction, deleteTransaction, settings, goals, transactions } =
-    useFinanceStore();
+  const {
+    expenseCategories,
+    incomeCategories,
+    fundCategories,
+    updateTransaction,
+    deleteTransaction,
+    settings,
+    goals,
+    transactions,
+    categoryOrder,
+    fundCardOrder,
+    autoOrderByLastUsed,
+    markUsed,
+  } = useFinanceStore();
+  const u = useUsage();
   const Colors = useThemeColors();
   const { t } = useTranslation();
   const styles = getThemedStyles(createStyles, Colors);
@@ -95,6 +110,14 @@ export default function AddTransactionModal({
   // An expense can be paid from a savings goal ("От цел"): goals still being
   // saved for, plus the one this expense already uses when editing.
   const [goalId, setGoalId] = useState<string | undefined>(undefined);
+  // Required hints for title/amount show once the field was left empty (or
+  // Save was tried); category/fund ones whenever nothing is selected.
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [amountTouched, setAmountTouched] = useState(false);
+  const [saveTried, setSaveTried] = useState(false);
+  // A new transaction picks the first chip as soon as the lists are there —
+  // until the user unselects one themselves.
+  const autoPick = useRef(true);
 
   // Chains title -> amount -> category search on the keyboard's own
   // next/enter key, so filling out the mandatory fields for a new
@@ -136,10 +159,21 @@ export default function AddTransactionModal({
   const activeColor = isExpense ? Colors.expense : Colors.income;
   const categories = isExpense ? expenseCategories : incomeCategories;
 
-  // Prefill the form when opened in edit mode; default to the first available
-  // category/fund (real backend ids, not a hardcoded slug) for a new one.
+  // The first chip of each strip, in the order it shows (last used first,
+  // or the user's own order — Category settings). Skips "Unassigned" unless
+  // it's all there is, so a fresh form doesn't start on the save warning.
+  const sortMode = autoOrderByLastUsed ? "lastUsed" : "custom";
+  const pickFirst = (sorted: { id: string; locked?: boolean }[]) =>
+    (sorted.find((x) => !x.locked) ?? sorted[0])?.id ?? "";
+  const firstCategory = (list: typeof categories) =>
+    pickFirst(sortItems(list, sortMode, categoryOrder, u, (c) => c.label));
+  const firstFund = () => pickFirst(sortItems(fundCategories, sortMode, fundCardOrder, u, (f) => f.name));
+
+  // Prefill the form when opened in edit mode; default to the first chip
+  // (real backend ids, not a hardcoded slug) for a new one.
   useEffect(() => {
     if (!visible) return;
+    autoPick.current = !editTransaction;
     if (editTransaction) {
       setType(editTransaction.type);
       setTitle(editTransaction.title);
@@ -150,11 +184,34 @@ export default function AddTransactionModal({
       setDate(new Date(editTransaction.date));
       setGoalId(editTransaction.goalId);
     } else {
-      setSelectedCategory(expenseCategories[0]?.id ?? "");
-      setSelectedFundCategory(fundCategories[0]?.id ?? "");
+      setSelectedCategory(firstCategory(expenseCategories));
+      setSelectedFundCategory(firstFund());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, editTransaction]);
+
+  // Never hold an id that isn't a chip on screen: one deleted meanwhile (or
+  // already gone when editing) is cleared so its row asks for a new pick; an
+  // empty one is filled once the lists arrive (opened before they loaded).
+  useEffect(() => {
+    if (!visible) return;
+    if (selectedCategory && !categories.some((c) => c.id === selectedCategory)) setSelectedCategory("");
+    else if (!selectedCategory && autoPick.current) setSelectedCategory(firstCategory(categories));
+    if (selectedFundCategory && !fundCategories.some((f) => f.id === selectedFundCategory)) setSelectedFundCategory("");
+    else if (!selectedFundCategory && autoPick.current) setSelectedFundCategory(firstFund());
+    if (goalId && !goals.some((g) => g.id === goalId)) setGoalId(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, categories, fundCategories, goals, selectedCategory, selectedFundCategory, goalId]);
+
+  // Tapping the selected chip again unselects it.
+  const toggleCategory = (id: string) => {
+    autoPick.current = false;
+    setSelectedCategory((cur) => (cur === id ? "" : id));
+  };
+  const toggleFund = (id: string) => {
+    autoPick.current = false;
+    setSelectedFundCategory((cur) => (cur === id ? "" : id));
+  };
 
   // Reset form
   const handleClose = () => {
@@ -162,11 +219,14 @@ export default function AddTransactionModal({
     setTitle("");
     setAmount("");
     setShowNumpad(false);
-    setSelectedCategory(expenseCategories[0]?.id ?? "");
-    setSelectedFundCategory(fundCategories[0]?.id ?? "");
+    setSelectedCategory("");
+    setSelectedFundCategory("");
     setNote("");
     setDate(new Date());
     setGoalId(undefined);
+    setTitleTouched(false);
+    setAmountTouched(false);
+    setSaveTried(false);
     onClose();
     useTutorialStore.getState().addSheetClosed();
   };
@@ -175,18 +235,57 @@ export default function AddTransactionModal({
   const handleTypeSwitch = (newType: TransactionType) => {
     setType(newType);
     const list = newType === "expense" ? expenseCategories : incomeCategories;
-    setSelectedCategory(list[0]?.id ?? "");
+    setSelectedCategory(firstCategory(list));
   };
 
-  // Both a title and a positive amount are required.
-  const parsedAmountValue = parseFloat(amount);
-  const canSave =
-    title.trim().length > 0 && !isNaN(parsedAmountValue) && parsedAmountValue > 0 && !saving;
+  const showRequired = {
+    title: !title.trim() && (titleTouched || saveTried),
+    amount: !(parseFloat(amount) > 0) && (amountTouched || saveTried),
+    category: ready && !selectedCategory,
+    fund: ready && !selectedFundCategory,
+  };
 
-  // Save
+  // Save: says what's missing instead of saving something the server would
+  // refuse, and asks first when the category or fund is still "Unassigned".
   const handleSave = async () => {
+    if (saving) return;
     const parsedAmount = parseFloat(amount);
-    if (!canSave) return;
+    const problems = txProblems(
+      {
+        title,
+        amount: parsedAmount,
+        category: selectedCategory,
+        fundCategory: selectedFundCategory,
+        date,
+        goalId: isExpense ? goalId : undefined,
+      },
+      { categories, funds: fundCategories, goals },
+    );
+    if (problems.length > 0) {
+      setSaveTried(true);
+      await alertAsync(
+        t("addTx.missingTitle"),
+        t("addTx.missingInfo", { problems: problems.map((p) => t(`txProblem.${p}`)).join(", ") }),
+      );
+      return;
+    }
+    const catUnassigned = categories.find((c) => c.id === selectedCategory)?.locked;
+    const fundUnassigned = fundCategories.find((f) => f.id === selectedFundCategory)?.locked;
+    if (catUnassigned || fundUnassigned) {
+      const ok = await confirmAsyncWithLabel(
+        t("addTx.unassignedTitle"),
+        t(
+          catUnassigned && fundUnassigned
+            ? "addTx.unassignedBoth"
+            : catUnassigned
+              ? "addTx.unassignedCategory"
+              : "addTx.unassignedFund",
+        ),
+        t("addTx.saveAnyway"),
+        { destructive: false },
+      );
+      if (!ok) return;
+    }
 
     setSaving(true);
     try {
@@ -214,6 +313,7 @@ export default function AddTransactionModal({
         );
         tutorialEmit("transactionSaved");
       }
+      markUsed([selectedCategory, selectedFundCategory]);
       handleClose();
     } catch (err) {
       await alertAsync(
@@ -395,11 +495,13 @@ export default function AddTransactionModal({
                 value={title}
                 onChangeText={setTitle}
                 onFocus={() => setShowNumpad(false)}
+                onBlur={() => setTitleTouched(true)}
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => amountInputRef.current?.focus()}
               />
             </View>
+            {showRequired.title && <Text style={styles.requiredText}>{t("addTx.required")}</Text>}
 
             {/* Amount Field — typeable directly, with an optional tap-numpad for touch */}
             <View
@@ -430,6 +532,7 @@ export default function AddTransactionModal({
                   setAmount(cleaned);
                 }}
                 onFocus={() => setShowNumpad(false)}
+                onBlur={() => setAmountTouched(true)}
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => categorySearchRef.current?.focus()}
@@ -458,6 +561,7 @@ export default function AddTransactionModal({
                 />
               </TouchableOpacity>
             </View>
+            {showRequired.amount && <Text style={styles.requiredText}>{t("addTx.required")}</Text>}
             </View>
 
             {Platform.OS === "ios" && (
@@ -519,13 +623,14 @@ export default function AddTransactionModal({
               <CategoryPicker
                 categories={categories}
                 selected={selectedCategory}
-                onSelect={setSelectedCategory}
+                onSelect={toggleCategory}
                 onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
                 searchInputRef={categorySearchRef}
               />
             ) : (
               <CategoryPickerSkeleton />
             )}
+            {showRequired.category && <Text style={styles.requiredText}>{t("addTx.required")}</Text>}
             </View>
 
             {/* Fund Category */}
@@ -545,13 +650,14 @@ export default function AddTransactionModal({
               <FundCategoryPicker
                 fundCategories={fundCategories}
                 selected={selectedFundCategory}
-                onSelect={setSelectedFundCategory}
+                onSelect={toggleFund}
                 onAdd={() => onOpenManageFundCategories(setSelectedFundCategory)}
                 onHoldEdit={(id) => onOpenManageFundCategories(setSelectedFundCategory, id)}
               />
             ) : (
               <ChipRowSkeleton count={4} />
             )}
+            {showRequired.fund && <Text style={styles.requiredText}>{t("addTx.required")}</Text>}
             </View>
 
             {/* Paid from a savings goal: marks the goal as used. */}
@@ -616,10 +722,10 @@ export default function AddTransactionModal({
                 styles.saveBtn,
                 styles.saveBtnFlex,
                 { backgroundColor: activeColor },
-                !canSave && styles.saveBtnDisabled,
+                saving && styles.saveBtnDisabled,
               ]}
               onPress={handleSave}
-              disabled={!canSave}
+              disabled={saving}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
@@ -749,6 +855,13 @@ function createStyles(Colors: ColorsType) {
     borderWidth: 0.5,
     borderColor: Colors.border,
     gap: 8,
+  },
+  requiredText: {
+    fontSize: FONT.small,
+    color: Colors.expense,
+    marginHorizontal: 20,
+    marginTop: -4,
+    marginBottom: 10,
   },
   goalLabel: { marginHorizontal: 16, marginBottom: 8 },
   goalChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 12 },

@@ -21,6 +21,7 @@ import { isDemoId } from "../utils/demoTransactions";
 import i18n from "../i18n";
 import { defaultCategoryKey, defaultFundKey } from "../constants/defaultNames";
 import { mergeOrder, sortByOrder } from "../utils/reorder";
+import type { CategorySort } from "../utils/categorySort";
 
 export type Transaction = {
   id: string;
@@ -157,9 +158,11 @@ export type EntityOp = {
 
 export type PendingOp =
   // clientGeneratedId doubles as the local placeholder row id until it syncs
-  | { kind: "create"; clientGeneratedId: string; payload: TransactionFields; status: OpStatus }
-  | { kind: "update"; transactionId: string; payload: TransactionFields; status: OpStatus }
-  | { kind: "delete"; transactionId: string; status: OpStatus };
+  // error: the server's reason, kept once an op has failed (shown when the
+  // sync bar is tapped).
+  | { kind: "create"; clientGeneratedId: string; payload: TransactionFields; status: OpStatus; error?: string }
+  | { kind: "update"; transactionId: string; payload: TransactionFields; status: OpStatus; error?: string }
+  | { kind: "delete"; transactionId: string; status: OpStatus; error?: string };
 
 type FinanceStore = {
   // --- synced from the backend, cached on-device per user ---
@@ -283,6 +286,17 @@ type FinanceStore = {
   // the ids never clash); same rules as fundCardOrder.
   categoryOrder: string[];
   setCategoryOrder: (order: string[]) => void;
+  // When each category/fund was last picked for a saved transaction on this
+  // device (ms) — orders the transaction form's chips by last used.
+  lastUsed: Record<string, number>;
+  markUsed: (ids: string[]) => void;
+  // Category settings: chips in the transaction form ordered by last used
+  // (on) or by the user's own arranged order (off).
+  autoOrderByLastUsed: boolean;
+  setAutoOrderByLastUsed: (on: boolean) => void;
+  // How the category manager lists categories.
+  categorySort: CategorySort;
+  setCategorySort: (sort: CategorySort) => void;
   // App-tour sample rows (ids start with "demo-"): memory-only, never synced.
   addDemoTransactions: (demo: Transaction[]) => void;
   removeDemoTransactions: () => void;
@@ -639,9 +653,10 @@ async function runPendingOp(op: PendingOp, set: FinanceSet, get: FinanceGet): Pr
       return;
     }
     // Leave it queued so it can be retried rather than blocking the rest.
+    const error = err instanceof Error ? err.message : String(err);
     set((state) => ({
       pendingOps: state.pendingOps.map((o) =>
-        opKey(o) === key ? { ...o, status: "failed" as const } : o,
+        opKey(o) === key ? { ...o, status: "failed" as const, error } : o,
       ),
     }));
   }
@@ -847,6 +862,18 @@ export const useFinanceStore = create<FinanceStore>()(
       clearJustAdded: () => set({ justAddedId: null }),
       setAlertRuleOrder: (ids) => set((state) => ({ alertRules: sortByOrder(state.alertRules, ids) })),
       categoryOrder: [],
+      lastUsed: {},
+      markUsed: (ids) =>
+        set((state) => {
+          const now = Date.now();
+          const lastUsed = { ...state.lastUsed };
+          for (const id of ids) if (id) lastUsed[id] = now;
+          return { lastUsed };
+        }),
+      autoOrderByLastUsed: true,
+      setAutoOrderByLastUsed: (on) => set({ autoOrderByLastUsed: on }),
+      categorySort: "lastUsed",
+      setCategorySort: (sort) => set({ categorySort: sort }),
       themePreference: "system",
       notificationsEnabled: true,
       tips: { install: true, notifications: true, alerts: true, reminder: true },
@@ -1387,6 +1414,9 @@ export const useFinanceStore = create<FinanceStore>()(
         goalOrder: state.goalOrder,
         lastAddedAt: state.lastAddedAt,
         categoryOrder: state.categoryOrder,
+        lastUsed: state.lastUsed,
+        autoOrderByLastUsed: state.autoOrderByLastUsed,
+        categorySort: state.categorySort,
         alertRules: state.alertRules,
         pendingOps: state.pendingOps,
         // Tour sample rows are memory-only: never written to disk.
