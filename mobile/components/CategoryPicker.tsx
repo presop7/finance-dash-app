@@ -11,7 +11,8 @@ import { themedCategoryColor } from "../utils/color";
 import { useStagedCount } from "../hooks/useStagedCount";
 import { ReorderItem, useReorder } from "./Reorderable";
 import { useFinanceStore } from "../store/useFinanceStore";
-import { sortByOrder } from "../utils/reorder";
+import { sortItems } from "../utils/categorySort";
+import { useUsage } from "../hooks/useUsage";
 import { useTranslation } from "react-i18next";
 import FieldIcon from "./FieldIcon";
 import { FONT } from "../constants/typography";
@@ -45,14 +46,18 @@ export default function CategoryPicker({
   const isDark = useResolvedScheme() === "dark";
   const categoryOrder = useFinanceStore((s) => s.categoryOrder);
   const setCategoryOrder = useFinanceStore((s) => s.setCategoryOrder);
+  // Last used first (Category settings), or the user's own arranged order.
+  const autoOrder = useFinanceStore((s) => s.autoOrderByLastUsed);
+  const u = useUsage();
   const trimmed = search.trim().toLowerCase();
-  const sorted = sortByOrder(categories, categoryOrder);
+  const sorted = sortItems(categories, autoOrder ? "lastUsed" : "custom", categoryOrder, u, (c) => c.label);
   const filtered = trimmed
     ? sorted.filter((c) => c.label.toLowerCase().includes(trimmed))
     : sorted;
-  // Reordering only with the full list showing, not a search's few.
+  // Reordering only with the full list showing, not a search's few — and
+  // not while ordered by last used, which would just put them back.
   const scrollRef = useRef<ScrollView>(null);
-  const reorder = useReorder(filtered.map((c) => c.id), setCategoryOrder, !trimmed, {
+  const reorder = useReorder(filtered.map((c) => c.id), setCategoryOrder, !trimmed && !autoOrder, {
     ref: scrollRef,
     horizontal: true,
   });

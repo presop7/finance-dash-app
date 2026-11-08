@@ -9,7 +9,8 @@ import { useThemeColors, useResolvedScheme, getThemedStyles } from "../hooks/use
 import { themedCategoryColor } from "../utils/color";
 import { ReorderItem, useReorder } from "./Reorderable";
 import { useFinanceStore } from "../store/useFinanceStore";
-import { sortByOrder } from "../utils/reorder";
+import { sortItems } from "../utils/categorySort";
+import { useUsage } from "../hooks/useUsage";
 import { FONT } from "../constants/typography";
 
 type FundCategoryPickerProps = {
@@ -40,8 +41,12 @@ export default function FundCategoryPicker({
   const isDark = useResolvedScheme() === "dark";
   const fundCardOrder = useFinanceStore((s) => s.fundCardOrder);
   const setFundCardOrder = useFinanceStore((s) => s.setFundCardOrder);
-  const sorted = sortByOrder(fundCategories, fundCardOrder);
-  const reorder = useReorder(sorted.map((f) => f.id), setFundCardOrder, true, {
+  // Last used first (Category settings), or the user's own arranged order;
+  // dragging only in the latter, since last used would just put them back.
+  const autoOrder = useFinanceStore((s) => s.autoOrderByLastUsed);
+  const u = useUsage();
+  const sorted = sortItems(fundCategories, autoOrder ? "lastUsed" : "custom", fundCardOrder, u, (f) => f.name);
+  const reorder = useReorder(sorted.map((f) => f.id), setFundCardOrder, !autoOrder, {
     ref: scrollRef,
     horizontal: true,
   });

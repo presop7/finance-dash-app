@@ -27,6 +27,7 @@ import ShareAppModal from "./modals/ShareAppModal";
 import ChangePasswordModal from "./modals/ChangePasswordModal";
 import TipsModal from "./modals/TipsModal";
 import { requirePremium, usePlan, usePremiumStore } from "../store/usePremiumStore";
+import CategorySettingsModal from "./modals/CategorySettingsModal";
 import { useHighlightStore } from "../store/useHighlightStore";
 import { useWhatsNewStore } from "../store/useWhatsNewStore";
 import {
@@ -87,6 +88,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
   const setNotificationsEnabled = useFinanceStore((s) => s.setNotificationsEnabled);
   const [permitted, setPermitted] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [showCategorySettings, setShowCategorySettings] = useState(false);
   useFocusEffect(
     useCallback(() => {
       hasNotificationPermission().then(setPermitted);
@@ -748,6 +750,19 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
 
           <View style={styles.divider} />
 
+          <TouchableOpacity style={styles.row} onPress={() => setShowCategorySettings(true)} activeOpacity={0.7}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="options-outline" size={18} color={Colors.primary} />
+            </View>
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{t("categorySettings.title")}</Text>
+              <Text style={styles.rowSubtitle}>{t("categorySettings.rowHint")}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity
             style={styles.row}
             onPress={() => requirePremium("csv") && onOpenImport()}
@@ -956,6 +971,7 @@ function SettingsScreen({ onOpenCategories, onOpenImport }: SettingsScreenProps)
       <ShareAppModal visible={showShare} onClose={() => setShowShare(false)} />
       <ChangePasswordModal visible={showChangePassword} onClose={() => setShowChangePassword(false)} />
       <TipsModal visible={showTips} onClose={() => setShowTips(false)} />
+      <CategorySettingsModal visible={showCategorySettings} onClose={() => setShowCategorySettings(false)} />
     </View>
   );
 }

@@ -30,7 +30,8 @@ import { ApiError } from "../../services/api";
 import { financeApi } from "../../services/financeApi";
 import type { DeleteConflictDetail } from "../../services/financeApi";
 import { ReorderItem, useReorder } from "../../components/Reorderable";
-import { sortByOrder } from "../../utils/reorder";
+import { sortItems, type CategorySort } from "../../utils/categorySort";
+import { useUsage } from "../../hooks/useUsage";
 import ModalCloseButton from "../../components/ModalCloseButton";
 import FlashBorder from "../../components/FlashBorder";
 import CategoryEditModal from "./CategoryEditModal";
@@ -85,7 +86,11 @@ export default function CategoriesModal({
     setCategoryOrder,
     fundCardOrder,
     setFundCardOrder,
+    categorySort,
+    setCategorySort,
+    markUsed,
   } = useFinanceStore();
+  const u = useUsage();
   const insets = useSafeAreaInsets();
   const Colors = useThemeColors();
   const { t } = useTranslation();
@@ -131,17 +136,23 @@ export default function CategoriesModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialType, initialEditId]);
 
-  // In the user's chosen order — the same one the transaction form's chips
-  // and (for funds) the Dashboard's savings cards use.
-  const items: Array<Category | FundCategory> =
-    activeType === "expense"
-      ? sortByOrder(expenseCategories, categoryOrder)
-      : activeType === "income"
-        ? sortByOrder(incomeCategories, categoryOrder)
-        : sortByOrder(fundCategories, fundCardOrder);
-
   const getLabel = (item: Category | FundCategory) =>
     activeType === "fund" ? (item as FundCategory).name : (item as Category).label;
+
+  // In the chosen sort (last used, A–Z, most used); "custom" is the user's
+  // own arranged order — the same one the transaction form's chips (with
+  // ordering by last used off) and, for funds, the Dashboard cards use.
+  const list: Array<Category | FundCategory> =
+    activeType === "expense" ? expenseCategories : activeType === "income" ? incomeCategories : fundCategories;
+  const customOrder = activeType === "fund" ? fundCardOrder : categoryOrder;
+  const items = sortItems(list, categorySort, customOrder, u, getLabel);
+  const isCustomSort = categorySort === "custom";
+  const SORTS: { key: CategorySort; label: string }[] = [
+    { key: "lastUsed", label: t("categories.sortLastUsed") },
+    { key: "alpha", label: t("categories.sortAlpha") },
+    { key: "count", label: t("categories.sortCount") },
+    { key: "custom", label: t("categories.sortCustom") },
+  ];
 
   // Same behavior as the category search in the transaction modal — filters
   // the grid live instead of relying purely on scrolling to find one.
@@ -155,12 +166,13 @@ export default function CategoriesModal({
   const visibleCount = useStagedCount(filteredItems.length, 14, ready);
 
   // Hold a chip and move it to reorder (with the full list showing, not a
-  // search's few); hold and let go still starts multi-select.
+  // search's few, and only in the custom order — any other sort would just
+  // put it back); hold and let go still starts multi-select.
   const gridScrollRef = useRef<ScrollView>(null);
   const reorder = useReorder(
     filteredItems.map((i) => i.id),
     activeType === "fund" ? setFundCardOrder : setCategoryOrder,
-    !trimmedSearch,
+    !trimmedSearch && isCustomSort,
     { ref: gridScrollRef, horizontal: false },
   );
   const itemsById = new Map(filteredItems.map((i) => [i.id, i]));
@@ -313,9 +325,11 @@ export default function CategoriesModal({
   const justAdded = useFinanceStore((s) => s.justAddedId);
   const clearJustAdded = useFinanceStore((s) => s.clearJustAdded);
   const showNew = (id: string) => {
-    const order = [id, ...items.map((i) => i.id)];
+    const order = [id, ...sortItems(list, "custom", customOrder, u, getLabel).map((i) => i.id)];
     if (activeType === "fund") setFundCardOrder(order);
     else setCategoryOrder(order);
+    // Counts as just used too, so it's first when ordered by last used.
+    markUsed([id]);
     gridScrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
@@ -489,6 +503,28 @@ export default function CategoriesModal({
               </TouchableOpacity>
             )}
           </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.sortRow}
+            contentContainerStyle={styles.sortRowContent}
+          >
+            <Ionicons name="swap-vertical-outline" size={14} color={Colors.textMuted} />
+            {SORTS.map((sort) => (
+              <TouchableOpacity
+                key={sort.key}
+                style={[styles.sortChip, categorySort === sort.key && styles.sortChipActive]}
+                onPress={() => setCategorySort(sort.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: categorySort === sort.key }}
+              >
+                <Text style={[styles.sortChipText, categorySort === sort.key && styles.sortChipTextActive]}>
+                  {sort.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           {selectMode && (
             <View style={styles.selectBar}>
@@ -760,6 +796,19 @@ function createStyles(Colors: ColorsType) {
     borderColor: Colors.border,
   },
   searchInput: { ...FIELD_INPUT, color: Colors.textPrimary },
+  sortRow: { flexGrow: 0, marginBottom: 12 },
+  sortRowContent: { paddingHorizontal: 16, gap: 6, alignItems: "center" },
+  sortChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  sortChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  sortChipText: { fontSize: FONT.small, color: Colors.textSecondary },
+  sortChipTextActive: { color: "#fff", fontWeight: "600" },
   emptySearchText: {
     fontSize: FONT.small,
     color: Colors.textMuted,
