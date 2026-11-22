@@ -1,5 +1,5 @@
 // Paid Premium: what the stores and Paddle are set up with (see
-// docs/billing-setup.md). services/billing.native.ts buys through Google Play
+// plans/billing-setup.md, outside the repo). services/billing.native.ts buys through Google Play
 // / the App Store, services/billing.ts through Paddle on the web.
 
 export type PlanId = "monthly" | "yearly";

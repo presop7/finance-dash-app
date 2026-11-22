@@ -6,7 +6,7 @@ import { useAuthStore } from "../store/useAuthStore";
 // Web version: Premium through Paddle, which sells it (and handles VAT,
 // invoices, card storage and failed-payment retries). Its signed webhooks tell
 // our server; the app only opens Paddle's checkout and waits for the result.
-// Off until EXPO_PUBLIC_PADDLE_* are set (see docs/billing-setup.md).
+// Off until EXPO_PUBLIC_PADDLE_* are set (see plans/billing-setup.md, outside the repo).
 const TOKEN = process.env.EXPO_PUBLIC_PADDLE_CLIENT_TOKEN;
 const SANDBOX = process.env.EXPO_PUBLIC_PADDLE_ENV !== "production";
 const PRICE_IDS: Record<PlanId, string | undefined> = {
