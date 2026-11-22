@@ -583,8 +583,7 @@ function AppContent() {
   const [showTransaction, setShowTransaction] = useState(false);
   const [categoriesModal, setCategoriesModal] = useState<CategoryTabType | null>(null);
   // Set only when categoriesModal was opened as a picker (from the
-  // transaction form's "+New" button, via onOpenManageCategories/
-  // onOpenManageFundCategories) rather than from Settings — stored as a
+  // transaction form's "+New" button, via onOpenManager) rather than from Settings — stored as a
   // functional update since the value itself is a function.
   const [categoryPickHandler, setCategoryPickHandler] = useState<((id: string) => void) | null>(
     null,
@@ -724,15 +723,10 @@ function AppContent() {
           setShowTransaction(false);
           setEditTransaction(null);
         }}
-        onOpenManageCategories={(onPicked, initialEditId) => {
+        onOpenManager={(type, onPicked, initialEditId) => {
           setCategoryPickHandler(() => onPicked);
           setCategoryInitialEditId(initialEditId);
-          setCategoriesModal("expense");
-        }}
-        onOpenManageFundCategories={(onPicked, initialEditId) => {
-          setCategoryPickHandler(() => onPicked);
-          setCategoryInitialEditId(initialEditId);
-          setCategoriesModal("fund");
+          setCategoriesModal(type);
         }}
         onSave={async (type, amount, category, fundCategory, title, note, date, goalId) => {
           // Errors propagate to AddTransactionModal's handleSave, which keeps

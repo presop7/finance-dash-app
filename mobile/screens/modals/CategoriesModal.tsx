@@ -355,7 +355,13 @@ export default function CategoriesModal({
         else createdId = await addFundCategory(payload);
       }
       setEditTarget(null);
-      if (createdId) showNew(createdId);
+      if (createdId) {
+        showNew(createdId);
+        // Opened as a picker: the new one is the pick — back to the form
+        // with it selected. Only on the tab it was opened for, since another
+        // tab's id means nothing to the field that asked.
+        if (onPick && activeType === initialType) onPick(createdId);
+      }
     } catch (err) {
       await alertAsync(
         t("categories.saveFailed"),

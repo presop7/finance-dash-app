@@ -106,8 +106,7 @@ type AnalyticsScreenProps = {
   onEditTransaction?: (transaction: Transaction) => void;
   // Opens the shared category manager as a picker for bulk fund/category
   // reassignment — same shape as AddTransactionModal's own
-  // onOpenManageCategories/onOpenManageFundCategories, but without the
-  // initial-edit-id plumbing those need.
+  // onOpenManager, but without the initial-edit-id plumbing it needs.
   onOpenCategoryPicker?: (type: CategoryTabType, onPicked: (id: string) => void) => void;
 };
 

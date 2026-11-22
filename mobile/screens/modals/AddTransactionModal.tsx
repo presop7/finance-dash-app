@@ -22,6 +22,7 @@ import { useDeferredReady } from "../../hooks/useDeferredReady";
 import { CategoryPickerSkeleton, ChipRowSkeleton } from "../../components/Skeleton";
 import CategoryPicker from "../../components/CategoryPicker";
 import FundCategoryPicker from "../../components/FundCategoryPicker";
+import type { CategoryTabType } from "./CategoriesModal";
 import DateTimeFields from "../../components/DateTimeFields";
 import { useFinanceStore, Transaction } from "../../store/useFinanceStore";
 import { confirmAsync, confirmAsyncWithLabel, alertAsync } from "../../utils/confirm";
@@ -41,6 +42,8 @@ import { isDemoId } from "../../utils/demoTransactions";
 import { goalSpent } from "../../utils/goals";
 import { sortItems, txProblems } from "../../utils/categorySort";
 import { useUsage } from "../../hooks/useUsage";
+import { FREE } from "../../constants/plan";
+import { requirePremium } from "../../store/usePremiumStore";
 
 type TransactionType = "expense" | "income";
 
@@ -60,10 +63,14 @@ type AddTransactionModalProps = {
   // Takes a callback: if the user picks an existing category/fund directly
   // from the manager instead of adding a new one, this modal's own
   // selection updates with it and the manager closes itself. The optional
-  // second argument opens the manager straight into editing that category
-  // (used when holding a chip here instead of tapping "+New").
-  onOpenManageCategories: (onPicked: (id: string) => void, initialEditId?: string) => void;
-  onOpenManageFundCategories: (onPicked: (id: string) => void, initialEditId?: string) => void;
+  // initialEditId opens the manager straight into editing that item (holding
+  // a chip), or "new" straight into creating one (the category "+New").
+  // `type` is the tab it opens on: this form's expense/income, or "fund".
+  onOpenManager: (
+    type: CategoryTabType,
+    onPicked: (id: string) => void,
+    initialEditId?: string,
+  ) => void;
   // When set, the modal edits this transaction instead of creating a new one.
   editTransaction?: Transaction | null;
 };
@@ -72,8 +79,7 @@ export default function AddTransactionModal({
   visible,
   onClose,
   onSave,
-  onOpenManageCategories,
-  onOpenManageFundCategories,
+  onOpenManager,
   editTransaction,
 }: AddTransactionModalProps) {
   const {
@@ -204,6 +210,14 @@ export default function AddTransactionModal({
   }, [visible, categories, fundCategories, goals, selectedCategory, selectedFundCategory, goalId]);
 
   // Tapping the selected chip again unselects it.
+  // Straight into creating a fund — free users at the limit get the Premium
+  // screen instead, the same check as the manager's own "add" button.
+  const newFund = () => {
+    const own = fundCategories.filter((f) => !f.locked).length;
+    if (own >= FREE.funds && !requirePremium("funds")) return;
+    onOpenManager("fund", setSelectedFundCategory, "new");
+  };
+
   const toggleCategory = (id: string) => {
     autoPick.current = false;
     setSelectedCategory((cur) => (cur === id ? "" : id));
@@ -612,7 +626,7 @@ export default function AddTransactionModal({
               <Text style={styles.sectionLabel}>{t("addTx.category")}</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
-                onPress={() => onOpenManageCategories(setSelectedCategory)}
+                onPress={() => onOpenManager(type, setSelectedCategory, "new")}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
                 <Text style={styles.manageCatText}>{t("addTx.newCategory")}</Text>
@@ -624,7 +638,7 @@ export default function AddTransactionModal({
                 categories={categories}
                 selected={selectedCategory}
                 onSelect={toggleCategory}
-                onHoldEdit={(id) => onOpenManageCategories(setSelectedCategory, id)}
+                onHoldEdit={(id) => onOpenManager(type, setSelectedCategory, id)}
                 searchInputRef={categorySearchRef}
               />
             ) : (
@@ -639,7 +653,7 @@ export default function AddTransactionModal({
               <Text style={styles.sectionLabel}>{t("addTx.fund")}</Text>
               <TouchableOpacity
                 style={styles.manageCatBtn}
-                onPress={() => onOpenManageFundCategories(setSelectedFundCategory)}
+                onPress={newFund}
               >
                 <Ionicons name="add" size={14} color={Colors.primary} />
                 <Text style={styles.manageCatText}>{t("addTx.newFund")}</Text>
@@ -651,8 +665,8 @@ export default function AddTransactionModal({
                 fundCategories={fundCategories}
                 selected={selectedFundCategory}
                 onSelect={toggleFund}
-                onAdd={() => onOpenManageFundCategories(setSelectedFundCategory)}
-                onHoldEdit={(id) => onOpenManageFundCategories(setSelectedFundCategory, id)}
+                onAdd={newFund}
+                onHoldEdit={(id) => onOpenManager("fund", setSelectedFundCategory, id)}
               />
             ) : (
               <ChipRowSkeleton count={4} />
